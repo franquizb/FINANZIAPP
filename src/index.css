@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Puedes añadir tus propios estilos CSS personalizados aquí */
+/* Por ejemplo, un estilo para el body si quieres forzar un color base que Tailwind no cubre por defecto en 'base' */
+body {
+  /* Esto es solo un ejemplo, las clases de Tailwind en App.jsx lo gestionan mejor */
+  /* background-color: #1a202c; */
+  /* color: #ffffff; */
+}

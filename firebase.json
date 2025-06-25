@@ -1,0 +1,55 @@
+{
+  "functions": [
+    {
+      "source": "functions",
+      "runtime": "nodejs20",
+      "timeoutSeconds": 60,
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+      "hosting": {
+      "public": "dist", 
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/api/v1/getLiveQuote",
+          "function": "getLiveQuote"
+        },
+        {
+          "source": "/api/v1/searchSymbol",
+          "function": "searchSymbol"
+        },
+        {
+          "source": "**",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+    
+  }
+}

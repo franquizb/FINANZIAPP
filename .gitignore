@@ -1,0 +1,39 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependency directories
+node_modules/
+
+# Production build output
+/dist
+/build
+/out
+
+# Local .env files
+.env
+.env.local
+.env.*.local
+
+# npm package manager cache
+.npm/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Firebase
+.firebase/
+firebase-debug.log
+*.env.local
+*.env
+
+# Emulators
+.emulator_suite/
