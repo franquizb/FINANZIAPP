@@ -4,8 +4,44 @@
 
 /* Puedes añadir tus propios estilos CSS personalizados aquí */
 /* Por ejemplo, un estilo para el body si quieres forzar un color base que Tailwind no cubre por defecto en 'base' */
-body {
-  /* Esto es solo un ejemplo, las clases de Tailwind en App.jsx lo gestionan mejor */
-  /* background-color: #1a202c; */
-  /* color: #ffffff; */
+/* src/index.css */
+
+/* ... tus estilos existentes de Tailwind y scrollbar ... */
+
+/* Estilos para tablas responsivas con primera columna fija */
+.table-fixed-col-wrapper {
+  /* overflow-x-auto es crucial para que el scroll funcione */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch; /* Suaviza el scroll en iOS */
+}
+
+.table-fixed-col-wrapper table {
+  /* Asegura que la tabla ocupe el espacio necesario para el scroll */
+  display: block; /* Para que el scroll funcione correctamente en algunos casos */
+  white-space: nowrap; /* Evita que el contenido de la tabla se ajuste */
+}
+
+.table-fixed-col-wrapper thead th:first-child,
+.table-fixed-col-wrapper tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 2; /* Para que esté por encima del contenido que se desplaza */
+  background-color: #374151; /* Fondo para la columna fija (gris oscuro) */
+  /* Ajustar los bordes y sombras si es necesario para la estética */
+  box-shadow: 2px 0px 5px rgba(0, 0, 0, 0.2); /* Sombra sutil para que se vea que es fija */
+}
+
+/* Ajuste de fondo para las cabeceras de columna fija si el tema cambia */
+.dark .table-fixed-col-wrapper thead th:first-child,
+.dark .table-fixed-col-wrapper tbody td:first-child {
+  background-color: #1f2937; /* Fondo para el modo oscuro */
+}
+
+/* Ocultar la barra de desplazamiento en Firefox si se quiere un look más limpio */
+/* Si ya tienes .custom-scrollbar { scrollbar-width: none; } esto puede ser redundante */
+.table-fixed-col-wrapper {
+  scrollbar-width: none; /* Firefox */
+}
+.table-fixed-col-wrapper::-webkit-scrollbar {
+  display: none; /* Webkit */
 }

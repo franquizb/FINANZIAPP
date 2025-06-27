@@ -24,8 +24,8 @@
     "firestore": {
       "port": 8080
     },
-      "hosting": {
-      "public": "dist", 
+    "hosting": {
+      "public": "dist",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -50,6 +50,19 @@
       "enabled": true
     },
     "singleProjectMode": true
-    
+  },
+  "hosting": {
+    "public": "build",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
   }
 }

@@ -43,7 +43,7 @@ exports.getLiveQuote = https.onCall(async (request) => {
     );
   }
 
-  const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=<span class="math-inline">\{symbol\}&apikey\=</span>{ALPHA_VANTAGE_API_KEY}`;
+  const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
 
   try {
     const response = await axios.get(url);
@@ -119,7 +119,7 @@ exports.searchSymbol = https.onCall(async (request) => { // CAMBIADO a 'request'
     return []; // Devolver array vacío si las palabras clave son muy cortas
   }
 
-  const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=<span class="math-inline">\{keywords\}&apikey\=</span>{ALPHA_VANTAGE_API_KEY}`;
+  const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${keywords}&apikey=${ALPHA_VANTAGE_API_KEY}`;
 
   try {
     const response = await axios.get(url);

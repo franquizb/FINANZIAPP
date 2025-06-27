@@ -1,5 +1,5 @@
 // src/context/AuthContext.jsx
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -7,10 +7,12 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  updateProfile // <-- Asegúrate de importar updateProfile si lo vas a usar directamente aquí
 } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore'; 
 import { auth, db } from '../firebase';
+import avatars from '../utils/avatars'; // <-- Importa los avatares para initializeUserData
 
 const AuthContext = createContext();
 
@@ -22,7 +24,7 @@ export const AuthProvider = ({ children }) => {
   const initialCategories = {
     Ingresos: ['Sueldo', 'Alquiler', 'Otros'],
     GastosEsenciales: ['Vivienda', 'Transporte', 'Alimentación', 'Salud', 'Suministros', 'Educación', 'Impuestos', 'Otros'],
-    GastosDiscrecionales: ['Ocio', 'Restaurantes', 'Compras', 'Viajes', 'Regalos', 'Suscripciones', 'Otros'],
+    GastosDiscrecionales: ['Ocio', 'Restaurantes', 'Compras', 'Viajes', 'Regalos', 'Susripciones', 'Otros'],
     PagoDeDeudas: ['Hipoteca', 'Coche', 'Personales', 'Tarjetas', 'Otros'],
     AhorroEInversion: ['Fondo de Emergencia', 'Inversiones L/P', 'Plan de Pensiones', 'Metas Específicas', 'Otros'],
     
@@ -40,6 +42,17 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Función para refrescar el usuario (útil después de updateProfile)
+  const refreshUser = useCallback(async () => {
+    if (auth.currentUser) {
+      // Fuerza la recarga de los datos del usuario desde Firebase
+      // Esto es crucial para obtener la info actualizada (displayName, photoURL)
+      await auth.currentUser.reload();
+      setCurrentUser(auth.currentUser); // Actualizar el estado con el usuario recargado
+      console.log("AuthContext: refreshUser ejecutado. Nuevo currentUser:", auth.currentUser);
+    }
+  }, []); // Dependencias vacías, ya que auth.currentUser es la referencia directa y no cambia en cada render
+
   const initializeUserData = async (uid, email) => {
     const currentYear = new Date().getFullYear().toString();
     const months = [
@@ -52,20 +65,25 @@ export const AuthProvider = ({ children }) => {
       monthlyInitialState[month] = { budgeted: {}, actual: [] };
     });
 
-    // Documento [uid]_config
+    // Obtener la información actual del usuario de Firebase Auth
+    // Esto es importante si el usuario se registró con Google y ya tiene un nombre/foto
+    const firebaseUser = auth.currentUser; 
+    const initialProfileName = firebaseUser?.displayName || email.split('@')[0];
+    const initialAvatarId = firebaseUser?.photoURL ? (avatars.find(a => a.url === firebaseUser.photoURL)?.id || 'default') : 'default';
+
     await setDoc(doc(db, 'users', `${uid}_config`), {
       defaultYear: currentYear,
-      categories: initialCategories, // Usa la nueva estructura aquí
+      categories: initialCategories,
       email: email, 
       createdAt: new Date(),
       language: 'es', 
       categoryDisplayNames: {},
       ActivosGroupOrder: Object.keys(initialCategories.Activos), 
       PasivosGroupOrder: Object.keys(initialCategories.Pasivos),
-      // NUEVO: Perfil de usuario por defecto
       profile: {
-        name: email.split('@')[0], // Nombre inicial tomado del email
-        avatarId: 'default' // ID del avatar por defecto
+        name: initialProfileName,
+        avatarId: initialAvatarId,
+        bio: '', // <-- ¡AÑADIDO: Campo de biografía inicial!
       }
     });
 
@@ -83,6 +101,9 @@ export const AuthProvider = ({ children }) => {
   const signup = (email, password) => {
     return createUserWithEmailAndPassword(auth, email, password)
       .then(async (userCredential) => {
+        // No llamas a initializeUserData aquí si ya lo haces después de updateProfile en RegisterPage
+        // O si initializeUserData es la única fuente de la config inicial de Firestore.
+        // Si initializeUserData es solo para crear datos si no existen, entonces está bien.
         await initializeUserData(userCredential.user.uid, userCredential.user.email);
         return userCredential;
       });
@@ -116,6 +137,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, user => {
+      console.log("AuthContext: onAuthStateChanged - user:", user);
       setCurrentUser(user);
       setLoading(false);
     });
@@ -129,11 +151,13 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     logout,
     resetPassword,
-    loading
+    loading,
+    refreshUser // <-- ¡AÑADIDO: Ahora refreshUser se provee!
   };
 
   return (
     <AuthContext.Provider value={value}>
+      {console.log("AuthContext: Providing value - currentUser:", value.currentUser, "loading:", value.loading)}
       {!loading && children}
     </AuthContext.Provider>
   );
