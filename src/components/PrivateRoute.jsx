@@ -2,10 +2,8 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-// Eliminada la importación de useTranslation
 
 function PrivateRoute({ children }) {
-  // Eliminada la inicialización de t
   const { currentUser, loading } = useAuth();
 
   if (loading) {
@@ -16,7 +14,9 @@ function PrivateRoute({ children }) {
     );
   }
 
-  return currentUser ? children : <Navigate to="/login" />;
+  // Si no hay usuario, redirige a /login. Esta es la función principal de un PrivateRoute.
+  // La redirección post-logout a / la maneja AuthContext.
+  return currentUser ? children : <Navigate to="/" />;
 }
 
 export default PrivateRoute;

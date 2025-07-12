@@ -19,6 +19,20 @@ const categoryStyles = {
     'AhorroEInversion': { color: '#059669', title: 'AHORRO E INVERSIÓN' }
 };
 
+// Componente de carga con spinner de círculo girando
+const LoadingSpinner = () => {
+    return (
+        <div className="flex flex-col items-center justify-center text-white dark:text-gray-200">
+            <svg className="animate-spin h-8 w-8 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="mt-3 text-lg">Cargando datos mensuales...</p>
+        </div>
+    );
+};
+
+
 // --- Componente para el Formulario de Registro Rápido (con diseño responsive) ---
 const QuickTransactionForm = ({ userConfig, onAddTransaction }) => {
     const [amount, setAmount] = useState('');
@@ -354,7 +368,11 @@ function MonthlyTrackerPage() {
     };
 
 
-    if (loadingData && !financeData) return <div className="flex justify-center items-center h-screen bg-gray-900 text-white">Cargando...</div>;
+    if (loadingData && !financeData) return (
+        <div className="flex justify-center items-center h-screen bg-gray-900 text-white">
+            <LoadingSpinner /> {/* Se usa el nuevo LoadingSpinner aquí */}
+        </div>
+    );
     if (errorData) return <div className="text-center py-8 text-red-500">Error: {errorData}</div>;
     if (!userConfig || !financeData) return <div className="text-center py-8 text-gray-400">Iniciando datos...</div>;
 
@@ -495,31 +513,31 @@ function MonthlyTrackerPage() {
 
             {/* SECCIÓN: Visión General (Gráficos y tabla resumen) */}
             <section className="bg-gray-800 border border-gray-700 p-3 sm:p-4 rounded-lg mb-6">
-                 <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Visión General</h2>
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     <div className="overflow-x-auto">
-                         <table className="w-full text-sm">
-                             <thead><tr className="border-b border-gray-600"><th className="text-left py-1.5 px-2 font-semibold">Categoría</th><th className="text-right py-1.5 px-2 font-semibold">Estimado</th><th className="text-right py-1.5 px-2 font-semibold">Real</th></tr></thead>
-                             <tbody>
-                                {monthlySummary.visionGeneral.length > 0 ? (
-                                    monthlySummary.visionGeneral.map(item => (
-                                        <tr key={item.name} className="border-b border-gray-700">
-                                            <td className="py-2 px-2">{item.name}</td>
-                                            <td className="text-right px-2 text-gray-400">{formatCurrency(item.Estimado)}</td>
-                                            <td className="text-right px-2 font-medium text-white">{formatCurrency(item.Real)}</td>
+                    <h2 className="text-base sm:text-lg font-semibold text-white mb-4">Visión General</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead><tr className="border-b border-gray-600"><th className="text-left py-1.5 px-2 font-semibold">Categoría</th><th className="text-right py-1.5 px-2 font-semibold">Estimado</th><th className="text-right py-1.5 px-2 font-semibold">Real</th></tr></thead>
+                                <tbody>
+                                    {monthlySummary.visionGeneral.length > 0 ? (
+                                        monthlySummary.visionGeneral.map(item => (
+                                            <tr key={item.name} className="border-b border-gray-700">
+                                                <td className="py-2 px-2">{item.name}</td>
+                                                <td className="text-right px-2 text-gray-400">{formatCurrency(item.Estimado)}</td>
+                                                <td className="text-right px-2 font-medium text-white">{formatCurrency(item.Real)}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="3" className="py-2 text-center text-gray-400">No hay datos para la visión general.</td>
                                         </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="3" className="py-2 text-center text-gray-400">No hay datos para la visión general.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                         </table>
-                         <div className="mt-4 text-center bg-gray-700/50 p-2 rounded-lg"><span className="font-semibold text-white">{monthlySummary.tasaAhorro.toFixed(2)}%</span><span className="ml-2 text-xs text-gray-400">Tasa de Ahorro</span></div>
-                     </div>
-                     <div className="h-[250px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlySummary.visionGeneral.filter(i => i.name !== 'Ingresos')} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}><CartesianGrid strokeDasharray="2 2" stroke="rgba(255, 255, 255, 0.1)" /><XAxis type="number" hide /><YAxis type="category" dataKey="name" width={80} stroke="#9ca3af" fontSize={10} axisLine={false} tickLine={false} interval={0}/><Tooltip formatter={(v) => formatCurrency(v)} cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.5rem' }} /><Legend wrapperStyle={{fontSize: "11px", paddingTop: '10px'}}/><Bar dataKey="Estimado" fill="#5a67d8" barSize={10} radius={[0, 4, 4, 0]} /><Bar dataKey="Real" fill="#38a169" barSize={10} radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div>
-                 </div>
+                                    )}
+                                </tbody>
+                            </table>
+                            <div className="mt-4 text-center bg-gray-700/50 p-2 rounded-lg"><span className="font-semibold text-white">{monthlySummary.tasaAhorro.toFixed(2)}%</span><span className="ml-2 text-xs text-gray-400">Tasa de Ahorro</span></div>
+                        </div>
+                        <div className="h-[250px]"><ResponsiveContainer width="100%" height="100%"><BarChart data={monthlySummary.visionGeneral.filter(i => i.name !== 'Ingresos')} layout="vertical" margin={{ top: 5, right: 10, left: 80, bottom: 5 }}><CartesianGrid strokeDasharray="2 2" stroke="rgba(255, 255, 255, 0.1)" /><XAxis type="number" hide /><YAxis type="category" dataKey="name" width={80} stroke="#9ca3af" fontSize={10} axisLine={false} tickLine={false} interval={0}/><Tooltip formatter={(v) => formatCurrency(v)} cursor={{fill: 'rgba(255,255,255,0.05)'}} contentStyle={{ backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '0.5rem' }} /><Legend wrapperStyle={{fontSize: "11px", paddingTop: '10px'}}/><Bar dataKey="Estimado" fill="#5a67d8" barSize={10} radius={[0, 4, 4, 0]} /><Bar dataKey="Real" fill="#38a169" barSize={10} radius={[0, 4, 4, 0]} /></BarChart></ResponsiveContainer></div>
+                    </div>
             </section>
         </div>
     );
