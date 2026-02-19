@@ -813,8 +813,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                                   onUpdateCfg(nc);
 
                                   const nd = JSON.parse(JSON.stringify(fullData));
-                                  delete nd[year].budget[sub];
-                                  months.forEach(m => { if (nd[year].monthly[m]) delete nd[year].monthly[m][sub]; });
+                                  if (nd[year].budget) delete nd[year].budget[sub];
+                                  months.forEach(m => { if (nd[year].monthly?.[m]) delete nd[year].monthly[m][sub]; });
                                   onUpdate(nd);
                                 }
                               }}>
@@ -1953,8 +1953,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
       nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
     }
     onUpdate(nc);
-
-    onUpdateFD(nd);
+    onUpdateFD(nfd);
     setShowDeleteModal(false); setDeleteTarget(null);
   };
 
