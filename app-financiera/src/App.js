@@ -1909,12 +1909,23 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         if (nfd[y].categories && nfd[y].categories[mk]) {
           nfd[y].categories[mk] = nfd[y].categories[mk].filter(s => s !== sub);
         }
-        delete nfd[y].budget?.[sub];
-        months.forEach(m => { delete nfd[y].monthly?.[m]?.[sub]; });
+        if (nfd[y].budget) delete nfd[y].budget[sub];
+        months.forEach(m => { if (nfd[y].monthly?.[m]) delete nfd[y].monthly[m][sub]; });
+        if (nfd[y].netWorth) {
+          if (nfd[y].netWorth.assets?.[sub]) delete nfd[y].netWorth.assets[sub];
+          if (nfd[y].netWorth.liabilities?.[sub]) delete nfd[y].netWorth.liabilities[sub];
+        }
       }
     });
 
-    onUpdateFD(nfd);
+    // Update global config as well
+    const nc = JSON.parse(JSON.stringify(config));
+    if (nc.categories[mk]) {
+      nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
+    }
+    onUpdate(nc);
+
+    onUpdateFD(nd);
     setShowDeleteModal(false); setDeleteTarget(null);
   };
 
@@ -2189,8 +2200,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             Modifica las categorías para <b>{selectedYear}</b> y años posteriores.
             Utiliza el selector de año en la barra superior para editar un año en concreto.
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-            {Object.keys(initialCategories).filter(mk => mk === 'Activos' || mk === 'Pasivos').map(mk => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+            {ALL_MAIN_KEYS.concat(['Activos', 'Pasivos']).map(mk => (
               <div key={mk} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <span style={{ fontWeight: 600, fontSize: 13 }}>{mk}</span>
