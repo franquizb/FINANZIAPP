@@ -2245,7 +2245,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             Utiliza el selector de año en la barra superior para editar un año en concreto.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {ALL_MAIN_KEYS.concat(['Activos', 'Pasivos']).map(mk => (
+            {['Activos', 'Pasivos'].map(mk => (
               <div key={mk} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <span style={{ fontWeight: 600, fontSize: 13 }}>{mk}</span>
@@ -2254,14 +2254,23 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {((financialData?.[selectedYear]?.categories || config.categories)[mk] || []).map(sub => (
-                    <span key={sub} className="chip">
-                      {sub}
-                      <button className="chip-remove" onClick={() => { setDeleteTarget({ mk, sub }); setShowDeleteModal(true); }}>
-                        <Ic d="M6 18L18 6M6 6l12 12" size={11} />
-                      </button>
-                    </span>
-                  ))}
+                  {((financialData?.[selectedYear]?.categories || config.categories)[mk] || []).map(sub => {
+                    const isLoan = mk === 'Pasivos' && (financialData?.loans || []).some(l => l.name === sub);
+                    return (
+                      <span key={sub} className="chip" style={{ paddingRight: isLoan ? 12 : 6 }}>
+                        {sub}
+                        {isLoan ? (
+                          <span style={{ marginLeft: 6, opacity: 0.5 }} title={t.loanLocked}>
+                            <Ic d={PATHS.lock} size={10} />
+                          </span>
+                        ) : (
+                          <button className="chip-remove" onClick={() => { setDeleteTarget({ mk, sub }); setShowDeleteModal(true); }}>
+                            <Ic d="M6 18L18 6M6 6l12 12" size={11} />
+                          </button>
+                        )}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             ))}
