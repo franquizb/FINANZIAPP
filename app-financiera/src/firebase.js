@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
 // Configuración de tu proyecto de Firebase
 const firebaseConfig = {
@@ -13,11 +14,12 @@ const firebaseConfig = {
     measurementId: "G-K369TETQ62"
 };
 
-let app, auth, analytics;
+let app, auth, analytics, db;
 
 try {
     app = initializeApp(firebaseConfig);
     auth = getAuth(app);
+    db = getFirestore(app);
     if (typeof window !== 'undefined') {
         analytics = getAnalytics(app);
     }
@@ -25,4 +27,4 @@ try {
     console.error("Firebase no se pudo inicializar:", error);
 }
 
-export { app, auth, analytics };
+export { app, auth, analytics, db };

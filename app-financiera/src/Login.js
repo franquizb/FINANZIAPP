@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const LOCAL_USERS = [];
 
@@ -95,6 +96,16 @@ export default function Login({ onLogin }) {
 
       const existingUser = allUsers.find(u => u.email.toLowerCase() === user.email.toLowerCase());
 
+      // Guardar perfil en Firestore
+      const profile = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName || user.email.split('@')[0],
+        photoURL: user.photoURL,
+        lastLogin: Date.now()
+      };
+      await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+
       if (existingUser) {
         // Iniciar sesión con el usuario existente
         const isAdmin = existingUser.email.toLowerCase() === 'brianantigua@gmail.com';
@@ -108,7 +119,7 @@ export default function Login({ onLogin }) {
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);
       } else {
-        // Si el usuario no existe localmente (ej. nueva computadora), crearlo automáticamente
+        // Si el usuario no existe localmente, crearlo
         const isAdmin = user.email.toLowerCase() === 'brianantigua@gmail.com';
         const newUser = {
           uid: user.uid,
@@ -119,7 +130,7 @@ export default function Login({ onLogin }) {
           permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']
         };
 
-        // Guardar en la lista local
+        // Guardar en la lista local y Firebase (opcional, Firebase es lo principal ahora)
         const currentList = JSON.parse(localStorage.getItem('users_list') || '[]');
         currentList.push(newUser);
         localStorage.setItem('users_list', JSON.stringify(currentList));

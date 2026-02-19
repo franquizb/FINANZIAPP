@@ -10,6 +10,8 @@ import {
   AreaChart, Area, Brush
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
+import { db } from './firebase';
+import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
 
 // ─── DB LOCAL ────────────────────────────────────────────────────────────────
 const localDB = {
@@ -250,113 +252,147 @@ function AppInner() {
     }
   }, [user, navigate]);
 
-  // Load data
+  // Load data from Firestore
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
-    try {
-      const savedConfig = localDB.get(`users_${userId}_config`);
-      const savedData = localDB.get(`users_${userId}_data`);
-      const currentConfig = {
-        tutorialCompleted: savedConfig?.tutorialCompleted || false,
-        defaultYear: savedConfig?.defaultYear || defaultStartYear,
-        categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
-        visibleViews: savedConfig?.visibleViews || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
-        visibleBudgetSections: savedConfig?.visibleBudgetSections || ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
-      };
 
-      if (!savedConfig?.tutorialCompleted) {
-        setShowTutorial(true);
-      }
+    const loadData = async () => {
+      try {
+        // 1. Intentar cargar desde Firestore
+        const configRef = doc(db, 'users', userId, 'settings', 'config');
+        const dataRef = doc(db, 'users', userId, 'data', 'financial');
 
-      // Force 'analysis' for existing users if not present in visibleViews
-      if (savedConfig?.visibleViews && !currentConfig.visibleViews.includes('analysis')) {
-        currentConfig.visibleViews.push('analysis');
-      }
+        const configSnap = await getDoc(configRef);
+        const dataSnap = await getDoc(dataRef);
 
-      // Ensure all default main categories exist for existing users who might lack them
-      Object.keys(initialCategories).forEach(mk => {
-        if (!currentConfig.categories[mk]) {
-          currentConfig.categories[mk] = [...initialCategories[mk]];
+        let savedConfig = configSnap.exists() ? configSnap.data() : null;
+        let savedData = dataSnap.exists() ? dataSnap.data() : null;
+
+        // 2. Si no hay datos en la nube, buscar en localStorage (Migración)
+        if (!savedConfig || !savedData) {
+          const localConfig = localDB.get(`users_${userId}_config`);
+          const localData = localDB.get(`users_${userId}_data`);
+
+          if (localConfig && !savedConfig) savedConfig = localConfig;
+          if (localData && !savedData) savedData = localData;
+
+          // Guardar en la nube lo que encontramos localmente
+          if (savedConfig) await setDoc(configRef, savedConfig);
+          if (savedData) await setDoc(dataRef, savedData);
         }
-      });
 
-      const fd = savedData || {};
-      if (!fd.loans) fd.loans = [];
-      if (!fd.trading) fd.trading = [];
+        const currentConfig = {
+          tutorialCompleted: savedConfig?.tutorialCompleted || false,
+          defaultYear: savedConfig?.defaultYear || defaultStartYear,
+          categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
+          visibleViews: savedConfig?.visibleViews || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
+          visibleBudgetSections: savedConfig?.visibleBudgetSections || ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
+        };
 
-      let baseCats = currentConfig.categories;
-      let existingYears = Object.keys(fd).filter(y => !isNaN(parseInt(y))).map(y => parseInt(y)).sort((a, b) => a - b);
-      let earliestYear = existingYears.length > 0 ? existingYears[0] : defaultStartYear;
+        if (!currentConfig.tutorialCompleted) {
+          setShowTutorial(true);
+        }
 
-      for (let y = earliestYear; y <= defaultStartYear + 10; y++) {
-        if (!fd[y]) fd[y] = generateInitialYearData(y, baseCats);
-        if (!fd[y].categories) fd[y].categories = JSON.parse(JSON.stringify(baseCats));
-        baseCats = fd[y].categories; // propagate backwards compatibility into new iterations or carry existing forwards
+        const fd = savedData || {};
+        if (!fd.loans) fd.loans = [];
+        if (!fd.trading) fd.trading = [];
 
-        if (!fd[y].oneTime) { fd[y].oneTime = {}; months.forEach(m => { fd[y].oneTime[m] = []; }); }
-        Object.keys(fd[y].categories).forEach(mk => {
-          const isNW = mk === 'Activos' || mk === 'Pasivos';
-          (fd[y].categories[mk] || []).forEach(sub => {
-            if (isNW) {
-              const nwk = mk === 'Activos' ? 'assets' : 'liabilities';
-              if (!fd[y].netWorth) fd[y].netWorth = { assets: {}, liabilities: {} };
-              if (!fd[y].netWorth[nwk]) fd[y].netWorth[nwk] = {};
-              if (!fd[y].netWorth[nwk][sub]) { fd[y].netWorth[nwk][sub] = {}; months.forEach(m => fd[y].netWorth[nwk][sub][m] = 0); }
-            } else {
-              if (fd[y].budget?.[sub] === undefined) fd[y].budget[sub] = (y === defaultStartYear && defaultBudget[sub] !== undefined) ? defaultBudget[sub] : 0;
-              months.forEach(mo => {
-                if (!fd[y].monthly[mo]) fd[y].monthly[mo] = {};
-                if (!fd[y].monthly[mo][sub]) fd[y].monthly[mo][sub] = { budgeted: 0, actual: [] };
-                else if (!Array.isArray(fd[y].monthly[mo][sub].actual)) fd[y].monthly[mo][sub].actual = [];
-              });
-            }
+        let baseCats = currentConfig.categories;
+        let existingYears = Object.keys(fd).filter(y => !isNaN(parseInt(y))).map(y => parseInt(y)).sort((a, b) => a - b);
+        let earliestYear = existingYears.length > 0 ? existingYears[0] : defaultStartYear;
+
+        for (let y = earliestYear; y <= defaultStartYear + 10; y++) {
+          if (!fd[y]) fd[y] = generateInitialYearData(y, baseCats);
+          if (!fd[y].categories) fd[y].categories = JSON.parse(JSON.stringify(baseCats));
+          baseCats = fd[y].categories;
+
+          if (!fd[y].oneTime) { fd[y].oneTime = {}; months.forEach(m => { fd[y].oneTime[m] = []; }); }
+          Object.keys(fd[y].categories).forEach(mk => {
+            const isNW = mk === 'Activos' || mk === 'Pasivos';
+            (fd[y].categories[mk] || []).forEach(sub => {
+              if (isNW) {
+                const nwk = mk === 'Activos' ? 'assets' : 'liabilities';
+                if (!fd[y].netWorth) fd[y].netWorth = { assets: {}, liabilities: {} };
+                if (!fd[y].netWorth[nwk]) fd[y].netWorth[nwk] = {};
+                if (!fd[y].netWorth[nwk][sub]) { fd[y].netWorth[nwk][sub] = {}; months.forEach(m => fd[y].netWorth[nwk][sub][m] = 0); }
+              } else {
+                if (fd[y].budget?.[sub] === undefined) fd[y].budget[sub] = (y === defaultStartYear && defaultBudget[sub] !== undefined) ? defaultBudget[sub] : 0;
+                months.forEach(mo => {
+                  if (!fd[y].monthly[mo]) fd[y].monthly[mo] = {};
+                  if (!fd[y].monthly[mo][sub]) fd[y].monthly[mo][sub] = { budgeted: 0, actual: [] };
+                  else if (!Array.isArray(fd[y].monthly[mo][sub].actual)) fd[y].monthly[mo][sub].actual = [];
+                });
+              }
+            });
           });
-        });
-      }
-      localDB.set(`users_${userId}_data`, fd);
-
-      // Heartbeat for activity
-      const logSession = () => {
-        const logs = localDB.get('activity_logs') || [];
-        const now = Date.now();
-        const currentSession = logs.find(l => l.uid === userId && !l.end);
-        if (currentSession) {
-          currentSession.lastSeen = now;
-          localDB.set('activity_logs', logs);
-        } else {
-          logs.push({ uid: userId, email: user.email, start: now, lastSeen: now, end: null });
-          localDB.set('activity_logs', logs);
         }
-      };
-      logSession();
-      const interval = setInterval(logSession, 30000); // Pulse every 30s
 
-      setConfig(currentConfig);
-      setFinancialData(fd);
-      setSelectedYear(currentConfig.defaultYear);
-      return () => clearInterval(interval);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
+        // Suscribirse a cambios en tiempo real (opcional, por ahora solo guardamos)
+        setConfig(currentConfig);
+        setFinancialData(fd);
+        setSelectedYear(currentConfig.defaultYear);
+      } catch (e) {
+        console.error("Error cargando datos de Firebase:", e);
+        setError("Error al sincronizar con la nube: " + e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+
+    // Sincronizar logs de actividad
+    const logSession = () => {
+      // Por ahora mantenemos el log local, o podríamos moverlo a Firebase si es necesario
+    };
+    logSession();
+    const interval = setInterval(logSession, 30000);
+    return () => clearInterval(interval);
   }, [userId]);
 
   if (!user) return <Login onLogin={handleLogin} />;
 
-  const updateFD = (nd) => { setFinancialData(nd); localDB.set(`users_${userId}_data`, nd); };
-  const updateCfg = (nc) => { setConfig(nc); localDB.set(`users_${userId}_config`, nc); };
+  const updateFD = async (nd) => {
+    setFinancialData(nd);
+    localDB.set(`users_${userId}_data`, nd);
+    if (userId) {
+      try {
+        await setDoc(doc(db, 'users', userId, 'data', 'financial'), nd);
+      } catch (e) { console.error("Error guardando en la nube:", e); }
+    }
+  };
 
-  const updateProfile = (newProfile) => {
+  const updateCfg = async (nc) => {
+    setConfig(nc);
+    localDB.set(`users_${userId}_config`, nc);
+    if (userId) {
+      try {
+        await setDoc(doc(db, 'users', userId, 'settings', 'config'), nc);
+      } catch (e) { console.error("Error guardando config en la nube:", e); }
+    }
+  };
+
+  const updateProfile = async (newProfile) => {
     const updatedUser = { ...user, ...newProfile };
     setUser(updatedUser);
     localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+
+    if (userId) {
+      try {
+        await setDoc(doc(db, 'users', userId), {
+          displayName: updatedUser.displayName,
+          avatar: updatedUser.avatar || '👤',
+          email: updatedUser.email
+        }, { merge: true });
+      } catch (e) {
+        console.error("Error actualizando perfil en Firestore:", e);
+      }
+    }
+
     const list = localDB.get('users_list') || [];
     const newList = list.map(u => u.uid === user.uid ? { ...u, ...newProfile } : u);
     localDB.set('users_list', newList);
-
-    // Also update current sessions in activity logs if needed (optional)
   };
 
   const updateVisibleViews = (views) => {
