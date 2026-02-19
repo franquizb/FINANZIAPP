@@ -320,14 +320,14 @@ function AppInner() {
     const logSession = async () => {
       if (!userId) return;
       try {
-        const logsRef = collection(db, 'activity_logs');
-        // Para el heartbeat actual:
-        const sessionKey = `session_${userId}_${Math.floor(Date.now() / (1000 * 60 * 60))}`; // Una sesión por hora aprox para no saturar
-        await setDoc(doc(db, 'activity_logs', sessionKey), {
+        const sessionKey = `session_${userId}`; // Una sola sesión activa por usuario
+        const sessionRef = doc(db, 'activity_logs', sessionKey);
+
+        await setDoc(sessionRef, {
           uid: userId,
           email: user?.email,
           displayName: user?.displayName,
-          start: Date.now(),
+          start: Date.now(), // Firestore merge:true mantendrá el 'start' original si ya existe
           lastSeen: Date.now(),
           end: null
         }, { merge: true });
@@ -336,7 +336,7 @@ function AppInner() {
       }
     };
     logSession();
-    const interval = setInterval(logSession, 60000); // Cada minuto
+    const interval = setInterval(logSession, 30000); // Latido cada 30 segundos
 
     return () => {
       unsubConfig();
@@ -2901,7 +2901,7 @@ function UserManagementView() {
     };
   }, []);
   const now = Date.now();
-  const getInPeriod = (days) => logs.filter(l => l.start > now - days * 24 * 3600 * 1000);
+  const getInPeriod = (days) => logs.filter(l => l.lastSeen > now - days * 24 * 3600 * 1000);
 
   const stats7d = getInPeriod(7).length;
   const stats30d = getInPeriod(30).length;
@@ -2909,8 +2909,8 @@ function UserManagementView() {
   const stats365d = getInPeriod(365).length;
 
   const onlineUsers = users.filter(u => {
-    const userLogs = logs.filter(l => l.uid === u.uid && !l.end);
-    return userLogs.some(l => (now - l.lastSeen) < 120000);
+    const userLog = logs.find(l => l.uid === u.uid && !l.end);
+    return userLog && (now - userLog.lastSeen) < 120000; // Activos en los últimos 2 minutos
   });
 
   // Chart Data: Sessions per day last 30 days
