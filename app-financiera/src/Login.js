@@ -96,23 +96,44 @@ export default function Login({ onLogin }) {
       const existingUser = allUsers.find(u => u.email.toLowerCase() === user.email.toLowerCase());
 
       if (existingUser) {
-        // Log in the user
+        // Iniciar sesión con el usuario existente
         const isAdmin = existingUser.email.toLowerCase() === 'brianantigua@gmail.com';
         const sessionUser = {
           uid: existingUser.uid,
           email: existingUser.email,
-          displayName: existingUser.displayName || 'Usuario Google',
+          displayName: existingUser.displayName || user.displayName || 'Usuario Google',
           isAdmin: isAdmin,
           permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (existingUser.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
         };
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);
       } else {
-        // Redirigir al registro completando datos
-        setEmail(user.email);
-        setName(user.displayName || '');
-        setIsLogin(false);
-        setError('Por favor, establece una contraseña obligatoria de 8 dígitos para finalizar.');
+        // Si el usuario no existe localmente (ej. nueva computadora), crearlo automáticamente
+        const isAdmin = user.email.toLowerCase() === 'brianantigua@gmail.com';
+        const newUser = {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || user.email.split('@')[0],
+          isAdmin: isAdmin,
+          isGoogle: true,
+          permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']
+        };
+
+        // Guardar en la lista local
+        const currentList = JSON.parse(localStorage.getItem('users_list') || '[]');
+        currentList.push(newUser);
+        localStorage.setItem('users_list', JSON.stringify(currentList));
+
+        // Iniciar sesión inmediatamente
+        const sessionUser = {
+          uid: newUser.uid,
+          email: newUser.email,
+          displayName: newUser.displayName,
+          isAdmin: isAdmin,
+          permissions: newUser.permissions
+        };
+        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+        onLogin(sessionUser);
       }
     } catch (err) {
       console.error(err);
