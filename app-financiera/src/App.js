@@ -813,8 +813,13 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                                   onUpdateCfg(nc);
 
                                   const nd = JSON.parse(JSON.stringify(fullData));
+                                  if (nd[year].categories?.[mk]) {
+                                    nd[year].categories[mk] = nd[year].categories[mk].filter(s => s !== sub);
+                                  }
                                   if (nd[year].budget) delete nd[year].budget[sub];
                                   months.forEach(m => { if (nd[year].monthly?.[m]) delete nd[year].monthly[m][sub]; });
+                                  if (mk === 'Activos' && nd[year].netWorth?.assets?.[sub]) delete nd[year].netWorth.assets[sub];
+                                  if (mk === 'Pasivos' && nd[year].netWorth?.liabilities?.[sub]) delete nd[year].netWorth.liabilities[sub];
                                   onUpdate(nd);
                                 }
                               }}>
@@ -832,16 +837,27 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                                 onUpdateCfg(nc);
 
                                 const nd = JSON.parse(JSON.stringify(fullData));
-                                if (nd[year].budget[sub] !== undefined) {
+                                if (nd[year].categories?.[mk]) {
+                                  nd[year].categories[mk] = nd[year].categories[mk].map(s => s === sub ? newName : s);
+                                }
+                                if (nd[year].budget && nd[year].budget[sub] !== undefined) {
                                   nd[year].budget[newName] = nd[year].budget[sub];
                                   delete nd[year].budget[sub];
                                 }
                                 months.forEach(m => {
-                                  if (nd[year].monthly[m]?.[sub]) {
+                                  if (nd[year].monthly?.[m]?.[sub]) {
                                     nd[year].monthly[m][newName] = nd[year].monthly[m][sub];
                                     delete nd[year].monthly[m][sub];
                                   }
                                 });
+                                if (mk === 'Activos' && nd[year].netWorth?.assets?.[sub]) {
+                                  nd[year].netWorth.assets[newName] = nd[year].netWorth.assets[sub];
+                                  delete nd[year].netWorth.assets[sub];
+                                }
+                                if (mk === 'Pasivos' && nd[year].netWorth?.liabilities?.[sub]) {
+                                  nd[year].netWorth.liabilities[newName] = nd[year].netWorth.liabilities[sub];
+                                  delete nd[year].netWorth.liabilities[sub];
+                                }
                                 onUpdate(nd);
                               }
                             }}>
