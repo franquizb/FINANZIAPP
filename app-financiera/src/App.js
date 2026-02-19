@@ -10,7 +10,8 @@ import {
   AreaChart, Area, Brush
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
-import { db } from './firebase';
+import { db, auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 
 // ─── DB LOCAL ────────────────────────────────────────────────────────────────
@@ -212,19 +213,18 @@ export default function App() {
     <BrowserRouter>
       <AppProvider>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<AppInner isHome />} />
           <Route path="/login" element={<AppInner />} />
           <Route path="/register" element={<AppInner />} />
-          {/* Main app catch-all */}
           <Route path="/app/*" element={<AppInner />} />
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
         </Routes>
       </AppProvider>
     </BrowserRouter>
   );
 }
 
-function AppInner() {
+function AppInner({ isHome }) {
   const { theme } = useApp();
   const navigate = useNavigate();
 
@@ -248,6 +248,32 @@ function AppInner() {
     setUser(u); setConfig(null); setFinancialData(null); setLoading(true); setError(null); setBudgetLocked(true);
     navigate('/app/dashboard');
   };
+
+  useEffect(() => {
+    const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Restaurar sesión desde Firebase
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+        const isAdmin = firebaseUser.email === 'brianantigua@gmail.com' || userData.isAdmin;
+        const sessionUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+          isAdmin: isAdmin,
+          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (userData.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
+        };
+        setUser(sessionUser);
+        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+      } else {
+        // No hay sesión en Firebase
+        if (!localStorage.getItem('currentUser')) {
+          setUser(null);
+        }
+      }
+    });
+    return () => unsubAuth();
+  }, []);
 
   useEffect(() => {
     if (user && (window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/')) {
@@ -345,7 +371,10 @@ function AppInner() {
     };
   }, [userId, user]);
 
-  if (!user) return <Login onLogin={handleLogin} />;
+  if (!user) {
+    if (isHome) return <LandingPage />;
+    return <Login onLogin={handleLogin} />;
+  }
 
   const updateFD = async (nd) => {
     setFinancialData(nd);
