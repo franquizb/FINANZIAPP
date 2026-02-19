@@ -11,7 +11,7 @@ import {
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
 import { db } from './firebase';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
 
 // ─── DB LOCAL ────────────────────────────────────────────────────────────────
 const localDB = {
@@ -103,6 +103,9 @@ const getCategoryGroup = (sub, cats) => {
 };
 
 const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString('es-ES', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const EXPENSE_KEYS = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
+const ALL_MAIN_KEYS = ["Ingresos", ...EXPENSE_KEYS];
 
 const getLoanValues = (loan, year, monthIdx) => {
   if (!loan || !loan.startDate) return { installment: 0, balance: 0, active: false };
@@ -252,36 +255,31 @@ function AppInner() {
     }
   }, [user, navigate]);
 
-  // Load data from Firestore
+  // Load data from Firestore (Real-time Sync)
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
 
-    const loadData = async () => {
-      try {
-        // 1. Intentar cargar desde Firestore
-        const configRef = doc(db, 'users', userId, 'settings', 'config');
-        const dataRef = doc(db, 'users', userId, 'data', 'financial');
+    const configRef = doc(db, 'users', userId, 'settings', 'config');
+    const dataRef = doc(db, 'users', userId, 'data', 'financial');
 
-        const configSnap = await getDoc(configRef);
-        const dataSnap = await getDoc(dataRef);
+    // MIGRATION HELPER (Run once if no cloud data)
+    const migrateIfNecessary = async () => {
+      const configSnap = await getDoc(configRef);
+      const dataSnap = await getDoc(dataRef);
+      if (!configSnap.exists() || !dataSnap.exists()) {
+        const localConfig = localDB.get(`users_${userId}_config`);
+        const localData = localDB.get(`users_${userId}_data`);
+        if (localConfig && !configSnap.exists()) await setDoc(configRef, localConfig);
+        if (localData && !dataSnap.exists()) await setDoc(dataRef, localData);
+      }
+    };
+    migrateIfNecessary();
 
-        let savedConfig = configSnap.exists() ? configSnap.data() : null;
-        let savedData = dataSnap.exists() ? dataSnap.data() : null;
-
-        // 2. Si no hay datos en la nube, buscar en localStorage (Migración)
-        if (!savedConfig || !savedData) {
-          const localConfig = localDB.get(`users_${userId}_config`);
-          const localData = localDB.get(`users_${userId}_data`);
-
-          if (localConfig && !savedConfig) savedConfig = localConfig;
-          if (localData && !savedData) savedData = localData;
-
-          // Guardar en la nube lo que encontramos localmente
-          if (savedConfig) await setDoc(configRef, savedConfig);
-          if (savedData) await setDoc(dataRef, savedData);
-        }
-
+    // Listen for real-time updates for Config
+    const unsubConfig = onSnapshot(configRef, (snap) => {
+      if (snap.exists()) {
+        const savedConfig = snap.data();
         const currentConfig = {
           tutorialCompleted: savedConfig?.tutorialCompleted || false,
           defaultYear: savedConfig?.defaultYear || defaultStartYear,
@@ -289,67 +287,63 @@ function AppInner() {
           visibleViews: savedConfig?.visibleViews || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
           visibleBudgetSections: savedConfig?.visibleBudgetSections || ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
         };
+        setConfig(currentConfig);
+        if (!currentConfig.tutorialCompleted) setShowTutorial(true);
+      } else {
+        // Default config if none exists
+        setConfig({
+          tutorialCompleted: false,
+          defaultYear: defaultStartYear,
+          categories: JSON.parse(JSON.stringify(initialCategories)),
+          visibleViews: ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
+          visibleBudgetSections: ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
+        });
+      }
+    });
 
-        if (!currentConfig.tutorialCompleted) {
-          setShowTutorial(true);
-        }
-
-        const fd = savedData || {};
+    // Listen for real-time updates for Financial Data
+    const unsubData = onSnapshot(dataRef, (snap) => {
+      if (snap.exists()) {
+        const fd = snap.data();
         if (!fd.loans) fd.loans = [];
         if (!fd.trading) fd.trading = [];
-
-        let baseCats = currentConfig.categories;
-        let existingYears = Object.keys(fd).filter(y => !isNaN(parseInt(y))).map(y => parseInt(y)).sort((a, b) => a - b);
-        let earliestYear = existingYears.length > 0 ? existingYears[0] : defaultStartYear;
-
-        for (let y = earliestYear; y <= defaultStartYear + 10; y++) {
-          if (!fd[y]) fd[y] = generateInitialYearData(y, baseCats);
-          if (!fd[y].categories) fd[y].categories = JSON.parse(JSON.stringify(baseCats));
-          baseCats = fd[y].categories;
-
-          if (!fd[y].oneTime) { fd[y].oneTime = {}; months.forEach(m => { fd[y].oneTime[m] = []; }); }
-          Object.keys(fd[y].categories).forEach(mk => {
-            const isNW = mk === 'Activos' || mk === 'Pasivos';
-            (fd[y].categories[mk] || []).forEach(sub => {
-              if (isNW) {
-                const nwk = mk === 'Activos' ? 'assets' : 'liabilities';
-                if (!fd[y].netWorth) fd[y].netWorth = { assets: {}, liabilities: {} };
-                if (!fd[y].netWorth[nwk]) fd[y].netWorth[nwk] = {};
-                if (!fd[y].netWorth[nwk][sub]) { fd[y].netWorth[nwk][sub] = {}; months.forEach(m => fd[y].netWorth[nwk][sub][m] = 0); }
-              } else {
-                if (fd[y].budget?.[sub] === undefined) fd[y].budget[sub] = (y === defaultStartYear && defaultBudget[sub] !== undefined) ? defaultBudget[sub] : 0;
-                months.forEach(mo => {
-                  if (!fd[y].monthly[mo]) fd[y].monthly[mo] = {};
-                  if (!fd[y].monthly[mo][sub]) fd[y].monthly[mo][sub] = { budgeted: 0, actual: [] };
-                  else if (!Array.isArray(fd[y].monthly[mo][sub].actual)) fd[y].monthly[mo][sub].actual = [];
-                });
-              }
-            });
-          });
-        }
-
-        // Suscribirse a cambios en tiempo real (opcional, por ahora solo guardamos)
-        setConfig(currentConfig);
         setFinancialData(fd);
-        setSelectedYear(currentConfig.defaultYear);
-      } catch (e) {
-        console.error("Error cargando datos de Firebase:", e);
-        setError("Error al sincronizar con la nube: " + e.message);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    loadData();
+      setLoading(false);
+    }, (err) => {
+      console.error("Error syncing data:", err);
+      setError("Error de sincronización: " + err.message);
+      setLoading(false);
+    });
 
     // Sincronizar logs de actividad
-    const logSession = () => {
-      // Por ahora mantenemos el log local, o podríamos moverlo a Firebase si es necesario
+    const logSession = async () => {
+      if (!userId) return;
+      try {
+        const logsRef = collection(db, 'activity_logs');
+        // Para el heartbeat actual:
+        const sessionKey = `session_${userId}_${Math.floor(Date.now() / (1000 * 60 * 60))}`; // Una sesión por hora aprox para no saturar
+        await setDoc(doc(db, 'activity_logs', sessionKey), {
+          uid: userId,
+          email: user?.email,
+          displayName: user?.displayName,
+          start: Date.now(),
+          lastSeen: Date.now(),
+          end: null
+        }, { merge: true });
+      } catch (e) {
+        console.error("Error logging session:", e);
+      }
     };
     logSession();
-    const interval = setInterval(logSession, 30000);
-    return () => clearInterval(interval);
-  }, [userId]);
+    const interval = setInterval(logSession, 60000); // Cada minuto
+
+    return () => {
+      unsubConfig();
+      unsubData();
+      clearInterval(interval);
+    };
+  }, [userId, user]);
 
   if (!user) return <Login onLogin={handleLogin} />;
 
@@ -432,7 +426,7 @@ function AppInner() {
         return <NetWorthView {...commonProps} data={financialData[selectedYear]?.netWorth} />;
       case 'loans':
         if (!hasPermission(user, 'loans')) return <AccessDenied />;
-        return <LoansView loans={financialData?.loans || []} onUpdate={updateFD} fullData={financialData} userId={userId} onUpdateCfg={updateCfg} />;
+        return <LoansView loans={financialData?.loans || []} onUpdate={updateFD} fullData={financialData} userId={userId} onUpdateCfg={updateCfg} config={config} />;
       case 'trading':
         if (!hasPermission(user, 'trading')) return <AccessDenied />;
         return <TradingView trades={financialData?.trading || []} onUpdate={updateFD} fullData={financialData} />;
@@ -664,7 +658,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const axisColor = isDark ? '#565d80' : '#9098b8';
   const gridColor = isDark ? '#2d3148' : '#e2e5f0';
 
-  const expenseKeys = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
+  const expenseKeys = EXPENSE_KEYS;
 
   const monthlyTotals = months.map((m, mIdx) => {
     let income = (categories["Ingresos"] || []).reduce((s, sub) => s + calcTotal(data.monthly?.[m]?.[sub]?.actual || []), 0);
@@ -771,8 +765,6 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               {subs.map(sub => {
                 const loan = mk === 'Pago de Deudas' && fullData.loans?.find(l => l.name === sub);
                 const isLoan = !!loan;
-                // Si es un préstamo parcial, lo saltamos aquí para que salga en puntuales
-                if (isLoan && !isLoanFullYear(loan, year)) return null;
                 const val = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget);
                 return (
                   <tr key={sub} className={isLoan ? 'loan-row' : ''}>
@@ -871,7 +863,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   };
 
   if (mode === 'budget') {
-    const categoriesList = Object.keys(categories).filter(k => k !== 'Activos' && k !== 'Pasivos');
+    const categoriesList = ALL_MAIN_KEYS;
 
     const handleAddOneTime = (e) => {
       e.preventDefault();
@@ -923,7 +915,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
         </div>
 
         <div className="grid-5">
-          {(visibleBudgetSections || ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]).map(section => renderBudgetTable(section))}
+          {(visibleBudgetSections || ALL_MAIN_KEYS).map(section => renderBudgetTable(section))}
         </div>
 
         <div className="section-gap">
@@ -1298,7 +1290,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
   if (!currentMonthData) return <div className="loading-state">{t.noData} {month} {year}</div>;
 
-  const expenseKeys = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
+  const expenseKeys = EXPENSE_KEYS;
   const allTxs = [];
   Object.keys(categories).forEach(mk => {
     if (mk === 'Activos' || mk === 'Pasivos') return;
@@ -1440,7 +1432,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
       {/* Budget Tables */}
       <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginTop: 24, marginBottom: 24 }}>
-        {Object.keys(categories).filter(k => k !== 'Activos' && k !== 'Pasivos').map(renderMonthlyTable)}
+        {ALL_MAIN_KEYS.map(renderMonthlyTable)}
       </div>
 
       {/* Add transaction */}
@@ -1450,7 +1442,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
           <div>
             <label>{t.mainCategory}</label>
             <select className="select-input" value={txMainCat} onChange={e => { setTxMainCat(e.target.value); setTxSubCat((categories[e.target.value] || [])[0] || ''); }}>
-              {Object.keys(categories).filter(k => k !== 'Activos' && k !== 'Pasivos').map(mk => <option key={mk} value={mk}>{mk}</option>)}
+              {ALL_MAIN_KEYS.map(mk => <option key={mk} value={mk}>{mk}</option>)}
             </select>
           </div>
           <div>
@@ -1630,7 +1622,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
 }
 
 // ─── LOANS VIEW ───────────────────────────────────────────────────────────────
-function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg }) {
+function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
   const { t } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [expandedLoan, setExpandedLoan] = useState(null);
@@ -1667,19 +1659,29 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg }) {
     const nd = JSON.parse(JSON.stringify(fullData));
     nd.loans.push(newLoan);
 
-    // Ensure categories exist in config
-    const configPath = `users_${userId || 'demo'}_config`;
-    const config = localDB.get(configPath);
-    if (config) {
-      if (!config.categories["Pago de Deudas"].includes(newLoan.name)) {
-        config.categories["Pago de Deudas"].push(newLoan.name);
-      }
-      if (!config.categories["Pasivos"].includes(newLoan.name)) {
-        config.categories["Pasivos"].push(newLoan.name);
-      }
-      localDB.set(configPath, config);
-      onUpdateCfg(config);
+    // Update global config
+    const newConfig = JSON.parse(JSON.stringify(config));
+    if (!newConfig.categories["Pago de Deudas"].includes(newLoan.name)) {
+      newConfig.categories["Pago de Deudas"].push(newLoan.name);
     }
+    if (!newConfig.categories["Pasivos"].includes(newLoan.name)) {
+      newConfig.categories["Pasivos"].push(newLoan.name);
+    }
+    onUpdateCfg(newConfig);
+
+    // Propagate to yearly categories to ensure it shows in Budget/Monthly views
+    const loanStartYear = start.getFullYear();
+    Object.keys(nd).forEach(y => {
+      const yr = parseInt(y);
+      if (!isNaN(yr) && yr >= loanStartYear) {
+        if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(newConfig.categories));
+        if (!nd[y].categories["Pago de Deudas"].includes(newLoan.name)) nd[y].categories["Pago de Deudas"].push(newLoan.name);
+        if (!nd[y].categories["Pasivos"].includes(newLoan.name)) nd[y].categories["Pasivos"].push(newLoan.name);
+
+        // Ensure budget for this loan exists
+        if (nd[y].budget && nd[y].budget[newLoan.name] === undefined) nd[y].budget[newLoan.name] = 0;
+      }
+    });
 
     onUpdate(nd);
     setShowAdd(false);
@@ -2862,20 +2864,31 @@ function CompoundInterestView() {
 
 // ─── MANAGEMENT VIEW (CRUD + ANALYTICS) ─────────────────────────────────────────
 function UserManagementView() {
-  const [users, setUsers] = useState(() => {
-    const list = localDB.get('users_list') || [];
-    if (list.length === 0) {
-      const initial = [];
-      localDB.set('users_list', initial);
-      return initial;
-    }
-    return list;
-  });
-  const [logs, setLogs] = useState(() => localDB.get('activity_logs') || []);
+  const [users, setUsers] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Stats calculation
+  useEffect(() => {
+    // Real-time users
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      const list = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+      setUsers(list);
+      setLoading(false);
+    });
+
+    // Real-time logs
+    const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snap) => {
+      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setLogs(list);
+    });
+
+    return () => {
+      unsubUsers();
+      unsubLogs();
+    };
+  }, []);
   const now = Date.now();
   const getInPeriod = (days) => logs.filter(l => l.start > now - days * 24 * 3600 * 1000);
 
@@ -2926,52 +2939,38 @@ function UserManagementView() {
     link.click();
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
     const perms = PERMISSIONS.map(p => p.id).filter(id => fd.get(`perm_${id}`) === 'on');
-    const safeUUID = () => {
-      try { return crypto.randomUUID(); }
-      catch { return 'u-' + Date.now() + '-' + Math.floor(Math.random() * 1000); }
+
+    const uid = editingUser ? editingUser.uid : `u-${Date.now()}`;
+    const userData = {
+      displayName: fd.get('name'),
+      email: fd.get('email').toLowerCase().trim(),
+      password: fd.get('password'),
+      isAdmin: fd.get('role') === 'admin',
+      permissions: perms,
+      lastUpdated: Date.now()
     };
 
-    setUsers(prevUsers => {
-      let newList;
-      if (editingUser) {
-        newList = prevUsers.map(u => u.uid === editingUser.uid ? {
-          ...u,
-          displayName: fd.get('name'),
-          email: fd.get('email').toLowerCase().trim(),
-          password: fd.get('password'),
-          isAdmin: fd.get('role') === 'admin',
-          permissions: perms
-        } : u);
-      } else {
-        const newUser = {
-          uid: safeUUID(),
-          email: fd.get('email').toLowerCase().trim(),
-          password: fd.get('password'),
-          displayName: fd.get('name'),
-          isAdmin: fd.get('role') === 'admin',
-          permissions: perms
-        };
-        newList = [...prevUsers, newUser];
-      }
-      localDB.set('users_list', newList);
-      return newList;
-    });
-    setEditingUser(null);
-    setShowAdd(false);
+    try {
+      await setDoc(doc(db, 'users', uid), userData, { merge: true });
+      setEditingUser(null);
+      setShowAdd(false);
+    } catch (err) {
+      alert("Error al guardar usuario: " + err.message);
+    }
   };
 
-  const handleDelete = (uid) => {
-    if (uid === 'admin-001') return alert('No puedes eliminar al administrador raíz');
+  const handleDelete = async (uid) => {
+    if (uid === 'admin-001' || users.find(u => u.uid === uid)?.email === 'brianantigua@gmail.com') return alert('No puedes eliminar al administrador');
     if (!window.confirm('¿Eliminar usuario?')) return;
-    setUsers(prevUsers => {
-      const newList = prevUsers.filter(u => u.uid !== uid);
-      localDB.set('users_list', newList);
-      return newList;
-    });
+    try {
+      await deleteDoc(doc(db, 'users', uid));
+    } catch (err) {
+      alert("Error al eliminar: " + err.message);
+    }
   };
 
   const UserForm = ({ u, onCancel }) => (
