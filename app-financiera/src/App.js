@@ -533,7 +533,7 @@ function AppInner({ isHome }) {
   return (
     <div className={`app-shell ${theme === 'light' ? 'light' : ''}`}>
       {!sidebarCollapsed && <div className="sidebar-overlay" onClick={() => setSidebarCollapsed(true)} />}
-      <Sidebar activeView={activeView} setActiveView={setActiveView} onSignOut={signOut} user={user} collapsed={sidebarCollapsed} config={config} />
+      <Sidebar activeView={activeView} setActiveView={(v) => { setActiveView(v); setSidebarCollapsed(true); }} onSignOut={signOut} user={user} collapsed={sidebarCollapsed} config={config} />
       <div className="main-content">
         <Topbar
           activeView={activeView}
@@ -1587,7 +1587,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
       {/* Add transaction */}
       <div className="card">
         <div className="chart-card-title">{t.addTransaction}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 160px 140px 100px', gap: 12, alignItems: 'end' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>
           <div>
             <label>{t.mainCategory}</label>
             <select className="select-input" value={txMainCat} onChange={e => { setTxMainCat(e.target.value); setTxSubCat((categories[e.target.value] || [])[0] || ''); }}>
@@ -1667,6 +1667,18 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
   const axisColor = isDark ? '#565d80' : '#9098b8';
   const gridColor = isDark ? '#2d3148' : '#e2e5f0';
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [selectedMobileMonth, setSelectedMobileMonth] = useState(() => months[new Date().getMonth()]);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [isMobileNW, setIsMobileNW] = useState(window.innerWidth < 800);
+
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    const handleResize = () => setIsMobileNW(window.innerWidth < 800);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!data) return <div className="loading-state">{t.noData} {year}</div>;
 
   const handleChange = (type, cat, month, val) => {
@@ -1696,6 +1708,8 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
     const cats = categories[type] || [];
     if (!cats.length) return null;
     const nwk = type === 'Activos' ? 'assets' : 'liabilities';
+    const displayMonths = isMobileNW ? [selectedMobileMonth] : months;
+
     return (
       <div className="card">
         <div className="chart-card-title">{type}</div>
@@ -1704,7 +1718,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
             <thead>
               <tr>
                 <th>{t.category}</th>
-                {months.map(m => <th key={m} className="text-right" style={{ fontSize: 10 }}>{m.substring(0, 3).toUpperCase()}</th>)}
+                {displayMonths.map(m => <th key={m} className="text-right" style={{ fontSize: 10 }}>{m.substring(0, 3).toUpperCase()}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -1713,7 +1727,8 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
                 return (
                   <tr key={cat}>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{cat}</td>
-                    {months.map((m, mIdx) => {
+                    {displayMonths.map((m) => {
+                      const mIdx = months.indexOf(m);
                       let val = data?.[nwk]?.[cat]?.[m] || 0;
                       if (loan) {
                         const lv = getLoanValues(loan, year, mIdx);
@@ -1767,6 +1782,14 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
           </LineChart>
         </ResponsiveContainer>
       </div>
+      {isMobileNW && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, marginRight: 8, color: 'var(--text-secondary)' }}>Seleccionar mes a visualizar/editar:</label>
+          <select className="select-input" value={selectedMobileMonth} onChange={e => setSelectedMobileMonth(e.target.value)} style={{ textTransform: 'capitalize', marginTop: 8 }}>
+            {months.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+        </div>
+      )}
       {renderTable("Activos")}
       {renderTable("Pasivos")}
     </div>
