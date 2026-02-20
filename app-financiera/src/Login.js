@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 const LOCAL_USERS = [];
 
@@ -14,69 +14,148 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    setTimeout(() => {
-      const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
-      const allUsers = [...LOCAL_USERS];
-      usersList.forEach(u => {
-        const idx = allUsers.findIndex(x => x.uid === u.uid || x.email.toLowerCase() === u.email.toLowerCase());
-        if (idx === -1) allUsers.push(u);
-        else allUsers[idx] = { ...allUsers[idx], ...u };
-      });
+
+    try {
+      if (!db || !auth) throw new Error("Firebase Auth/DB no inicializada aún");
+
+      const emailQuery = email.trim().toLowerCase();
 
       if (isLogin) {
-        const user = allUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase() && u.password === password);
-        if (user) {
-          const isUserAdmin = user.email.toLowerCase() === 'brianantigua@gmail.com' || !!user.isAdmin;
-          const sessionUser = {
-            uid: user.uid,
-            email: user.email,
-            displayName: user.displayName,
-            isAdmin: isUserAdmin,
-            permissions: isUserAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (user.permissions || [])
-          };
-          localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-          onLogin(sessionUser);
-        } else {
-          setError('Credenciales incorrectas. Verifica tu email y contraseña.');
+        let userCredential;
+        let finalUid = null;
+
+        // Intentar loguear en Firebase Auth
+        try {
+          userCredential = await signInWithEmailAndPassword(auth, emailQuery, password);
+          finalUid = userCredential.user.uid;
+        } catch (authErr) {
+          // Fallback solo local: Si no existe en Auth, intentamos ver si estaba en localStorage
+          if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/wrong-password') {
+            let foundLocal = false;
+            const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
+            const localMatch = usersList.find(u => u.email.trim().toLowerCase() === emailQuery && u.password === password);
+            if (localMatch) foundLocal = localMatch;
+
+            if (foundLocal) {
+              // Migrar a Firebase Auth
+              try {
+                userCredential = await createUserWithEmailAndPassword(auth, emailQuery, password);
+                finalUid = userCredential.user.uid;
+              } catch (migErr) {
+                throw new Error('No se pudo verificar la credencial: ' + migErr.message);
+              }
+            } else {
+              throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
+            }
+          } else {
+            throw authErr;
+          }
         }
-      } else {
-        const exists = allUsers.find(u => u.email.trim().toLowerCase() === email.trim().toLowerCase());
-        if (exists) {
-          setError('Este email ya está registrado. Por favor, inicia sesión.');
-        } else if (password.length < 8) {
-          setError('La contraseña debe tener al menos 8 caracteres.');
-        } else if (password !== confirmPassword) {
-          setError('Las contraseñas no coinciden.');
+
+        // Ya estamos autenticados, podemos consultar su perfil en Firebase
+        let userDoc = null;
+        const profileSnap = await getDoc(doc(db, 'users', finalUid));
+        if (profileSnap.exists()) {
+          userDoc = profileSnap.data();
         } else {
-          const isAdmin = email.trim().toLowerCase() === 'brianantigua@gmail.com';
+          // Si no estaba en BD remota pero sí local
+          const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
+          userDoc = usersList.find(u => u.email.trim().toLowerCase() === emailQuery) || {};
+        }
+
+        const isUserAdmin = emailQuery === 'brianantigua@gmail.com' || !!userDoc.isAdmin;
+        const sessionUser = {
+          uid: finalUid,
+          email: emailQuery,
+          displayName: userDoc.displayName || emailQuery.split('@')[0],
+          isAdmin: isUserAdmin,
+          permissions: isUserAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (userDoc.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
+        };
+
+        await setDoc(doc(db, 'users', finalUid), {
+          ...userDoc,
+          uid: finalUid,
+          email: emailQuery,
+          displayName: sessionUser.displayName,
+          isAdmin: sessionUser.isAdmin,
+          permissions: sessionUser.permissions,
+          lastLogin: Date.now()
+        }, { merge: true });
+
+        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+        onLogin(sessionUser);
+
+      } else {
+        // REGISTRO
+        if (password.length < 8) {
+          setError('La contraseña debe tener al menos 8 caracteres.');
+          setLoading(false);
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError('Las contraseñas no coinciden.');
+          setLoading(false);
+          return;
+        }
+
+        try {
+          // Crear en Firebase Auth para registrar de verdad su identidad
+          const userCredential = await createUserWithEmailAndPassword(auth, emailQuery, password);
+          const newUid = userCredential.user.uid;
+
+          const isAdmin = emailQuery === 'brianantigua@gmail.com';
           const newUser = {
-            uid: 'local-' + Date.now(),
-            email: email.trim(),
-            password: password,
-            displayName: name.trim() || email.trim().split('@')[0],
+            uid: newUid,
+            email: emailQuery,
+            password: password, // temporal para mock / debug heredado
+            displayName: name.trim() || emailQuery.split('@')[0],
             isAdmin: isAdmin,
-            permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']
+            permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'],
+            lastLogin: Date.now()
           };
-          usersList.push(newUser);
-          localStorage.setItem('users_list', JSON.stringify(usersList));
+
+          // Auth ok, ahora sí tenemos permisos para crear su perfil de BD
+          await setDoc(doc(db, 'users', newUid), newUser);
+
+          // Fallback local
+          const currentList = JSON.parse(localStorage.getItem('users_list') || '[]');
+          if (!currentList.find(u => u.email === emailQuery)) {
+            currentList.push(newUser);
+            localStorage.setItem('users_list', JSON.stringify(currentList));
+          }
 
           const sessionUser = {
             uid: newUser.uid,
             email: newUser.email,
             displayName: newUser.displayName,
-            isAdmin: false,
+            isAdmin: newUser.isAdmin,
             permissions: newUser.permissions
           };
+
           localStorage.setItem('currentUser', JSON.stringify(sessionUser));
           onLogin(sessionUser);
+
+        } catch (regErr) {
+          if (regErr.code === 'auth/email-already-in-use') {
+            setError('Este email ya está registrado. Por favor, inicia sesión.');
+          } else {
+            throw regErr;
+          }
         }
       }
+    } catch (err) {
+      console.error("Error detallado auth:", err);
+      // Extraer mensaje de error natural si proviene de firebase
+      let errorMsg = err.message || "Error desconocido en Firebase";
+      if (err.code) errorMsg = err.message;
+      setError('Error en la autenticación: ' + errorMsg);
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   };
 
   const handleGoogleSignIn = async () => {

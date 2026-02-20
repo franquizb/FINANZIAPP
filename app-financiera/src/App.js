@@ -12,7 +12,22 @@ import {
 import TutorialWizard from './components/TutorialWizard';
 import { db, auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, updateDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, updateDoc, deleteDoc, getDocs, increment, orderBy } from 'firebase/firestore';
+
+const logErrorToFirebase = async (context, err) => {
+  try {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    const userId = auth?.currentUser?.uid || 'anonymous';
+    await addDoc(collection(db, 'system_errors'), {
+      context,
+      error: errorMsg,
+      timestamp: Date.now(),
+      uid: userId
+    });
+  } catch (e) {
+    console.warn("No se pudo guardar el log de error en Firebase:", e);
+  }
+};
 
 // ─── DB LOCAL ────────────────────────────────────────────────────────────────
 const localDB = {
@@ -334,6 +349,14 @@ function AppInner({ isHome }) {
         if (!fd.loans) fd.loans = [];
         if (!fd.trading) fd.trading = [];
         setFinancialData(fd);
+      } else {
+        const initialData = {
+          [defaultStartYear]: generateInitialYearData(defaultStartYear, initialCategories),
+          loans: [],
+          trading: []
+        };
+        setFinancialData(initialData);
+        if (userId) setDoc(dataRef, initialData).catch(e => console.error("Error creating initial data", e));
       }
       setLoading(false);
     }, (err) => {
@@ -343,18 +366,25 @@ function AppInner({ isHome }) {
     });
 
     // Sincronizar logs de actividad
+    let lastTick = Date.now();
     const logSession = async () => {
       if (!userId) return;
       try {
-        const sessionKey = `session_${userId}`; // Una sola sesión activa por usuario
+        const now = Date.now();
+        const diff = now - lastTick;
+        lastTick = now;
+
+        const d = new Date();
+        const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+        const sessionKey = `session_${userId}_${ymd}`; // Una sesión acumulativa por día (día vencido)
         const sessionRef = doc(db, 'activity_logs', sessionKey);
 
         await setDoc(sessionRef, {
           uid: userId,
           email: user?.email,
           displayName: user?.displayName,
-          start: Date.now(), // Firestore merge:true mantendrá el 'start' original si ya existe
           lastSeen: Date.now(),
+          totalTime: increment(diff),
           end: null
         }, { merge: true });
       } catch (e) {
@@ -362,7 +392,7 @@ function AppInner({ isHome }) {
       }
     };
     logSession();
-    const interval = setInterval(logSession, 30000); // Latido cada 30 segundos
+    const interval = setInterval(logSession, 5 * 60 * 1000); // Latido cada 5 minutos
 
     return () => {
       unsubConfig();
@@ -382,7 +412,10 @@ function AppInner({ isHome }) {
     if (userId) {
       try {
         await setDoc(doc(db, 'users', userId, 'data', 'financial'), nd);
-      } catch (e) { console.error("Error guardando en la nube:", e); }
+      } catch (e) {
+        console.error("Error guardando en la nube:", e);
+        logErrorToFirebase("Guardar Datos Financieros", e);
+      }
     }
   };
 
@@ -392,7 +425,10 @@ function AppInner({ isHome }) {
     if (userId) {
       try {
         await setDoc(doc(db, 'users', userId, 'settings', 'config'), nc);
-      } catch (e) { console.error("Error guardando config en la nube:", e); }
+      } catch (e) {
+        console.error("Error guardando config en la nube:", e);
+        logErrorToFirebase("Guardar Configuración", e);
+      }
     }
   };
 
@@ -410,6 +446,7 @@ function AppInner({ isHome }) {
         }, { merge: true });
       } catch (e) {
         console.error("Error actualizando perfil en Firestore:", e);
+        logErrorToFirebase("Actualizar Perfil", e);
       }
     }
 
@@ -422,7 +459,15 @@ function AppInner({ isHome }) {
     updateCfg({ ...config, visibleViews: views });
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    if (userId) {
+      try {
+        const sessionKey = `session_${userId}`;
+        await setDoc(doc(db, 'activity_logs', sessionKey), { end: Date.now() }, { merge: true });
+      } catch (e) {
+        console.error('Error cerrando sesión en Firebase:', e);
+      }
+    }
     const logs = localDB.get('activity_logs') || [];
     const current = logs.find(l => l.uid === userId && !l.end);
     if (current) current.end = Date.now();
@@ -626,9 +671,33 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
           </div>
         )}
         <select className="select-input" style={{ width: 'auto' }} value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))}>
-          {Object.keys(financialData || {})
-            .filter(y => !isNaN(parseInt(y)) && (parseInt(y) <= new Date().getFullYear() + 4 || Object.keys(financialData[y]?.oneTime || {}).some(k => financialData[y].oneTime[k].length > 0) || Object.keys(financialData[y]?.monthly?.enero || {}).some(k => financialData[y].monthly.enero[k]?.actual?.length > 0)))
-            .map(y => <option key={y} value={y}>{y}</option>)}
+          {(() => {
+            const dataYears = Object.keys(financialData || {}).filter(y => !isNaN(parseInt(y))).map(y => parseInt(y));
+            if (!dataYears.length) dataYears.push(new Date().getFullYear());
+            let minYear = Math.min(...dataYears);
+            let maxYear = Math.max(...dataYears, new Date().getFullYear() + 4);
+            (financialData?.loans || []).forEach(l => {
+              if (l.startDate) {
+                const sy = new Date(l.startDate).getFullYear();
+                if (sy < minYear) minYear = sy;
+                const count = l.installmentsCount || 1;
+                const ey = new Date(new Date(l.startDate).setMonth(new Date(l.startDate).getMonth() + count)).getFullYear();
+                if (ey > maxYear) maxYear = ey;
+              }
+            });
+            const valid = [];
+            for (let i = minYear; i <= maxYear; i++) {
+              const hasData = financialData?.[i] && (Object.keys(financialData[i]?.oneTime || {}).some(k => financialData[i].oneTime[k].length > 0) || Object.keys(financialData[i]?.monthly?.enero || {}).some(k => financialData[i].monthly.enero[k]?.actual?.length > 0));
+              if (i <= new Date().getFullYear() + 4 || hasData || (financialData?.loans || []).some(l => {
+                const sy = new Date(l.startDate).getFullYear();
+                const ey = new Date(new Date(l.startDate).setMonth(new Date(l.startDate).getMonth() + (l.installmentsCount || 1))).getFullYear();
+                return i >= sy && i <= ey;
+              })) {
+                valid.push(i);
+              }
+            }
+            return valid.map(y => <option key={y} value={y}>{y}</option>);
+          })()}
         </select>
         {activeView === 'monthly' && (
           <select className="select-input" style={{ width: 'auto', textTransform: 'capitalize' }} value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
@@ -779,8 +848,30 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 if (sub) {
                   const nc = JSON.parse(JSON.stringify(config));
                   if (!nc.categories[mk]) nc.categories[mk] = [];
-                  nc.categories[mk].push(sub);
+                  if (!nc.categories[mk].includes(sub)) {
+                    nc.categories[mk].push(sub);
+                    nc.categories[mk].sort();
+                  }
                   onUpdateCfg(nc);
+
+                  const nd = JSON.parse(JSON.stringify(fullData));
+                  const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                  yKeys.forEach(y => {
+                    if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(nc.categories));
+                    if (!nd[y].categories[mk]) nd[y].categories[mk] = [];
+                    if (!nd[y].categories[mk].includes(sub)) {
+                      nd[y].categories[mk].push(sub);
+                      nd[y].categories[mk].sort();
+                    }
+                    if (!nd[y].budget) nd[y].budget = {};
+                    if (nd[y].budget[sub] === undefined) nd[y].budget[sub] = 0;
+                    if (!nd[y].monthly) nd[y].monthly = {};
+                    months.forEach(m => {
+                      if (!nd[y].monthly[m]) nd[y].monthly[m] = {};
+                      if (!nd[y].monthly[m][sub]) nd[y].monthly[m][sub] = { budgeted: 0, actual: [] };
+                    });
+                  });
+                  onUpdate(nd);
                 }
               }}>
               <Ic d={PATHS.plus} size={14} />
@@ -813,13 +904,16 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                                   onUpdateCfg(nc);
 
                                   const nd = JSON.parse(JSON.stringify(fullData));
-                                  if (nd[year].categories?.[mk]) {
-                                    nd[year].categories[mk] = nd[year].categories[mk].filter(s => s !== sub);
-                                  }
-                                  if (nd[year].budget) delete nd[year].budget[sub];
-                                  months.forEach(m => { if (nd[year].monthly?.[m]) delete nd[year].monthly[m][sub]; });
-                                  if (mk === 'Activos' && nd[year].netWorth?.assets?.[sub]) delete nd[year].netWorth.assets[sub];
-                                  if (mk === 'Pasivos' && nd[year].netWorth?.liabilities?.[sub]) delete nd[year].netWorth.liabilities[sub];
+                                  const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                                  yKeys.forEach(y => {
+                                    if (nd[y].categories?.[mk]) {
+                                      nd[y].categories[mk] = nd[y].categories[mk].filter(s => s !== sub);
+                                    }
+                                    if (nd[y].budget) delete nd[y].budget[sub];
+                                    months.forEach(m => { if (nd[y].monthly?.[m]) delete nd[y].monthly[m][sub]; });
+                                    if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) delete nd[y].netWorth.assets[sub];
+                                    if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) delete nd[y].netWorth.liabilities[sub];
+                                  });
                                   onUpdate(nd);
                                 }
                               }}>
@@ -837,27 +931,30 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                                 onUpdateCfg(nc);
 
                                 const nd = JSON.parse(JSON.stringify(fullData));
-                                if (nd[year].categories?.[mk]) {
-                                  nd[year].categories[mk] = nd[year].categories[mk].map(s => s === sub ? newName : s);
-                                }
-                                if (nd[year].budget && nd[year].budget[sub] !== undefined) {
-                                  nd[year].budget[newName] = nd[year].budget[sub];
-                                  delete nd[year].budget[sub];
-                                }
-                                months.forEach(m => {
-                                  if (nd[year].monthly?.[m]?.[sub]) {
-                                    nd[year].monthly[m][newName] = nd[year].monthly[m][sub];
-                                    delete nd[year].monthly[m][sub];
+                                const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                                yKeys.forEach(y => {
+                                  if (nd[y].categories?.[mk]) {
+                                    nd[y].categories[mk] = nd[y].categories[mk].map(s => s === sub ? newName : s);
+                                  }
+                                  if (nd[y].budget && nd[y].budget[sub] !== undefined) {
+                                    nd[y].budget[newName] = nd[y].budget[sub];
+                                    delete nd[y].budget[sub];
+                                  }
+                                  months.forEach(m => {
+                                    if (nd[y].monthly?.[m]?.[sub]) {
+                                      nd[y].monthly[m][newName] = nd[y].monthly[m][sub];
+                                      delete nd[y].monthly[m][sub];
+                                    }
+                                  });
+                                  if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) {
+                                    nd[y].netWorth.assets[newName] = nd[y].netWorth.assets[sub];
+                                    delete nd[y].netWorth.assets[sub];
+                                  }
+                                  if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) {
+                                    nd[y].netWorth.liabilities[newName] = nd[y].netWorth.liabilities[sub];
+                                    delete nd[y].netWorth.liabilities[sub];
                                   }
                                 });
-                                if (mk === 'Activos' && nd[year].netWorth?.assets?.[sub]) {
-                                  nd[year].netWorth.assets[newName] = nd[year].netWorth.assets[sub];
-                                  delete nd[year].netWorth.assets[sub];
-                                }
-                                if (mk === 'Pasivos' && nd[year].netWorth?.liabilities?.[sub]) {
-                                  nd[year].netWorth.liabilities[newName] = nd[year].netWorth.liabilities[sub];
-                                  delete nd[year].netWorth.liabilities[sub];
-                                }
                                 onUpdate(nd);
                               }
                             }}>
@@ -877,10 +974,17 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                             const nd = JSON.parse(JSON.stringify(fullData));
                             const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
                             yKeys.forEach(k => {
-                              if (nd[k].budget && nd[k].budget[sub] !== undefined) {
-                                nd[k].budget[sub] = v;
-                                months.forEach(mo => { if (nd[k].monthly[mo]?.[sub]) nd[k].monthly[mo][sub].budgeted = v; });
+                              if (!nd[k].budget) nd[k].budget = {};
+                              nd[k].budget[sub] = v;
+                              if (!nd[k].monthly) {
+                                nd[k].monthly = {};
+                                months.forEach(mo => nd[k].monthly[mo] = {});
                               }
+                              months.forEach(mo => {
+                                if (!nd[k].monthly[mo]) nd[k].monthly[mo] = {};
+                                if (!nd[k].monthly[mo][sub]) nd[k].monthly[mo][sub] = { budgeted: 0, actual: [] };
+                                nd[k].monthly[mo][sub].budgeted = v;
+                              });
                             });
                             onUpdate(nd);
                           }} />
@@ -1568,6 +1672,9 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
   const handleChange = (type, cat, month, val) => {
     const nd = JSON.parse(JSON.stringify(fullData));
     const nwk = type === 'Activos' ? 'assets' : 'liabilities';
+    if (!nd[year].netWorth) nd[year].netWorth = { assets: {}, liabilities: {} };
+    if (!nd[year].netWorth[nwk]) nd[year].netWorth[nwk] = {};
+    if (!nd[year].netWorth[nwk][cat]) nd[year].netWorth[nwk][cat] = {};
     nd[year].netWorth[nwk][cat][month] = parseFloat(val) || 0;
     onUpdate(nd);
   };
@@ -1671,6 +1778,9 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
   const { t } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [expandedLoan, setExpandedLoan] = useState(null);
+  const [extraAmount, setExtraAmount] = useState('');
+  const [extraMonth, setExtraMonth] = useState('');
+  const [extraAmortLoan, setExtraAmortLoan] = useState(null);
 
   const handleAdd = (e) => {
     e.preventDefault();
@@ -1739,6 +1849,27 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     onUpdate(nd);
   };
 
+  const handleExtraAmort = (e, loanId) => {
+    e.preventDefault();
+    if (!extraAmount || parseFloat(extraAmount) <= 0 || !extraMonth) return;
+    const nd = JSON.parse(JSON.stringify(fullData));
+    const loan = nd.loans.find(l => l.id === loanId);
+    if (!loan) return;
+    if (!loan.extraAmortizations) loan.extraAmortizations = [];
+    loan.extraAmortizations.push({ paymentNo: parseInt(extraMonth), amount: parseFloat(extraAmount), id: crypto.randomUUID() });
+    onUpdate(nd);
+    setExtraAmount(''); setExtraMonth('');
+  };
+
+  const handleDeleteExtraAmort = (loanId, extraId) => {
+    if (!window.confirm("¿Eliminar amortización anticipada?")) return;
+    const nd = JSON.parse(JSON.stringify(fullData));
+    const loan = nd.loans.find(l => l.id === loanId);
+    if (!loan || !loan.extraAmortizations) return;
+    loan.extraAmortizations = loan.extraAmortizations.filter(ex => ex.id !== extraId);
+    onUpdate(nd);
+  };
+
   const getAmortizationTable = (loan) => {
     const list = [];
     let pending = loan.totalAmount;
@@ -1746,11 +1877,21 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     const i = (loan.interestRate / 100) / 12;
     const start = new Date(loan.startDate);
 
-    for (let n = 1; n <= loan.installmentsCount; n++) {
-      const interest = pending * i;
-      const principal = loan.amount - interest;
+    for (let n = 1; n <= loan.installmentsCount && pending > 0.01; n++) {
+      let interest = pending * i;
+      let principal = loan.amount - interest;
+      if (principal > pending) { principal = pending; }
       totalAmortized += principal;
       pending -= principal;
+
+      let extraHere = 0;
+      const extras = (loan.extraAmortizations || []).filter(e => e.paymentNo === n);
+      for (const ex of extras) {
+        const am = Math.min(ex.amount, pending);
+        extraHere += am;
+        pending -= am;
+        totalAmortized += am;
+      }
 
       const d = new Date(start);
       d.setMonth(start.getMonth() + n - 1);
@@ -1763,9 +1904,12 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
         fixed: loan.amount,
         interest: interest,
         principal: principal,
+        extraAmortization: extraHere,
+        extrasList: extras,
         totalAmortized: totalAmortized,
         pending: Math.max(0, pending)
       });
+      if (pending <= 0.01) break;
     }
     return list;
   };
@@ -1822,7 +1966,10 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-icon btn-ghost" onClick={() => setExpandedLoan(expandedLoan === l.id ? null : l.id)} title={t.calendar}>
+                    <button className="btn btn-icon btn-ghost" onClick={() => { setExtraAmortLoan(extraAmortLoan === l.id ? null : l.id); setExpandedLoan(null); }} title="Amortización Anticipada">
+                      <Ic d={PATHS.trading} size={14} />
+                    </button>
+                    <button className="btn btn-icon btn-ghost" onClick={() => { setExpandedLoan(expandedLoan === l.id ? null : l.id); setExtraAmortLoan(null); }} title={t.calendar}>
                       <Ic d={PATHS.monthly} size={14} />
                     </button>
                     <button className="btn btn-icon btn-danger" onClick={() => handleDelete(l.id)}>
@@ -1857,6 +2004,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                     </div>
                     <span className="badge badge-accent" style={{ fontSize: 10 }}>FRANCÉS</span>
                   </div>
+
                   <div className="table-wrap" style={{ maxHeight: 400, overflowY: 'auto' }}>
                     <table className="amortization-table">
                       <thead>
@@ -1866,6 +2014,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                           <th className="text-right">{t.installment}</th>
                           <th className="text-right">{t.interest}</th>
                           <th className="text-right">{t.principal}</th>
+                          {l.extraAmortizations && l.extraAmortizations.length > 0 && <th className="text-right">Extra</th>}
                           <th className="text-right">{t.totalAmortized}</th>
                           <th className="text-right">{t.pendingCapital}</th>
                         </tr>
@@ -1880,6 +2029,20 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                               <td className="text-right" style={{ color: '#0ea5e9', fontWeight: 700 }}>{fmt(m.fixed)}</td>
                               <td className="text-right" style={{ color: '#ef4444' }}>{fmt(m.interest)}</td>
                               <td className="text-right" style={{ color: '#10b981' }}>{fmt(m.principal)}</td>
+                              {l.extraAmortizations && l.extraAmortizations.length > 0 && (
+                                <td className="text-right" style={{ color: 'var(--accent)', fontWeight: 700 }}>
+                                  {m.extraAmortization > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                                      {m.extrasList.map(ex => (
+                                        <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                          <button type="button" onClick={() => handleDeleteExtraAmort(l.id, ex.id)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 0 }} title="Eliminar"><Ic d={PATHS.trash} size={10} /></button>
+                                          <span>+{fmt(ex.amount)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : '-'}
+                                </td>
+                              )}
                               <td className="text-right" style={{ color: '#c084fc' }}>{fmt(m.totalAmortized)}</td>
                               <td className="text-right" style={{ color: '#94a3b8' }}>{fmt(m.pending)}</td>
                             </tr>
@@ -1888,6 +2051,25 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+              {extraAmortLoan === l.id && (
+                <div style={{ background: 'var(--bg-card-hover)', borderTop: '1px solid var(--border)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
+                    Nueva Amortización Anticipada
+                  </div>
+                  <form onSubmit={(e) => { handleExtraAmort(e, l.id); setExtraAmortLoan(null); }} className="fade-in" style={{ display: 'flex', gap: 12, alignItems: 'end' }}>
+                    <div>
+                      <label style={{ fontSize: 11 }}>Nº Mes (Cuota)</label>
+                      <input className="number-input" type="number" min="1" max={l.installmentsCount} value={extraMonth} onChange={e => setExtraMonth(e.target.value)} required placeholder="Ej: 12" style={{ height: 36, padding: '0 12px', width: 120 }} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11 }}>Importe extra (€)</label>
+                      <input className="number-input" type="number" step="0.01" min="1" value={extraAmount} onChange={e => setExtraAmount(e.target.value)} required placeholder="1000.00" style={{ height: 36, padding: '0 12px', width: 140 }} />
+                    </div>
+                    <button type="submit" className="btn btn-primary" style={{ height: 36 }}>Aplicar</button>
+                    <button type="button" className="btn btn-ghost" style={{ height: 36 }} onClick={() => setExtraAmortLoan(null)}>Cancelar</button>
+                  </form>
                 </div>
               )}
             </div>
@@ -1907,6 +2089,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
   const [newCatName, setNewCatName] = useState('');
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [renameTarget, setRenameTarget] = useState(null);
+  const [renameValue, setRenameValue] = useState('');
 
   // Profile local state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -1928,16 +2112,42 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     if ((currentYearCats[modalMainCat] || []).includes(name)) { alert('Ya existe en este año'); return; }
 
     const nfd = JSON.parse(JSON.stringify(financialData));
+    const nc = JSON.parse(JSON.stringify(config));
     const startY = selectedYear;
+
+    // update current config globally to make it persistent for new years
+    if (!nc.categories[modalMainCat]) nc.categories[modalMainCat] = [];
+    if (!nc.categories[modalMainCat].includes(name)) {
+      nc.categories[modalMainCat].push(name);
+      nc.categories[modalMainCat].sort();
+    }
+
     Object.keys(nfd).forEach(y => {
       if (parseInt(y) >= startY) {
         if (!nfd[y].categories) nfd[y].categories = JSON.parse(JSON.stringify(currentYearCats));
-        nfd[y].categories[modalMainCat] = [...(nfd[y].categories[modalMainCat] || []), name].sort();
-        if (nfd[y].budget?.[name] === undefined) nfd[y].budget[name] = 0;
-        months.forEach(m => { if (!nfd[y].monthly[m]?.[name]) nfd[y].monthly[m][name] = { budgeted: 0, actual: [] }; });
+        if (!nfd[y].categories[modalMainCat]) nfd[y].categories[modalMainCat] = [];
+        if (!nfd[y].categories[modalMainCat].includes(name)) {
+          nfd[y].categories[modalMainCat].push(name);
+          nfd[y].categories[modalMainCat].sort();
+        }
+
+        if (nfd[y].budget && nfd[y].budget[name] === undefined) nfd[y].budget[name] = 0;
+        if (nfd[y].monthly) {
+          months.forEach(m => {
+            if (!nfd[y].monthly[m]) nfd[y].monthly[m] = {};
+            if (!nfd[y].monthly[m][name]) nfd[y].monthly[m][name] = { budgeted: 0, actual: [] };
+          });
+        }
+        if (modalMainCat === 'Activos' || modalMainCat === 'Pasivos') {
+          const nwk = modalMainCat === 'Activos' ? 'assets' : 'liabilities';
+          if (!nfd[y].netWorth) nfd[y].netWorth = { assets: {}, liabilities: {} };
+          if (!nfd[y].netWorth[nwk]) nfd[y].netWorth[nwk] = {};
+          if (!nfd[y].netWorth[nwk][name]) nfd[y].netWorth[nwk][name] = {};
+        }
       }
     });
 
+    onUpdate(nc);
     onUpdateFD(nfd);
     setShowModal(false); setNewCatName('');
   };
@@ -1971,6 +2181,60 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     onUpdate(nc);
     onUpdateFD(nfd);
     setShowDeleteModal(false); setDeleteTarget(null);
+  };
+
+  const handleRename = () => {
+    if (!renameTarget || !renameValue.trim()) return;
+    const newName = renameValue.trim().charAt(0).toUpperCase() + renameValue.trim().slice(1);
+    const { mk, oldName } = renameTarget;
+    if (oldName === newName) { setRenameTarget(null); return; }
+
+    const currentYearCats = financialData?.[selectedYear]?.categories || config.categories;
+    if ((currentYearCats[mk] || []).includes(newName)) { alert('Ya existe en este año'); return; }
+
+    const nfd = JSON.parse(JSON.stringify(financialData));
+    const startY = selectedYear;
+
+    const nc = JSON.parse(JSON.stringify(config));
+    if (nc.categories[mk]) {
+      const idx = nc.categories[mk].indexOf(oldName);
+      if (idx !== -1) nc.categories[mk][idx] = newName;
+      nc.categories[mk].sort();
+    }
+
+    Object.keys(nfd).forEach(y => {
+      const yr = parseInt(y);
+      if (!isNaN(yr) && yr >= startY) {
+        if (nfd[y].categories && nfd[y].categories[mk]) {
+          const idx = nfd[y].categories[mk].indexOf(oldName);
+          if (idx !== -1) nfd[y].categories[mk][idx] = newName;
+          nfd[y].categories[mk].sort();
+        }
+        if (nfd[y].budget && nfd[y].budget[oldName] !== undefined) {
+          nfd[y].budget[newName] = nfd[y].budget[oldName];
+          delete nfd[y].budget[oldName];
+        }
+        if (nfd[y].monthly) {
+          months.forEach(m => {
+            if (nfd[y].monthly[m] && nfd[y].monthly[m][oldName]) {
+              nfd[y].monthly[m][newName] = nfd[y].monthly[m][oldName];
+              delete nfd[y].monthly[m][oldName];
+            }
+          });
+        }
+        if (nfd[y].netWorth) {
+          const nwk = mk === 'Activos' ? 'assets' : 'liabilities';
+          if ((mk === 'Activos' || mk === 'Pasivos') && nfd[y].netWorth[nwk] && nfd[y].netWorth[nwk][oldName] !== undefined) {
+            nfd[y].netWorth[nwk][newName] = nfd[y].netWorth[nwk][oldName];
+            delete nfd[y].netWorth[nwk][oldName];
+          }
+        }
+      }
+    });
+
+    onUpdate(nc);
+    onUpdateFD(nfd);
+    setRenameTarget(null);
   };
 
 
@@ -2245,26 +2509,26 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             Utiliza el selector de año en la barra superior para editar un año en concreto.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {['Activos', 'Pasivos'].map(mk => (
+            {[...ALL_MAIN_KEYS, 'Activos', 'Pasivos'].map(mk => (
               <div key={mk} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13 }}>{mk}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: getCategoryColor(mk) }}>{mk}</span>
                   <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => { setModalMainCat(mk); setNewCatName(''); setShowModal(true); }}>
                     <Ic d={PATHS.plus} size={13} /> {t.add}
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {((financialData?.[selectedYear]?.categories || config.categories)[mk] || []).map(sub => {
-                    const isLoan = mk === 'Pasivos' && (financialData?.loans || []).some(l => l.name === sub);
+                    const isLoan = (mk === 'Pasivos' || mk === 'Pago de Deudas') && (financialData?.loans || []).some(l => l.name === sub);
                     return (
-                      <span key={sub} className="chip" style={{ paddingRight: isLoan ? 12 : 6 }}>
+                      <span key={sub} className="chip" style={{ paddingRight: isLoan ? 12 : 6 }} onClick={() => { if (!isLoan) { setRenameTarget({ mk, oldName: sub }); setRenameValue(sub); } }}>
                         {sub}
                         {isLoan ? (
                           <span style={{ marginLeft: 6, opacity: 0.5 }} title={t.loanLocked}>
                             <Ic d={PATHS.lock} size={10} />
                           </span>
                         ) : (
-                          <button className="chip-remove" onClick={() => { setDeleteTarget({ mk, sub }); setShowDeleteModal(true); }}>
+                          <button className="chip-remove" onClick={(e) => { e.stopPropagation(); setDeleteTarget({ mk, sub }); setShowDeleteModal(true); }}>
                             <Ic d="M6 18L18 6M6 6l12 12" size={11} />
                           </button>
                         )}
@@ -2288,6 +2552,23 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div className="modal-actions">
                 <button className="btn btn-ghost" onClick={() => setShowModal(false)}>{t.cancel}</button>
                 <button className="btn btn-primary" onClick={handleAddCat}>{t.add}</button>
+              </div>
+            </div>
+          </div>
+        )
+      }
+
+      {/* Rename modal */}
+      {
+        renameTarget && (
+          <div className="modal-overlay" onClick={() => setRenameTarget(null)}>
+            <div className="modal" onClick={e => e.stopPropagation()}>
+              <div className="modal-title">Renombrar "{renameTarget.oldName}"</div>
+              <input className="text-input" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRename()} autoFocus />
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Se modificará en presupuestos, transacciones y patrimonio.</div>
+              <div className="modal-actions">
+                <button className="btn btn-ghost" onClick={() => setRenameTarget(null)}>{t.cancel}</button>
+                <button className="btn btn-primary" onClick={handleRename}>Guardar</button>
               </div>
             </div>
           </div>
@@ -2930,6 +3211,7 @@ function CompoundInterestView() {
 function UserManagementView() {
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
+  const [systemErrors, setSystemErrors] = useState([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -2937,8 +3219,19 @@ function UserManagementView() {
   useEffect(() => {
     // Real-time users
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      const list = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-      setUsers(list);
+      const fbUsers = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+      const localUsers = localDB.get('users_list') || [];
+      const dbUsers = [...fbUsers];
+      localUsers.forEach(lu => {
+        if (!dbUsers.find(u => u.uid === lu.uid || (u.email && u.email.toLowerCase() === lu.email.toLowerCase()))) {
+          dbUsers.push(lu);
+        }
+      });
+      setUsers(dbUsers);
+      setLoading(false);
+    }, (err) => {
+      console.error(err);
+      setUsers(localDB.get('users_list') || []);
       setLoading(false);
     });
 
@@ -2946,11 +3239,24 @@ function UserManagementView() {
     const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snap) => {
       const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setLogs(list);
+    }, (err) => {
+      console.error("Logs sync error:", err);
+      setLogs(localDB.get('activity_logs') || []);
     });
+
+    // Real-time system errors
+    const unsubErrors = onSnapshot(
+      query(collection(db, 'system_errors'), orderBy('timestamp', 'desc')),
+      (snap) => {
+        setSystemErrors(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      },
+      (err) => console.error("Error fetching system errors:", err)
+    );
 
     return () => {
       unsubUsers();
       unsubLogs();
+      unsubErrors();
     };
   }, []);
   const now = Date.now();
@@ -2962,8 +3268,8 @@ function UserManagementView() {
   const stats365d = getInPeriod(365).length;
 
   const onlineUsers = users.filter(u => {
-    const userLog = logs.find(l => l.uid === u.uid && !l.end);
-    return userLog && (now - userLog.lastSeen) < 120000; // Activos en los últimos 2 minutos
+    const userLog = logs.sort((a, b) => b.lastSeen - a.lastSeen).find(l => l.uid === u.uid && !l.end);
+    return userLog && (now - userLog.lastSeen) < 5 * 60000; // Activos en los últimos 5 minutos
   });
 
   // Chart Data: Sessions per day last 30 days
@@ -2972,7 +3278,8 @@ function UserManagementView() {
     d.setDate(d.getDate() - (29 - i));
     const dayStr = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
     const count = logs.filter(l => {
-      const ld = new Date(l.start);
+      if (!l.lastSeen) return false;
+      const ld = new Date(l.lastSeen);
       return ld.getDate() === d.getDate() && ld.getMonth() === d.getMonth() && ld.getFullYear() === d.getFullYear();
     }).length;
     return { name: dayStr, sesiones: count };
@@ -2981,9 +3288,9 @@ function UserManagementView() {
   // Calculate most active users
   const userActivity = users.map(u => {
     const uLogs = logs.filter(l => l.uid === u.uid);
-    const totalTime = uLogs.reduce((acc, l) => acc + ((l.end || l.lastSeen) - l.start), 0);
+    const totalTime = uLogs.reduce((acc, l) => acc + (l.totalTime || 0), 0);
     return { name: u.displayName, sessions: uLogs.length, time: Math.round(totalTime / 60000) };
-  }).sort((a, b) => b.sessions - a.sessions);
+  }).sort((a, b) => b.time - a.time);
 
   const exportCSV = () => {
     const headers = ['Usuario', 'Email', 'Inicio', 'Fin', 'Duración (min)'];
@@ -3168,30 +3475,6 @@ function UserManagementView() {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Gestión de identidades y privilegios granulares.</p>
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-ghost" onClick={() => {
-            const users = localDB.get('users_list') || [];
-            const currentUser = localDB.get('currentUser');
-            const totalSize = (JSON.stringify(localStorage).length / 1024).toFixed(2);
-            const debugInfo = {
-              metadata: {
-                engine: "Web Browser (LocalStorage)",
-                usage: totalSize + " KB",
-                lastSession: currentUser?.email
-              },
-              tables: {
-                users_list: users,
-                current_session: currentUser
-              }
-            };
-            console.log("DATABASE INSPECTION:", debugInfo);
-            alert(`--- BBDD LOCAL EN TIEMPO REAL ---\n\n` +
-              `Tamaño en disco: ${totalSize} KB\n` +
-              `Usuarios registrados: ${users.length}\n\n` +
-              `JSON DE USUARIOS:\n${JSON.stringify(users, null, 2).slice(0, 500)}...\n\n` +
-              `(El detalle completo se ha enviado a la consola del desarrollador F12 para una inspección profunda)`);
-          }} style={{ fontSize: 11 }}>
-            <Ic d={PATHS.lock} size={14} /> Inspeccionar BBDD
-          </button>
           <button className="btn btn-primary" onClick={() => { setEditingUser(null); setShowAdd(true); }}>
             <Ic d={PATHS.plus} size={16} /> Añadir Usuario
           </button>
@@ -3252,6 +3535,54 @@ function UserManagementView() {
           </table>
         </div>
       </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--red)' }}>Auditoría de Errores Críticos (Firebase)</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Registro de fallos en sincronización o base de datos reportados por la plataforma.</p>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {systemErrors.length === 0 ? (
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No se han registrado errores en el sistema.</div>
+        ) : (
+          <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
+            <table style={{ margin: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ background: 'var(--bg-secondary)' }}>Fecha y Hora</th>
+                  <th style={{ background: 'var(--bg-secondary)' }}>Operación</th>
+                  <th style={{ background: 'var(--bg-secondary)' }}>Mensaje de Error</th>
+                  <th style={{ background: 'var(--bg-secondary)', textAlign: 'right' }}>Afectado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {systemErrors.map(err => {
+                  const affectedUser = users.find(u => u.uid === err.uid);
+                  return (
+                    <tr key={err.id}>
+                      <td style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                        {new Date(err.timestamp).toLocaleString()}
+                      </td>
+                      <td style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
+                        {err.context}
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--red)', fontFamily: 'monospace' }}>
+                        {err.error}
+                      </td>
+                      <td style={{ textAlign: 'right', fontSize: 12 }}>
+                        {affectedUser ? affectedUser.displayName : <span style={{ opacity: 0.5 }}>{err.uid}</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
