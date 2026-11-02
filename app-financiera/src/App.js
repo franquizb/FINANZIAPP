@@ -7,7 +7,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
-  AreaChart, Area, Brush
+  AreaChart, Area, Brush, ComposedChart
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
 import { db, auth } from './firebase';
@@ -132,6 +132,51 @@ const crearAnioHeredado = (fullData, year, config) => {
 const VISTAS_POR_DEFECTO = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'];
 const SECCIONES_PRESUPUESTO = ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
 
+// ─── DASHBOARD CONFIGURABLE ──────────────────────────────────────────────────
+// Catálogo de bloques del dashboard. Cada usuario elige cuáles ve, en qué orden
+// y a qué anchura; algunos tienen opciones propias (categoría elegida, objetivo).
+// "vista" indica que el bloque solo tiene sentido si esa sección está visible.
+const WIDGETS_DASHBOARD = [
+  { id: 'kpis', titulo: 'Resumen del año (ingresos, gastos, ahorro)', size: 'full' },
+  { id: 'salud', titulo: 'Salud financiera', size: 'full' },
+  { id: 'flujo', titulo: 'Ingresos vs. gastos mensuales', size: 'half' },
+  { id: 'distribucion', titulo: 'Distribución de gastos', size: 'half' },
+  { id: 'ahorro-acumulado', titulo: 'Ahorro acumulado: plan vs. real', size: 'half' },
+  { id: 'objetivo', titulo: 'Objetivo de ahorro anual', size: 'half' },
+  { id: 'presupuesto-ingresos', titulo: 'Ingresos: presupuesto vs. real', size: 'half' },
+  { id: 'presupuesto-gastos', titulo: 'Gastos: presupuesto vs. real', size: 'half' },
+  { id: 'top-gastos', titulo: 'Dónde se va el dinero (top gastos)', size: 'half' },
+  { id: 'categoria', titulo: 'Evolución de una categoría', size: 'half' },
+  { id: 'ahorro-mensual', titulo: 'Ahorro por mes', size: 'full' },
+  { id: 'comparativa', titulo: 'Este año vs. el anterior', size: 'full' },
+  { id: 'patrimonio', titulo: 'Patrimonio neto', size: 'half', vista: 'networth' },
+  { id: 'prestamos', titulo: 'Progreso de préstamos', size: 'half', vista: 'loans' },
+  { id: 'trading', titulo: 'Resumen de trading', size: 'full', vista: 'trading' }
+];
+
+// Disposición guardada -> lista completa y saneada: conserva el orden, la
+// visibilidad, la anchura y las opciones del usuario, descarta bloques que ya no
+// existen y añade al final los nuevos que aparezcan en versiones posteriores.
+const normalizarDashboard = (saved) => {
+  const guardados = Array.isArray(saved?.widgets) ? saved.widgets : [];
+  const lista = [];
+  guardados.forEach(w => {
+    const def = WIDGETS_DASHBOARD.find(d => d.id === w?.id);
+    if (def && !lista.some(x => x.id === def.id)) {
+      lista.push({
+        id: def.id,
+        visible: w.visible !== false,
+        size: (w.size === 'full' || w.size === 'half') ? w.size : def.size,
+        opciones: (w.opciones && typeof w.opciones === 'object') ? w.opciones : {}
+      });
+    }
+  });
+  WIDGETS_DASHBOARD.forEach(def => {
+    if (!lista.some(x => x.id === def.id)) lista.push({ id: def.id, visible: true, size: def.size, opciones: {} });
+  });
+  return { widgets: lista };
+};
+
 // Configuración del usuario tal y como la usa la app, con valores por defecto.
 // anioInicial: 0 = abrir siempre en el año en curso; un año concreto = abrir en ese año.
 const normalizarConfig = (savedConfig) => ({
@@ -139,7 +184,8 @@ const normalizarConfig = (savedConfig) => ({
   anioInicial: parseInt(savedConfig?.anioInicial) || 0,
   categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
   visibleViews: savedConfig?.visibleViews || [...VISTAS_POR_DEFECTO],
-  visibleBudgetSections: savedConfig?.visibleBudgetSections || [...SECCIONES_PRESUPUESTO]
+  visibleBudgetSections: savedConfig?.visibleBudgetSections || [...SECCIONES_PRESUPUESTO],
+  dashboard: normalizarDashboard(savedConfig?.dashboard)
 });
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -285,6 +331,21 @@ const getEffectiveBudget = (sub, mainCategory, year, mIdx, fullData, manualBudge
   }
   return manualBudget?.[sub] || 0;
 };
+
+// Ingresos y gastos de cada mes de un año (las cuotas de préstamos cuentan como
+// gasto real). Lo usa el dashboard para comparar con el año anterior.
+const calcularTotalesMensuales = (data, categories, fullData, year) => months.map((m, mIdx) => {
+  const income = (categories["Ingresos"] || []).reduce((s, sub) => s + calcTotal(data?.monthly?.[m]?.[sub]?.actual || []), 0);
+  const expenses = EXPENSE_KEYS.reduce((s, mk) => s + (categories[mk] || []).reduce((ss, sub) => {
+    let val = calcTotal(data?.monthly?.[m]?.[sub]?.actual || []);
+    if (mk === 'Pago de Deudas' && fullData?.loans) {
+      const loan = fullData.loans.find(l => l.name === sub);
+      if (loan) { const lv = getLoanValues(loan, year, mIdx); if (lv.active) val += lv.installment; }
+    }
+    return ss + val;
+  }, 0), 0);
+  return { name: m.substring(0, 3).toUpperCase(), income, expenses };
+});
 
 // ─── TRADING ─────────────────────────────────────────────────────────────────
 // Resultado realizado por activo (precio medio, PnL cerrado, comisiones) a partir
@@ -1175,6 +1236,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const { t, theme } = useApp();
   const [addingTo, setAddingTo] = useState(null);
   const [newSub, setNewSub] = useState('');
+  const [editandoDashboard, setEditandoDashboard] = useState(false);
 
   if (!data) return <div className="loading-state">{t.noData} {year}</div>;
 
@@ -1689,28 +1751,166 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     savings: m.income - m.expenses,
   }));
 
-  return (
-    <div className="section-gap fade-in">
-      <div className="grid-3">
-        <div className="card" style={{ borderLeft: '4px solid var(--accent)', background: 'linear-gradient(135deg, var(--bg-card), rgba(45, 212, 191, 0.05))' }}>
-          <div className="card-title">{t.totalIncome} ({year})</div>
-          <div className="card-value green">{fmt(totalIncome)}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{fmt(totalIncome / 12)} / {t.monthlyAvg}</div>
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid var(--red)', background: 'linear-gradient(135deg, var(--bg-card), rgba(244, 63, 94, 0.05))' }}>
-          <div className="card-title">{t.totalExpenses}</div>
-          <div className="card-value red">{fmt(totalExpenses)}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalExpenses / (totalIncome || 1)) * 100).toFixed(1)}% {t.ofIncome}</div>
-        </div>
-        <div className="card" style={{ borderLeft: '4px solid var(--blue)', background: 'linear-gradient(135deg, var(--bg-card), rgba(56, 189, 248, 0.05))' }}>
-          <div className="card-title">{t.savings}</div>
-          <div className="card-value blue">{fmt(totalSavings)}</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalSavings / (totalIncome || 1)) * 100).toFixed(1)}% {t.savingsRate}</div>
-        </div>
-      </div>
+  // ─── Datos para los bloques del dashboard ─────────────────────────────────
+  const esAnioActual = year === new Date().getFullYear();
+  const totalesHasta = monthlyTotals.slice(0, monthsPassed);
+  const ingresosYTD = totalesHasta.reduce((s, m) => s + m.income, 0);
+  const gastosYTD = totalesHasta.reduce((s, m) => s + m.expenses, 0);
+  const ahorroYTD = ingresosYTD - gastosYTD;
+  const tasaAhorro = ingresosYTD > 0 ? (ahorroYTD / ingresosYTD) * 100 : null;
 
-      {/* Charts row 1: Income vs Expenses + Expense Distribution */}
-      <div className="grid-5-3">
+  const mesesConGasto = totalesHasta.filter(m => m.expenses > 0).length;
+  const gastoMedioMensual = mesesConGasto > 0 ? gastosYTD / mesesConGasto : totalExpensesBudgeted;
+  const mesesConIngreso = totalesHasta.filter(m => m.income > 0).length;
+  const ingresoMedioMensual = mesesConIngreso > 0 ? ingresosYTD / mesesConIngreso : totalIncomeBudgeted;
+
+  // Fondo de emergencia: activos líquidos del último mes con patrimonio anotado.
+  const esLiquido = (c) => /efectivo|cuenta|liquid|caja/i.test(c);
+  const catsLiquidas = (categories["Activos"] || []).filter(esLiquido);
+  const catsFondo = catsLiquidas.length ? catsLiquidas : (categories["Activos"] || []);
+  let mesPatrimonio = -1;
+  months.forEach((m, i) => {
+    if ((categories["Activos"] || []).some(c => (data?.netWorth?.assets?.[c]?.[m] || 0) !== 0)) mesPatrimonio = i;
+  });
+  const fondoEmergencia = mesPatrimonio >= 0 ? catsFondo.reduce((s, c) => s + (data?.netWorth?.assets?.[c]?.[months[mesPatrimonio]] || 0), 0) : 0;
+  const mesesCubiertos = gastoMedioMensual > 0 && mesPatrimonio >= 0 ? fondoEmergencia / gastoMedioMensual : null;
+
+  // Carga de deuda: cuotas del mes de referencia sobre el ingreso mensual medio.
+  const mesReferencia = esAnioActual ? new Date().getMonth() : 11;
+  const cuotasMes = (fullData.loans || []).reduce((s, l) => { const lv = getLoanValues(l, year, mesReferencia); return s + (lv.active ? lv.installment : 0); }, 0);
+  const ratioDeuda = ingresoMedioMensual > 0 ? (cuotasMes / ingresoMedioMensual) * 100 : null;
+
+  // Ahorro acumulado real frente al plan del presupuesto.
+  const ahorroPlanMes = totalIncomeBudgeted - totalExpensesBudgeted;
+  const ahorroAcumulado = (() => {
+    let real = 0, plan = 0;
+    return months.map((m, i) => {
+      plan += ahorroPlanMes;
+      if (i < monthsPassed) real += monthlyTotals[i].income - monthlyTotals[i].expenses;
+      return { name: m.substring(0, 3).toUpperCase(), plan, real: i < monthsPassed ? real : null };
+    });
+  })();
+
+  // Top de gastos del año.
+  const topGastos = [...expenseDist].sort((a, b) => b.value - a.value).slice(0, 6)
+    .map(x => ({ ...x, pct: totalExpenses > 0 ? (x.value / totalExpenses) * 100 : 0 }));
+
+  // Comparativa con el año anterior.
+  const datosAnioAnterior = fullData[year - 1];
+  const totalesAnterior = datosAnioAnterior ? calcularTotalesMensuales(datosAnioAnterior, datosAnioAnterior.categories || categories, fullData, year - 1) : null;
+  const comparativa = totalesAnterior ? months.map((m, i) => ({
+    name: m.substring(0, 3).toUpperCase(),
+    [`Gastos ${year}`]: monthlyTotals[i].expenses,
+    [`Gastos ${year - 1}`]: totalesAnterior[i].expenses,
+    [`Ingresos ${year}`]: monthlyTotals[i].income,
+    [`Ingresos ${year - 1}`]: totalesAnterior[i].income
+  })) : [];
+  const anteriorHasta = totalesAnterior ? totalesAnterior.slice(0, monthsPassed) : [];
+  const ingresosAnteriorYTD = anteriorHasta.reduce((s, m) => s + m.income, 0);
+  const gastosAnteriorYTD = anteriorHasta.reduce((s, m) => s + m.expenses, 0);
+
+  // ─── Configuración del dashboard: orden, visibilidad, tamaño y opciones ──
+  // Se guarda en la configuración del usuario (Firestore), así cada persona ve
+  // el dashboard como lo ha dejado, en cualquier dispositivo.
+  const dashboardCfg = normalizarDashboard(config?.dashboard);
+  const guardarDashboard = (widgets) => onUpdateCfg({ ...config, dashboard: { widgets } });
+  const opcionesDe = (id) => (dashboardCfg.widgets.find(w => w.id === id) || {}).opciones || {};
+  const setOpcionesWidget = (id, opciones) => guardarDashboard(dashboardCfg.widgets.map(w => w.id === id ? { ...w, opciones: { ...(w.opciones || {}), ...opciones } } : w));
+  const cambiarWidget = (id, cambios) => guardarDashboard(dashboardCfg.widgets.map(w => w.id === id ? { ...w, ...cambios } : w));
+  const disponible = (id) => { const def = WIDGETS_DASHBOARD.find(d => d.id === id); return !!def && (!def.vista || (visibleViews || []).includes(def.vista)); };
+  const widgetsVisibles = dashboardCfg.widgets.filter(w => w.visible && disponible(w.id));
+  const widgetsOcultos = dashboardCfg.widgets.filter(w => !w.visible && disponible(w.id));
+  const tituloDe = (id) => WIDGETS_DASHBOARD.find(d => d.id === id)?.titulo || id;
+  const moverWidget = (id, delta) => {
+    const k = widgetsVisibles.findIndex(w => w.id === id);
+    const destino = widgetsVisibles[k + delta];
+    if (k < 0 || !destino) return;
+    const arr = [...dashboardCfg.widgets];
+    const i = arr.findIndex(w => w.id === id), j = arr.findIndex(w => w.id === destino.id);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    guardarDashboard(arr);
+  };
+  const restablecerDashboard = () => { if (window.confirm('¿Volver a la disposición inicial del dashboard?')) guardarDashboard(normalizarDashboard(null).widgets); };
+
+  // Evolución de una categoría (opción guardada como "Categoría principal|Subcategoría").
+  const todasSubs = ALL_MAIN_KEYS.flatMap(mk => (categories[mk] || []).map(sub => ({ mk, sub, clave: `${mk}|${sub}` })));
+  const claveCategoria = (() => {
+    const guardada = opcionesDe('categoria').cat;
+    if (guardada && todasSubs.some(x => x.clave === guardada)) return guardada;
+    const top = topGastos[0] && todasSubs.find(x => x.sub === topGastos[0].name && x.mk !== 'Ingresos');
+    return top ? top.clave : (todasSubs[0]?.clave || '');
+  })();
+  const [mkElegida, subElegida] = claveCategoria.split('|');
+  const evolucionCategoria = subElegida ? months.map((m, i) => {
+    let real = calcTotal(data.monthly?.[m]?.[subElegida]?.actual || []);
+    if (mkElegida === 'Pago de Deudas') {
+      const loan = (fullData.loans || []).find(l => l.name === subElegida);
+      if (loan) { const lv = getLoanValues(loan, year, i); if (lv.active) real += lv.installment; }
+    }
+    const presupuesto = getEffectiveBudget(subElegida, mkElegida, year, i, fullData, data.budget);
+    return { name: m.substring(0, 3).toUpperCase(), real, presupuesto };
+  }) : [];
+
+  // Objetivo de ahorro anual (editable en el propio bloque).
+  const objetivoAhorro = parseFloat(opcionesDe('objetivo').objetivo) || 0;
+  const progresoObjetivo = objetivoAhorro > 0 ? (ahorroYTD / objetivoAhorro) * 100 : 0;
+  const ritmoMensual = monthsPassed > 0 ? ahorroYTD / monthsPassed : 0;
+  const proyeccionAhorro = esAnioActual ? ritmoMensual * 12 : ahorroYTD;
+
+  const semaforo = (v, bueno, medio, menorEsMejor = false) => {
+    if (v === null || v === undefined || isNaN(v)) return 'var(--text-muted)';
+    const ok = menorEsMejor ? v <= bueno : v >= bueno;
+    const regular = menorEsMejor ? v <= medio : v >= medio;
+    return ok ? 'var(--green)' : regular ? 'var(--yellow)' : 'var(--red)';
+  };
+  const tickCompacto = v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v);
+  const sinDatos = (texto) => <div className="loading-state" style={{ height: '80%', fontSize: 12, textAlign: 'center', padding: 12 }}>{texto}</div>;
+
+  const renderWidget = (w) => {
+    switch (w.id) {
+      case 'kpis': return (
+        <div className="grid-3">
+          <div className="card" style={{ borderLeft: '4px solid var(--accent)', background: 'linear-gradient(135deg, var(--bg-card), rgba(45, 212, 191, 0.05))' }}>
+            <div className="card-title">{t.totalIncome} ({year})</div>
+            <div className="card-value green">{fmt(totalIncome)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{fmt(totalIncome / 12)} / {t.monthlyAvg}</div>
+          </div>
+          <div className="card" style={{ borderLeft: '4px solid var(--red)', background: 'linear-gradient(135deg, var(--bg-card), rgba(244, 63, 94, 0.05))' }}>
+            <div className="card-title">{t.totalExpenses}</div>
+            <div className="card-value red">{fmt(totalExpenses)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalExpenses / (totalIncome || 1)) * 100).toFixed(1)}% {t.ofIncome}</div>
+          </div>
+          <div className="card" style={{ borderLeft: '4px solid var(--blue)', background: 'linear-gradient(135deg, var(--bg-card), rgba(56, 189, 248, 0.05))' }}>
+            <div className="card-title">{t.savings}</div>
+            <div className="card-value blue">{fmt(totalSavings)}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalSavings / (totalIncome || 1)) * 100).toFixed(1)}% {t.savingsRate}</div>
+          </div>
+        </div>
+      );
+
+      case 'salud': return (
+        <div className="card">
+          <div className="chart-card-title">Salud financiera {esAnioActual ? `(hasta ${months[monthsPassed - 1]})` : `(${year})`}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            {[
+              { label: 'Tasa de ahorro', valor: tasaAhorro, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(tasaAhorro, 20, 10), max: 40, nota: 'Lo que guardas de cada euro que ingresas. Referencia: 20 % o más.' },
+              { label: 'Fondo de emergencia', valor: mesesCubiertos, mostrar: v => `${v.toFixed(1)} meses`, color: semaforo(mesesCubiertos, 6, 3), max: 12, nota: `${catsFondo.join(' + ') || 'Activos'} entre el gasto medio mensual. Referencia: de 3 a 6 meses.` },
+              { label: 'Carga de deuda', valor: ratioDeuda, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(ratioDeuda, 30, 40, true), max: 60, nota: 'Cuotas de préstamos sobre el ingreso mensual medio. Referencia: por debajo del 30 %.' }
+            ].map(g => (
+              <div key={g.label} style={{ padding: 14, borderRadius: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{g.label}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: g.color, margin: '6px 0' }}>{(g.valor === null || g.valor === undefined || isNaN(g.valor)) ? 'Sin datos' : g.mostrar(g.valor)}</div>
+                <div style={{ height: 8, background: 'var(--bg-input)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, ((g.valor || 0) / g.max) * 100))}%`, background: g.color, borderRadius: 4, transition: 'width .4s' }} />
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6 }}>{g.nota}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+      case 'flujo': return (
         <div className="chart-card" style={{ height: 320, padding: '20px' }}>
           <div className="chart-card-title" style={{ marginBottom: 20 }}>{t.monthlyIncome}</div>
           <ResponsiveContainer width="100%" height="85%">
@@ -1727,17 +1927,17 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               </defs>
               <CartesianGrid vertical={false} stroke={gridColor} strokeOpacity={0.5} />
               <XAxis dataKey="name" stroke={axisColor} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-              <YAxis stroke={axisColor} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
-              <Tooltip
-                contentStyle={{ ...tooltipStyle, border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
-                cursor={{ stroke: 'var(--accent)', strokeWidth: 2 }}
-              />
+              <YAxis stroke={axisColor} axisLine={false} tickLine={false} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+              <Tooltip contentStyle={{ ...tooltipStyle, border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }} cursor={{ stroke: 'var(--accent)', strokeWidth: 2 }} formatter={v => fmt(v)} />
               <Legend verticalAlign="top" align="right" height={36} iconType="circle" />
               <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorIncome)" name={t.income} />
               <Area type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={3} fillOpacity={1} fill="url(#colorExpense)" name={t.expenses} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
+      );
+
+      case 'distribucion': return (
         <div className="chart-card" style={{ height: 320, padding: '20px' }}>
           <div className="chart-card-title" style={{ marginBottom: 20 }}>{t.expenseDist}</div>
           {expenseDist.length > 0 ? (
@@ -1750,12 +1950,65 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 11, paddingLeft: 20 }} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
-          ) : <div className="loading-state" style={{ height: '80%', fontSize: 12 }}>Sin datos</div>}
+          ) : sinDatos('Sin datos')}
         </div>
-      </div>
+      );
 
-      {/* Charts row 2: Budget vs Actual Income/Expenses */}
-      <div className="grid-2">
+      case 'ahorro-acumulado': return (
+        <div className="chart-card" style={{ height: 320 }}>
+          <div className="chart-card-title">Ahorro acumulado: plan vs. real</div>
+          <ResponsiveContainer width="100%" height="85%">
+            <AreaChart data={ahorroAcumulado}>
+              <defs>
+                <linearGradient id="colorAcumulado" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Area type="monotone" dataKey="plan" name="Plan (según presupuesto)" stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 4" fillOpacity={0} />
+              <Area type="monotone" dataKey="real" name="Real" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorAcumulado)" connectNulls={false} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      );
+
+      case 'objetivo': {
+        const colorObjetivo = objetivoAhorro > 0 ? (proyeccionAhorro >= objetivoAhorro ? 'var(--green)' : progresoObjetivo >= (monthsPassed / 12) * 100 ? 'var(--yellow)' : 'var(--red)') : 'var(--accent)';
+        return (
+          <div className="card" style={{ height: 320, display: 'flex', flexDirection: 'column' }}>
+            <div className="chart-card-title">Objetivo de ahorro anual</div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Objetivo para {year} (€)</label>
+              <BudgetInput value={objetivoAhorro} disabled={false} onSave={v => setOpcionesWidget('objetivo', { objetivo: v })} />
+            </div>
+            {objetivoAhorro > 0 ? (
+              <>
+                <div style={{ fontSize: 32, fontWeight: 900, color: colorObjetivo, lineHeight: 1 }}>{Math.max(0, progresoObjetivo).toFixed(0)} %</div>
+                <div style={{ height: 10, background: 'var(--bg-input)', borderRadius: 5, overflow: 'hidden', margin: '12px 0' }}>
+                  <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, progresoObjetivo))}%`, background: colorObjetivo, borderRadius: 5, transition: 'width .4s' }} />
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Llevas <b>{fmt(ahorroYTD)}</b> de {fmt(objetivoAhorro)}.
+                  {esAnioActual ? (
+                    <> Al ritmo actual ({fmt(ritmoMensual)} al mes) terminarás el año con <b>{fmt(proyeccionAhorro)}</b>: {proyeccionAhorro >= objetivoAhorro ? 'vas por delante del objetivo.' : `te faltarían ${fmt(objetivoAhorro - proyeccionAhorro)}.`}</>
+                  ) : (
+                    <> {ahorroYTD >= objetivoAhorro ? 'Objetivo cumplido.' : `Faltaron ${fmt(objetivoAhorro - ahorroYTD)}.`}</>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>Escribe cuánto quieres ahorrar este año y verás el progreso y una proyección a fin de año según tu ritmo actual.</div>
+            )}
+          </div>
+        );
+      }
+
+      case 'presupuesto-ingresos': return (
         <div className="chart-card" style={{ height: 280 }}>
           <div className="chart-card-title">{t.income}: Presupuesto vs Real ({monthsPassed} meses)</div>
           {incomeVsActual.length > 0 ? (
@@ -1763,15 +2016,18 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               <BarChart data={incomeVsActual} barSize={18}>
                 <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
                 <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
-                <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
+                <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(99,102,241,0.08)' }} formatter={v => fmt(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="budgeted" fill="var(--accent)" name={t.budgeted} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="actual" fill="var(--green)" name={t.real} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className="loading-state" style={{ height: '80%', fontSize: 12 }}>Sin datos de presupuesto</div>}
+          ) : sinDatos('Sin datos de presupuesto')}
         </div>
+      );
+
+      case 'presupuesto-gastos': return (
         <div className="chart-card" style={{ height: 280 }}>
           <div className="chart-card-title">{t.expenses}: Presupuesto vs Real ({monthsPassed} meses)</div>
           {expenseVsActual.length > 0 ? (
@@ -1779,107 +2035,234 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               <BarChart data={expenseVsActual} barSize={18}>
                 <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
                 <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
-                <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
+                <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(99,102,241,0.08)' }} formatter={v => fmt(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="budgeted" fill="var(--accent)" name={t.budgeted} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="actual" fill="var(--red)" name={t.real} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : <div className="loading-state" style={{ height: '80%', fontSize: 12 }}>Sin datos de presupuesto</div>}
+          ) : sinDatos('Sin datos de presupuesto')}
+        </div>
+      );
+
+      case 'top-gastos': return (
+        <div className="chart-card" style={{ height: 320 }}>
+          <div className="chart-card-title">Dónde se va el dinero ({year})</div>
+          {topGastos.length > 0 ? (
+            <ResponsiveContainer width="100%" height="85%">
+              <BarChart data={topGastos} layout="vertical" margin={{ left: 4, right: 56, top: 4, bottom: 4 }}>
+                <CartesianGrid horizontal={false} stroke={gridColor} strokeOpacity={0.5} />
+                <XAxis type="number" hide />
+                <YAxis type="category" dataKey="name" width={118} tick={{ fontSize: 11 }} stroke={axisColor} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(99,102,241,0.08)' }} formatter={(v, n, p) => [`${fmt(v)} (${(p?.payload?.pct || 0).toFixed(1)} % del gasto)`, 'Gasto']} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]} label={{ position: 'right', fontSize: 11, fill: axisColor, formatter: v => fmt(v) }}>
+                  {topGastos.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : sinDatos('Sin gastos registrados')}
+        </div>
+      );
+
+      case 'categoria': return (
+        <div className="chart-card" style={{ height: 320 }}>
+          <div className="chart-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span>Evolución de una categoría</span>
+            <select className="select-input" style={{ width: 'auto', height: 30, fontSize: 12, padding: '0 8px' }} value={claveCategoria} onChange={e => setOpcionesWidget('categoria', { cat: e.target.value })}>
+              {ALL_MAIN_KEYS.map(mk => (
+                <optgroup key={mk} label={mk}>
+                  {(categories[mk] || []).map(sub => <option key={`${mk}|${sub}`} value={`${mk}|${sub}`}>{sub}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          {subElegida ? (
+            <ResponsiveContainer width="100%" height="80%">
+              <ComposedChart data={evolucionCategoria} barSize={16}>
+                <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
+                <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
+                <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+                <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
+                <Legend wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="real" name={`Real: ${subElegida}`} fill={getCategoryColor(mkElegida)} radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="presupuesto" name="Presupuesto" stroke="var(--text-secondary)" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          ) : sinDatos('Sin categorías')}
+        </div>
+      );
+
+      case 'ahorro-mensual': return (
+        <div className="chart-card" style={{ height: 280 }}>
+          <div className="chart-card-title">{t.savings} ({t.month})</div>
+          <ResponsiveContainer width="100%" height="88%">
+            <BarChart data={monthlySavingsData} barSize={20}>
+              <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
+              <Bar dataKey="savings" name={t.savings} radius={[4, 4, 0, 0]}>
+                {monthlySavingsData.map((entry, i) => (
+                  <Cell key={i} fill={entry.savings >= 0 ? '#10b981' : '#ef4444'} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      );
+
+      case 'comparativa': return (
+        <div className="chart-card" style={{ height: 340 }}>
+          <div className="chart-card-title">Este año vs. el anterior ({year} vs. {year - 1})</div>
+          {totalesAnterior ? (
+            <>
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, marginBottom: 6 }}>
+                {[
+                  { l: 'Ingresos', a: ingresosYTD, b: ingresosAnteriorYTD, mejorSiSube: true },
+                  { l: 'Gastos', a: gastosYTD, b: gastosAnteriorYTD, mejorSiSube: false },
+                  { l: 'Ahorro', a: ahorroYTD, b: ingresosAnteriorYTD - gastosAnteriorYTD, mejorSiSube: true }
+                ].map(d => {
+                  const diff = d.a - d.b;
+                  const pct = d.b !== 0 ? (diff / Math.abs(d.b)) * 100 : null;
+                  const color = (d.mejorSiSube ? diff >= 0 : diff <= 0) ? 'var(--green)' : 'var(--red)';
+                  return <span key={d.l}>{d.l}: <b style={{ color }}>{diff >= 0 ? '+' : ''}{fmt(diff)}</b>{pct !== null && <span style={{ color: 'var(--text-muted)' }}> ({pct >= 0 ? '+' : ''}{pct.toFixed(0)} %)</span>}</span>;
+                })}
+                <span style={{ color: 'var(--text-muted)' }}>primeros {monthsPassed} meses</span>
+              </div>
+              <ResponsiveContainer width="100%" height="80%">
+                <ComposedChart data={comparativa} barSize={10}>
+                  <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
+                  <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
+                  <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Bar dataKey={`Gastos ${year - 1}`} fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={`Gastos ${year}`} fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey={`Ingresos ${year - 1}`} stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+                  <Line type="monotone" dataKey={`Ingresos ${year}`} stroke="#10b981" strokeWidth={2} dot={false} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </>
+          ) : sinDatos(`No hay datos de ${year - 1}. Cuando existan, aquí verás la comparación mes a mes.`)}
+        </div>
+      );
+
+      case 'patrimonio': return (
+        <div className="chart-card" style={{ height: 280 }}>
+          <div className="chart-card-title">{t.netWorthSummary}</div>
+          <ResponsiveContainer width="100%" height="88%">
+            <AreaChart data={netWorthChartData}>
+              <defs>
+                <linearGradient id="colorNW" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
+              <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
+              <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
+              <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
+              <Legend wrapperStyle={{ fontSize: 12 }} />
+              <Area type="monotone" dataKey={t.assets} stroke="#10b981" strokeWidth={2} fillOpacity={0} />
+              <Area type="monotone" dataKey={t.liabilities} stroke="#ef4444" strokeWidth={2} fillOpacity={0} />
+              <Area type="monotone" dataKey="nw" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorNW)" name={t.netWorth} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      );
+
+      case 'prestamos': return (
+        <div className="chart-card" style={{ height: 280, overflow: 'auto' }}>
+          <div className="chart-card-title">{t.loanProgress}</div>
+          {loansData.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
+              {loansData.map((loan, i) => (
+                <div key={i} style={{ padding: '0 4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
+                    <span>{loan.name}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{loan.passed}/{loan.total}</span>
+                  </div>
+                  <div style={{ height: 8, background: 'var(--bg-input)', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: `${loan.progress}%`, background: loan.progress >= 100 ? 'var(--green)' : 'var(--accent)', borderRadius: 4, transition: 'width 0.5s ease' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
+                    <span>{fmt(loan.amount)}</span>
+                    <span>{loan.progress.toFixed(0)}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : sinDatos(t.noLoans)}
+        </div>
+      );
+
+      case 'trading': return (
+        <div className="grid-3">
+          <div className="card" style={{ borderLeft: '4px solid var(--green)' }}>
+            <div className="card-title">{t.totalPnL}</div>
+            <div className={`card-value ${tradingPnL >= 0 ? 'green' : 'red'}`}>{fmt(tradingPnL)}</div>
+          </div>
+          <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
+            <div className="card-title">{t.winRate}</div>
+            <div className="card-value">{winRate}%</div>
+          </div>
+          <div className="card" style={{ borderLeft: '4px solid var(--blue)' }}>
+            <div className="card-title">{t.totalTrades}</div>
+            <div className="card-value">{(fullData.trading || []).length}</div>
+          </div>
+        </div>
+      );
+
+      default: return null;
+    }
+  };
+
+  const botonEdicion = { width: 28, height: 28, padding: 0, fontSize: 12 };
+
+  return (
+    <div className="section-gap fade-in">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          {editandoDashboard
+            ? 'Modo personalización: sube, baja, ensancha u oculta cada bloque. Se guarda en tu cuenta.'
+            : `${widgetsVisibles.length} bloques visibles${widgetsOcultos.length ? ` · ${widgetsOcultos.length} ocultos` : ''}`}
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          {editandoDashboard && widgetsOcultos.length > 0 && (
+            <select className="select-input" style={{ width: 'auto', height: 36 }} value="" onChange={e => { if (e.target.value) cambiarWidget(e.target.value, { visible: true }); }}>
+              <option value="">+ Añadir bloque…</option>
+              {widgetsOcultos.map(w => <option key={w.id} value={w.id}>{tituloDe(w.id)}</option>)}
+            </select>
+          )}
+          {editandoDashboard && <button className="btn btn-ghost" onClick={restablecerDashboard}>Restablecer</button>}
+          <button className={`btn ${editandoDashboard ? 'btn-primary' : 'btn-ghost'} dashboard-personalizar-btn`} onClick={() => setEditandoDashboard(!editandoDashboard)}>
+            <Ic d={PATHS.settings} size={14} /> {editandoDashboard ? 'Listo' : 'Personalizar'}
+          </button>
         </div>
       </div>
 
-      <div className="chart-card" style={{ height: 280 }}>
-        <div className="chart-card-title">{t.savings} ({t.month})</div>
-        <ResponsiveContainer width="100%" height="88%">
-          <BarChart data={monthlySavingsData} barSize={20}>
-            <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
-            <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
-            <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
-            <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
-            <Bar dataKey="savings" name={t.savings} radius={[4, 4, 0, 0]}>
-              {monthlySavingsData.map((entry, i) => (
-                <Cell key={i} fill={entry.savings >= 0 ? '#10b981' : '#ef4444'} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <div className="grid-2" style={{ alignItems: 'stretch' }}>
+        {widgetsVisibles.map((w, idx) => (
+          <div key={w.id} style={{ gridColumn: w.size === 'full' ? '1 / -1' : 'auto', position: 'relative', outline: editandoDashboard ? '2px dashed var(--accent)' : 'none', outlineOffset: 4, borderRadius: 12 }}>
+            {editandoDashboard && (
+              <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 5, display: 'flex', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: 8, padding: 4, boxShadow: 'var(--shadow)' }}>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title="Subir" disabled={idx === 0} onClick={() => moverWidget(w.id, -1)}>▲</button>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title="Bajar" disabled={idx === widgetsVisibles.length - 1} onClick={() => moverWidget(w.id, 1)}>▼</button>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title={w.size === 'full' ? 'Media anchura' : 'Anchura completa'} onClick={() => cambiarWidget(w.id, { size: w.size === 'full' ? 'half' : 'full' })}>{w.size === 'full' ? '⇥' : '⇔'}</button>
+                <button className="btn btn-icon btn-danger" style={botonEdicion} title="Ocultar" onClick={() => cambiarWidget(w.id, { visible: false })}>✕</button>
+              </div>
+            )}
+            {renderWidget(w)}
+          </div>
+        ))}
+        {widgetsVisibles.length === 0 && (
+          <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
+            No hay bloques visibles. Pulsa "Personalizar" y añade los que quieras.
+          </div>
+        )}
       </div>
-
-      {/* Charts row 3: Net Worth (conditional) + Loan Progress (conditional) */}
-      {
-        (showNetWorth || showLoans) && (
-          <div className="grid-2">
-            {showNetWorth && (
-              <div className="chart-card" style={{ height: 280 }}>
-                <div className="chart-card-title">{t.netWorthSummary}</div>
-                <ResponsiveContainer width="100%" height="88%">
-                  <AreaChart data={netWorthChartData}>
-                    <defs>
-                      <linearGradient id="colorNW" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
-                    <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
-                    <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
-                    <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                    <Area type="monotone" dataKey={t.assets} stroke="#10b981" strokeWidth={2} fillOpacity={0} />
-                    <Area type="monotone" dataKey={t.liabilities} stroke="#ef4444" strokeWidth={2} fillOpacity={0} />
-                    <Area type="monotone" dataKey="nw" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorNW)" name={t.netWorth} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-            {showLoans && loansData.length > 0 && (
-              <div className="chart-card" style={{ height: 280, overflow: 'auto' }}>
-                <div className="chart-card-title">{t.loanProgress}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 8 }}>
-                  {loansData.map((loan, i) => (
-                    <div key={i} style={{ padding: '0 4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, marginBottom: 6 }}>
-                        <span>{loan.name}</span>
-                        <span style={{ color: 'var(--text-muted)' }}>{loan.passed}/{loan.total}</span>
-                      </div>
-                      <div style={{ height: 8, background: 'var(--bg-input)', borderRadius: 4, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${loan.progress}%`, background: loan.progress >= 100 ? 'var(--green)' : 'var(--accent)', borderRadius: 4, transition: 'width 0.5s ease' }} />
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text-muted)', marginTop: 4 }}>
-                        <span>{fmt(loan.amount)}</span>
-                        <span>{loan.progress.toFixed(0)}%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      }
-
-      {/* Charts row 4: Trading (conditional) */}
-      {
-        showTrading && (fullData.trading || []).length > 0 && (
-          <div className="grid-3">
-            <div className="card" style={{ borderLeft: '4px solid var(--green)' }}>
-              <div className="card-title">{t.totalPnL}</div>
-              <div className={`card-value ${tradingPnL >= 0 ? 'green' : 'red'}`}>{fmt(tradingPnL)}</div>
-            </div>
-            <div className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
-              <div className="card-title">{t.winRate}</div>
-              <div className="card-value">{winRate}%</div>
-            </div>
-            <div className="card" style={{ borderLeft: '4px solid var(--blue)' }}>
-              <div className="card-title">{t.totalTrades}</div>
-              <div className="card-value">{(fullData.trading || []).length}</div>
-            </div>
-          </div>
-        )
-      }
-    </div >
+    </div>
   );
 }
 

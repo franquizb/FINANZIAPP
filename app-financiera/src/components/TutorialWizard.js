@@ -14,6 +14,13 @@ const STEPS = [
         content: 'Este selector viaja en el tiempo. Selecciona el año en el que quieres operar. De serie se proyectan datos 10 años al pasado o futuro si es que has operado allí. Usa el tiempo sabiamente para simular presupuestos.'
     },
     {
+        target: '.dashboard-personalizar-btn',
+        fallback: '.page-content',
+        view: 'dashboard',
+        title: 'Tu Dashboard, a tu manera 🧩',
+        content: 'Pulsa "Personalizar" para decidir qué bloques ves y en qué orden y tamaño: salud financiera, ahorro acumulado frente al plan, objetivo de ahorro anual, dónde se va el dinero, la evolución de una categoría o la comparativa con el año anterior. La disposición se guarda en tu cuenta y la verás igual en cualquier dispositivo.'
+    },
+    {
         target: '.settings-toggle',
         view: 'dashboard',
         title: 'Estimación y Control 📊',
@@ -45,7 +52,7 @@ const STEPS = [
         target: null, // Full screen darken
         view: 'dashboard',
         title: '¡Añade Tus Propios Datos! 🚀',
-        content: 'Para que la FinanziApp rinda, te sugiero que empieces creando tus límites en el Presupuesto y actualizando tus Ahorros en el Net Worth. ¡Tú diriges tu economía!'
+        content: 'Para que FinanziApp rinda, empieza creando tus límites en el Presupuesto, actualiza tus saldos en Patrimonio Neto y deja el Dashboard con los bloques que te interesen. ¡Tú diriges tu economía!'
     }
 ];
 
