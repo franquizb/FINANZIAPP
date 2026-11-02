@@ -609,7 +609,13 @@ function AppInner({ isHome }) {
   const [showTutorial, setShowTutorial] = useState(false);
 
   const handleLogin = (u) => {
-    setUser(u); setConfig(null); setFinancialData(null); setLoading(true); setError(null); setBudgetLocked(true);
+    // Solo fija el usuario y navega. La carga de datos (y el estado "Cargando...")
+    // la gestiona el efecto que depende de userId: cuando onAuthStateChanged ya ha
+    // restaurado la sesión de este mismo uid, volver a poner loading=true aquí
+    // dejaba la pantalla en "Cargando..." para siempre, porque el efecto no se
+    // reinicia si el uid no cambia.
+    setUser(u);
+    setError(null); setBudgetLocked(true);
     navigate('/dashboard');
   };
 
