@@ -20,10 +20,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
 
-    // Campos de privilegio y de suscripcion: el cliente NUNCA los modifica.
+    // Campos de privilegio, de suscripcion y de bloqueo: el cliente NUNCA los modifica.
     function noTocaCamposProtegidos() {
       return !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil']);
+                .hasAny(['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil', 'bloqueado']);
     }
 
     // Nunca se admite un campo password en la base de datos.
@@ -45,32 +45,40 @@ service cloud.firestore {
       return 86400000;
     }
 
-    // Prueba vigente o suscripcion pagada. Las fechas se guardan en milisegundos
-    // (Date.now()), igual que el resto de marcas de tiempo de la app.
+    // Prueba vigente o suscripcion pagada, y cuenta no bloqueada por el admin.
+    // Las fechas se guardan en milisegundos (Date.now()), igual que el resto
+    // de marcas de tiempo de la app.
     function suscripcionActiva(userId) {
       let perfil = get(/databases/$(database)/documents/users/$(userId)).data;
-      return perfil.get('paidUntil', 0) > request.time.toMillis()
-          || perfil.get('trialEndsAt', 0) > request.time.toMillis();
+      return perfil.get('bloqueado', false) != true
+          && (perfil.get('paidUntil', 0) > request.time.toMillis()
+              || perfil.get('trialEndsAt', 0) > request.time.toMillis());
+    }
+
+    // Los documentos de actividad se llaman session_<uid>_<fecha>.
+    function esSuRegistroDeActividad(logId) {
+      return isSignedIn() && logId.matches('session_' + request.auth.uid + '(_.*)?');
     }
 
     // ─── PERFILES DE USUARIO ──────────────────────────────────────────────────
     match /users/{userId} {
-      // Antes: cualquiera autenticado leia TODOS los perfiles. Ahora solo el
-      // dueño, y el admin para el panel de gestion.
+      // Solo el dueño lee su perfil, y el admin para el panel de gestion.
       allow read: if isOwner(userId) || isAdmin();
 
       // Alta: solo tu propio perfil, sin password, sin autoconcederte admin,
-      // sin fijarte tu el estado de pago y con la prueba acotada a 15 dias.
+      // sin fijarte tu el estado de pago ni el bloqueo, y con la prueba
+      // acotada a 15 dias.
       allow create: if isOwner(userId)
                     && sinPassword()
                     && (!request.resource.data.keys().hasAny(['isAdmin'])
                         || request.resource.data.isAdmin == false)
-                    && !request.resource.data.keys().hasAny(['plan', 'paidUntil'])
+                    && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado'])
                     && (!request.resource.data.keys().hasAny(['trialEndsAt'])
                         || request.resource.data.trialEndsAt <= request.time.toMillis() + duracionPrueba() + toleranciaReloj());
 
       // Edicion: el dueño no puede introducir password ni escalar privilegios
-      // ni prolongarse la prueba. El admin si (ahi se marca el pago recibido).
+      // ni prolongarse la prueba ni desbloquearse. El admin si (ahi se marca
+      // el pago recibido o el bloqueo).
       allow update: if isAdmin()
                     || (isOwner(userId) && sinPassword() && noTocaCamposProtegidos());
 
@@ -78,11 +86,12 @@ service cloud.firestore {
 
       // ─── DATOS FINANCIEROS (data, settings, loans...) ───────────────────────
       match /{documento=**} {
-        // LECTURA siempre para el dueño, tambien con la prueba caducada: el
-        // derecho de acceso del RGPD no se puede condicionar al pago.
+        // LECTURA siempre para el dueño, tambien con la prueba caducada o la
+        // cuenta bloqueada: el derecho de acceso del RGPD no se puede
+        // condicionar al pago.
         allow read: if isOwner(userId) || isAdmin();
 
-        // ESCRITURA solo con prueba vigente o suscripcion pagada.
+        // ESCRITURA solo con prueba vigente o suscripcion pagada, y sin bloqueo.
         allow write: if isAdmin()
                      || (isOwner(userId) && suscripcionActiva(userId));
       }
@@ -90,16 +99,30 @@ service cloud.firestore {
 
     // ─── REGISTRO DE ACTIVIDAD ────────────────────────────────────────────────
     match /activity_logs/{logId} {
-      allow read: if isAdmin();
-      allow create, update: if isSignedIn()
-                            && request.resource.data.uid == request.auth.uid;
+      // El admin ve todo. Cada usuario puede leer SOLO sus propios documentos
+      // (la app comprueba si existe el del dia para estampar la hora de inicio).
+      allow read: if isAdmin() || esSuRegistroDeActividad(logId);
+      // Crear y actualizar: solo documentos propios, y siempre con el uid propio.
+      // Antes cualquier usuario podia sobrescribir el registro de otro.
+      allow create: if esSuRegistroDeActividad(logId)
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if isAdmin()
+                    || (esSuRegistroDeActividad(logId)
+                        && resource.data.uid == request.auth.uid
+                        && request.resource.data.uid == request.auth.uid);
       allow delete: if isAdmin();
     }
 
     // ─── ERRORES DE SISTEMA ───────────────────────────────────────────────────
     match /system_errors/{errorId} {
       allow read: if isAdmin();
-      allow create: if isSignedIn();
+      // Solo se admiten los campos que escribe la app, con el uid propio y un
+      // mensaje acotado, para que nadie use la coleccion como almacen.
+      allow create: if isSignedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.keys().hasOnly(['context', 'error', 'timestamp', 'uid'])
+                    && request.resource.data.error is string
+                    && request.resource.data.error.size() <= 2000;
       allow update, delete: if isAdmin();
     }
 

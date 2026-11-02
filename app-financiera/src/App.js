@@ -1,5 +1,5 @@
 // App.js — App Financiera (localStorage, sin Firebase, sin IA)
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Login from './Login';
 import LandingPage from './LandingPage';
@@ -11,8 +11,8 @@ import {
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
 import { db, auth } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, updateDoc, deleteDoc, getDocs, increment, orderBy } from 'firebase/firestore';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy } from 'firebase/firestore';
 
 const logErrorToFirebase = async (context, err) => {
   try {
@@ -94,6 +94,54 @@ const generateInitialYearData = (year, cats = initialCategories) => {
   return d;
 };
 
+// ─── AÑOS ────────────────────────────────────────────────────────────────────
+const aniosConDatos = (fd) => Object.keys(fd || {}).map(Number).filter(y => !isNaN(y)).sort((a, b) => a - b);
+
+// Crea los datos de un año que todavía no existe heredando del año anterior más
+// cercano (o del siguiente, si solo hay años posteriores): mismas categorías,
+// mismo presupuesto mensual y, cuando el año base es anterior, el saldo de
+// diciembre de cada activo y pasivo como punto de partida. Las transacciones y
+// los gastos puntuales empiezan vacíos. Así el año nuevo arranca ya configurado
+// y, a partir de ahí, cada año conserva sus propios cambios.
+const crearAnioHeredado = (fullData, year, config) => {
+  const years = aniosConDatos(fullData);
+  const previos = years.filter(y => y < year);
+  const posteriores = years.filter(y => y > year);
+  const baseYear = previos.length ? previos[previos.length - 1] : (posteriores.length ? posteriores[0] : null);
+  const base = baseYear !== null ? fullData[baseYear] : null;
+  const cats = base?.categories || config?.categories || initialCategories;
+  const d = generateInitialYearData(year, cats);
+  if (base) {
+    Object.keys(d.budget).forEach(sub => {
+      const v = parseFloat(base.budget?.[sub]) || 0;
+      d.budget[sub] = v;
+      months.forEach(m => { d.monthly[m][sub].budgeted = v; });
+    });
+    if (baseYear < year) {
+      ['assets', 'liabilities'].forEach(k => {
+        Object.keys(d.netWorth[k]).forEach(cat => {
+          const dic = parseFloat(base.netWorth?.[k]?.[cat]?.diciembre) || 0;
+          months.forEach(m => { d.netWorth[k][cat][m] = dic; });
+        });
+      });
+    }
+  }
+  return d;
+};
+
+const VISTAS_POR_DEFECTO = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'];
+const SECCIONES_PRESUPUESTO = ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
+
+// Configuración del usuario tal y como la usa la app, con valores por defecto.
+// anioInicial: 0 = abrir siempre en el año en curso; un año concreto = abrir en ese año.
+const normalizarConfig = (savedConfig) => ({
+  tutorialCompleted: savedConfig?.tutorialCompleted || false,
+  anioInicial: parseInt(savedConfig?.anioInicial) || 0,
+  categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
+  visibleViews: savedConfig?.visibleViews || [...VISTAS_POR_DEFECTO],
+  visibleBudgetSections: savedConfig?.visibleBudgetSections || [...SECCIONES_PRESUPUESTO]
+});
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const calcTotal = (txs) => Array.isArray(txs) ? txs.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
 
@@ -123,33 +171,99 @@ const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString('es-ES', { style: '
 const EXPENSE_KEYS = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
 const ALL_MAIN_KEYS = ["Ingresos", ...EXPENSE_KEYS];
 
-const getLoanValues = (loan, year, monthIdx) => {
-  if (!loan || !loan.startDate) return { installment: 0, balance: 0, active: false };
-  const start = new Date(loan.startDate);
-  const current = new Date(year, monthIdx, 1);
-  const diffMonths = (current.getFullYear() - start.getFullYear()) * 12 + (current.getMonth() - start.getMonth());
-
-  if (diffMonths < 0 || diffMonths >= loan.installmentsCount) return { installment: 0, balance: 0, active: false };
-
-  let pending = loan.totalAmount;
-  const i = (loan.interestRate / 100) / 12;
-  const inst = loan.amount || 0;
-
-  for (let n = 0; n <= diffMonths; n++) {
-    const interest = pending * i;
-    const principal = inst - interest;
-    if (n === diffMonths) return { installment: inst, balance: pending, active: true };
-    pending -= principal;
-  }
-  return { installment: 0, balance: 0, active: false };
+// ─── PRÉSTAMOS ───────────────────────────────────────────────────────────────
+// Fecha "YYYY-MM-DD" interpretada en hora local (new Date('2026-01-01') la toma
+// como UTC y en zonas horarias negativas cae en el día anterior).
+const fechaLocal = (s) => {
+  if (s instanceof Date) return s;
+  const p = String(s || '').split('-').map(Number);
+  return (p.length === 3 && !isNaN(p[0]) && !isNaN(p[1]) && !isNaN(p[2])) ? new Date(p[0], p[1] - 1, p[2]) : new Date(s);
 };
 
+// Cuadro de amortización completo (sistema francés) contando las amortizaciones
+// anticipadas. Es la única fuente de verdad del préstamo: de aquí salen la cuota
+// y el saldo de cada mes para el Dashboard, el Seguimiento, el Patrimonio y la
+// pestaña de Préstamos, de modo que todas las vistas coinciden entre sí.
+const _cacheSimulaciones = new Map();
+const simularPrestamo = (loan) => {
+  if (!loan || !loan.startDate) return [];
+  const clave = [loan.id, loan.totalAmount, loan.installmentsCount, loan.interestRate, loan.amount, loan.startDate, JSON.stringify(loan.extraAmortizations || [])].join('|');
+  if (_cacheSimulaciones.has(clave)) return _cacheSimulaciones.get(clave);
+
+  const rows = [];
+  const total = parseFloat(loan.totalAmount) || 0;
+  const count = parseInt(loan.installmentsCount) || 0;
+  const i = ((parseFloat(loan.interestRate) || 0) / 100) / 12;
+  const cuota = parseFloat(loan.amount) || 0;
+  const start = fechaLocal(loan.startDate);
+  let pending = total;
+  let totalAmortized = 0;
+
+  for (let n = 1; n <= count && pending > 0.01; n++) {
+    const pendingBefore = pending;
+    const interest = pending * i;
+    let principal = cuota - interest;
+    if (principal > pending) principal = pending;
+    if (principal < 0) principal = 0;
+    totalAmortized += principal;
+    pending -= principal;
+
+    let extraHere = 0;
+    const extras = (loan.extraAmortizations || []).filter(e => e.paymentNo === n);
+    for (const ex of extras) {
+      const am = Math.min(parseFloat(ex.amount) || 0, pending);
+      extraHere += am;
+      pending -= am;
+      totalAmortized += am;
+    }
+
+    const d = new Date(start.getFullYear(), start.getMonth() + n - 1, 1);
+    rows.push({
+      num: n,
+      date: d,
+      month: d.toLocaleString('es-ES', { month: 'long', year: 'numeric' }),
+      fixed: interest + principal, // lo que se paga de verdad ese mes (la última cuota puede ser menor)
+      interest,
+      principal,
+      extraAmortization: extraHere,
+      extrasList: extras,
+      totalAmortized,
+      pendingBefore,
+      pending: Math.max(0, pending)
+    });
+    if (pending <= 0.01) break;
+  }
+
+  if (_cacheSimulaciones.size > 200) _cacheSimulaciones.clear();
+  _cacheSimulaciones.set(clave, rows);
+  return rows;
+};
+
+// Primer día del mes de la última cuota real (las amortizaciones anticipadas adelantan el final).
+const finRealPrestamo = (loan) => {
+  const rows = simularPrestamo(loan);
+  if (rows.length) return rows[rows.length - 1].date;
+  const f = fechaLocal(loan?.endDate || loan?.startDate || new Date());
+  return new Date(f.getFullYear(), f.getMonth(), 1);
+};
+
+const getLoanValues = (loan, year, monthIdx) => {
+  if (!loan || !loan.startDate) return { installment: 0, balance: 0, active: false };
+  const start = fechaLocal(loan.startDate);
+  const diffMonths = (year - start.getFullYear()) * 12 + (monthIdx - start.getMonth());
+  const rows = simularPrestamo(loan);
+  if (diffMonths < 0 || diffMonths >= rows.length) return { installment: 0, balance: 0, active: false };
+  const row = rows[diffMonths];
+  return { installment: row.fixed, balance: row.pendingBefore, active: true };
+};
+
+// Un préstamo cubre el año completo si paga cuota de enero a diciembre.
 const isLoanFullYear = (loan, year) => {
-  const start = new Date(loan.startDate);
-  const end = new Date(loan.endDate);
-  const yearStart = new Date(year, 0, 1);
-  const yearEnd = new Date(year, 11, 31);
-  return start <= yearStart && end >= yearEnd;
+  if (!loan || !loan.startDate) return false;
+  const start = fechaLocal(loan.startDate);
+  const primerMes = new Date(start.getFullYear(), start.getMonth(), 1);
+  const end = finRealPrestamo(loan);
+  return primerMes <= new Date(year, 0, 1) && end >= new Date(year, 11, 1);
 };
 
 const getEffectiveBudget = (sub, mainCategory, year, mIdx, fullData, manualBudget) => {
@@ -170,6 +284,85 @@ const getEffectiveBudget = (sub, mainCategory, year, mIdx, fullData, manualBudge
     }
   }
   return manualBudget?.[sub] || 0;
+};
+
+// ─── TRADING ─────────────────────────────────────────────────────────────────
+// Resultado realizado por activo (precio medio, PnL cerrado, comisiones) a partir
+// del historial de operaciones. Lo usan la pestaña Trading y el Dashboard, para
+// que ambos muestren las mismas cifras.
+const procesarTrades = (trades) => {
+  const assets = {};
+  let totalRealizedPnL = 0;
+  let totalGrossPnL = 0;
+  let totalFees = 0;
+  let wins = 0;
+  let losses = 0;
+  const history = [];
+  // Orden cronológico: por fecha y, a igual fecha, por marca de tiempo (las
+  // operaciones antiguas sin `ts` se guardaron de más nueva a más antigua).
+  const sorted = [...(trades || [])].reverse().sort((a, b) => {
+    const fa = new Date(a.date);
+    const fb = new Date(b.date);
+    if (fa - fb !== 0) return fa - fb;
+    if (a.ts && b.ts) return a.ts - b.ts;
+    return 0;
+  });
+
+  sorted.forEach(t => {
+    const qty = parseFloat(t.amount);
+    const price = parseFloat(t.price);
+    const fees = parseFloat(t.fees || 0);
+    const assetName = t.asset?.trim();
+    if (!assetName || isNaN(qty) || isNaN(price)) return;
+
+    if (!assets[assetName]) {
+      assets[assetName] = { totalQty: 0, totalCost: 0, avgPrice: 0, realizedPnL: 0, fees: 0, type: t.type };
+    }
+    const a = assets[assetName];
+    // Si la posición estaba cerrada, la dirección pasa a ser la de la nueva operación.
+    if (a.totalQty === 0) a.type = t.type;
+
+    let tGrossPnL = 0;
+    if (a.type === 'Long') {
+      if (t.action === 'COMPRA') {
+        a.totalCost += qty * price;
+        a.totalQty += qty;
+        a.avgPrice = a.totalQty > 0 ? a.totalCost / a.totalQty : 0;
+      } else {
+        const closingQty = Math.min(qty, a.totalQty);
+        if (closingQty > 0) {
+          tGrossPnL = (price - a.avgPrice) * closingQty;
+          a.totalQty -= closingQty;
+          a.totalCost = a.totalQty * a.avgPrice;
+        }
+      }
+    } else {
+      if (t.action === 'VENTA') {
+        a.totalCost += qty * price;
+        a.totalQty += qty;
+        a.avgPrice = a.totalQty > 0 ? a.totalCost / a.totalQty : 0;
+      } else {
+        const closingQty = Math.min(qty, a.totalQty);
+        if (closingQty > 0) {
+          tGrossPnL = (a.avgPrice - price) * closingQty;
+          a.totalQty -= closingQty;
+          a.totalCost = a.totalQty * a.avgPrice;
+        }
+      }
+    }
+
+    if (tGrossPnL > 0) wins++;
+    else if (tGrossPnL < 0) losses++;
+
+    const tNetPnL = tGrossPnL - fees;
+    a.realizedPnL += tNetPnL;
+    a.fees += fees;
+    totalGrossPnL += tGrossPnL;
+    totalFees += fees;
+    totalRealizedPnL += tNetPnL;
+    history.push({ name: t.date, pnl: totalRealizedPnL });
+  });
+  return { assets, totalRealizedPnL, totalGrossPnL, totalFees, history, wins, losses };
 };
 
 // ─── ICONS ───────────────────────────────────────────────────────────────────
@@ -334,6 +527,21 @@ function AppInner({ isHome }) {
 
   const [selectedYear, setSelectedYear] = useState(defaultStartYear);
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
+  const [errorGuardado, setErrorGuardado] = useState(null);
+  // Referencias para el registro de actividad (no deben re-disparar efectos).
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+  const sessionKeyRef = useRef(null);
+  // Años cuya creación automática ya se intentó en esta sesión (evita bucles si la escritura falla).
+  const aniosIntentados = useRef(new Set());
+  // "Año por defecto" de Configuración: 0 = automático (año en curso). Se aplica una vez al cargar.
+  const anioInicialAplicado = useRef(false);
+  useEffect(() => {
+    if (!config || anioInicialAplicado.current) return;
+    anioInicialAplicado.current = true;
+    const y = parseInt(config.anioInicial);
+    if (y && y > 1900) setSelectedYear(y);
+  }, [config]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [dashboardMode, setDashboardMode] = useState('charts');
   const [budgetLocked, setBudgetLocked] = useState(true);
@@ -347,29 +555,37 @@ function AppInner({ isHome }) {
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Restaurar sesión desde Firebase
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-        const isAdmin = firebaseUser.email === 'brianantigua@gmail.com' || userData.isAdmin;
+        // Restaurar sesión desde Firebase. El rol de administrador sale SOLO del
+        // documento de Firestore, que el cliente no puede modificar.
+        let userData = {};
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          userData = userDoc.exists() ? userDoc.data() : {};
+        } catch (e) {
+          console.error('No se pudo leer el perfil del usuario:', e);
+        }
+        const isAdmin = userData.isAdmin === true;
         const sessionUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
-          displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+          displayName: userData.displayName || firebaseUser.displayName || (firebaseUser.email || '').split('@')[0],
+          avatar: userData.avatar || '👤',
           isAdmin: isAdmin,
           permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (userData.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
           // Estado de suscripcion. Solo informativo para la interfaz: quien
           // realmente corta la escritura son las reglas de Firestore.
           trialEndsAt: userData.trialEndsAt || 0,
           paidUntil: userData.paidUntil || 0,
-          plan: userData.plan || 'trial'
+          plan: userData.plan || 'trial',
+          bloqueado: userData.bloqueado === true
         };
         setUser(sessionUser);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
       } else {
-        // No hay sesión en Firebase
-        if (!localStorage.getItem('currentUser')) {
-          setUser(null);
-        }
+        // Sin sesión en Firebase Auth no hay sesión en la app. Antes se
+        // conservaba la copia de localStorage y "cerrar sesión" no cerraba nada.
+        localStorage.removeItem('currentUser');
+        setUser(null);
       }
     });
     return () => unsubAuth();
@@ -391,40 +607,28 @@ function AppInner({ isHome }) {
 
     // MIGRATION HELPER (Run once if no cloud data)
     const migrateIfNecessary = async () => {
-      const configSnap = await getDoc(configRef);
-      const dataSnap = await getDoc(dataRef);
-      if (!configSnap.exists() || !dataSnap.exists()) {
-        const localConfig = localDB.get(`users_${userId}_config`);
-        const localData = localDB.get(`users_${userId}_data`);
-        if (localConfig && !configSnap.exists()) await setDoc(configRef, localConfig);
-        if (localData && !dataSnap.exists()) await setDoc(dataRef, localData);
+      try {
+        const configSnap = await getDoc(configRef);
+        const dataSnap = await getDoc(dataRef);
+        if (!configSnap.exists() || !dataSnap.exists()) {
+          const localConfig = localDB.get(`users_${userId}_config`);
+          const localData = localDB.get(`users_${userId}_data`);
+          if (localConfig && !configSnap.exists()) await setDoc(configRef, localConfig);
+          if (localData && !dataSnap.exists()) await setDoc(dataRef, localData);
+        }
+      } catch (e) {
+        console.error('Error en la migración inicial:', e);
       }
     };
     migrateIfNecessary();
 
     // Listen for real-time updates for Config
     const unsubConfig = onSnapshot(configRef, (snap) => {
-      if (snap.exists()) {
-        const savedConfig = snap.data();
-        const currentConfig = {
-          tutorialCompleted: savedConfig?.tutorialCompleted || false,
-          defaultYear: savedConfig?.defaultYear || defaultStartYear,
-          categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
-          visibleViews: savedConfig?.visibleViews || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
-          visibleBudgetSections: savedConfig?.visibleBudgetSections || ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
-        };
-        setConfig(currentConfig);
-        if (!currentConfig.tutorialCompleted) setShowTutorial(true);
-      } else {
-        // Default config if none exists
-        setConfig({
-          tutorialCompleted: false,
-          defaultYear: defaultStartYear,
-          categories: JSON.parse(JSON.stringify(initialCategories)),
-          visibleViews: ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'],
-          visibleBudgetSections: ["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]
-        });
-      }
+      const currentConfig = normalizarConfig(snap.exists() ? snap.data() : null);
+      setConfig(currentConfig);
+      if (!currentConfig.tutorialCompleted) setShowTutorial(true);
+    }, (err) => {
+      console.error("Error syncing config:", err);
     });
 
     // Listen for real-time updates for Financial Data
@@ -450,7 +654,7 @@ function AppInner({ isHome }) {
       setLoading(false);
     });
 
-    // Sincronizar logs de actividad
+    // Registro de actividad: un documento por usuario y día, con latido cada 5 minutos.
     let lastTick = Date.now();
     const logSession = async () => {
       if (!userId) return;
@@ -461,17 +665,25 @@ function AppInner({ isHome }) {
 
         const d = new Date();
         const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-        const sessionKey = `session_${userId}_${ymd}`; // Una sesión acumulativa por día (día vencido)
+        const sessionKey = `session_${userId}_${ymd}`;
         const sessionRef = doc(db, 'activity_logs', sessionKey);
 
-        await setDoc(sessionRef, {
+        const datos = {
           uid: userId,
-          email: user?.email,
-          displayName: user?.displayName,
-          lastSeen: Date.now(),
+          email: userRef.current?.email || null,
+          displayName: userRef.current?.displayName || null,
+          lastSeen: now,
           totalTime: increment(diff),
           end: null
-        }, { merge: true });
+        };
+        if (sessionKeyRef.current !== sessionKey) {
+          // Primer latido del día en esta sesión: si el documento no existe se
+          // guarda la hora de inicio (la usa la auditoría del panel de gestión).
+          const snap = await getDoc(sessionRef);
+          if (!snap.exists()) datos.start = now;
+          sessionKeyRef.current = sessionKey;
+        }
+        await setDoc(sessionRef, datos, { merge: true });
       } catch (e) {
         console.error("Error logging session:", e);
       }
@@ -484,38 +696,92 @@ function AppInner({ isHome }) {
       unsubData();
       clearInterval(interval);
     };
-  }, [userId, user]);
+  }, [userId]);
 
-  if (!user) {
-    if (isHome) return <LandingPage />;
-    return <Login onLogin={handleLogin} />;
-  }
+  // Mensaje legible cuando Firestore rechaza una escritura.
+  const explicarErrorGuardado = (e) => {
+    const code = String(e?.code || '');
+    if (code.includes('permission-denied')) {
+      if (user?.bloqueado) return 'Tu cuenta está bloqueada: no se pueden guardar cambios. Contacta con el administrador.';
+      const estado = estadoSuscripcion(user);
+      if (!estado.activa) return 'Tu prueba gratuita ha terminado: los cambios no se guardan. Activa tu cuenta para seguir editando.';
+      return 'Firestore ha rechazado el cambio por falta de permisos. Se ha restaurado la última versión guardada.';
+    }
+    if (code.includes('unavailable') || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
+      return 'Sin conexión: el cambio no se ha podido guardar. Se ha restaurado la última versión guardada.';
+    }
+    return `No se pudo guardar el cambio (${e?.message || 'error desconocido'}). Se ha restaurado la última versión guardada.`;
+  };
+
+  // Vuelve a cargar los datos tal y como están en la nube, para deshacer un
+  // cambio que no se pudo guardar y que la pantalla no muestre algo falso.
+  const recargarDesdeNube = async () => {
+    if (!userId) return;
+    try {
+      const [ds, cs] = await Promise.all([
+        getDoc(doc(db, 'users', userId, 'data', 'financial')),
+        getDoc(doc(db, 'users', userId, 'settings', 'config'))
+      ]);
+      if (ds.exists()) {
+        const fd = ds.data();
+        if (!fd.loans) fd.loans = [];
+        if (!fd.trading) fd.trading = [];
+        setFinancialData(fd);
+      }
+      if (cs.exists()) setConfig(normalizarConfig(cs.data()));
+    } catch (e) {
+      console.error('No se pudo recargar desde la nube:', e);
+    }
+  };
 
   const updateFD = async (nd) => {
     setFinancialData(nd);
     localDB.set(`users_${userId}_data`, nd);
-    if (userId) {
-      try {
-        await setDoc(doc(db, 'users', userId, 'data', 'financial'), nd);
-      } catch (e) {
-        console.error("Error guardando en la nube:", e);
-        logErrorToFirebase("Guardar Datos Financieros", e);
-      }
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, 'users', userId, 'data', 'financial'), nd);
+      setErrorGuardado(null);
+    } catch (e) {
+      console.error("Error guardando en la nube:", e);
+      logErrorToFirebase("Guardar Datos Financieros", e);
+      setErrorGuardado(explicarErrorGuardado(e));
+      await recargarDesdeNube();
     }
   };
 
   const updateCfg = async (nc) => {
     setConfig(nc);
     localDB.set(`users_${userId}_config`, nc);
-    if (userId) {
-      try {
-        await setDoc(doc(db, 'users', userId, 'settings', 'config'), nc);
-      } catch (e) {
-        console.error("Error guardando config en la nube:", e);
-        logErrorToFirebase("Guardar Configuración", e);
-      }
+    if (!userId) return;
+    try {
+      await setDoc(doc(db, 'users', userId, 'settings', 'config'), nc);
+      setErrorGuardado(null);
+    } catch (e) {
+      console.error("Error guardando config en la nube:", e);
+      logErrorToFirebase("Guardar Configuración", e);
+      setErrorGuardado(explicarErrorGuardado(e));
+      await recargarDesdeNube();
     }
   };
+
+  // Si el año seleccionado todavía no tiene datos (al empezar un año nuevo o al
+  // elegir un año futuro para prepararlo), se crea heredando del año anterior y
+  // se guarda. Cada año se intenta una sola vez por sesión.
+  useEffect(() => {
+    if (!userId || loading || !financialData || !config) return;
+    if (financialData[selectedYear]) return;
+    if (aniosIntentados.current.has(selectedYear)) return;
+    aniosIntentados.current.add(selectedYear);
+    const nd = JSON.parse(JSON.stringify(financialData));
+    nd[selectedYear] = crearAnioHeredado(financialData, selectedYear, config);
+    updateFD(nd);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, loading, financialData, config, selectedYear]);
+
+  if (!user) {
+    if (isHome) return <LandingPage />;
+    return <Login onLogin={handleLogin} />;
+  }
 
   const updateProfile = async (newProfile) => {
     const updatedUser = { ...user, ...newProfile };
@@ -535,9 +801,6 @@ function AppInner({ isHome }) {
       }
     }
 
-    const list = localDB.get('users_list') || [];
-    const newList = list.map(u => u.uid === user.uid ? { ...u, ...newProfile } : u);
-    localDB.set('users_list', newList);
   };
 
   const updateVisibleViews = (views) => {
@@ -545,20 +808,23 @@ function AppInner({ isHome }) {
   };
 
   const signOut = async () => {
-    if (userId) {
+    if (userId && sessionKeyRef.current) {
       try {
-        const sessionKey = `session_${userId}`;
-        await setDoc(doc(db, 'activity_logs', sessionKey), { end: Date.now() }, { merge: true });
+        await setDoc(doc(db, 'activity_logs', sessionKeyRef.current), { end: Date.now() }, { merge: true });
       } catch (e) {
         console.error('Error cerrando sesión en Firebase:', e);
       }
     }
-    const logs = localDB.get('activity_logs') || [];
-    const current = logs.find(l => l.uid === userId && !l.end);
-    if (current) current.end = Date.now();
-    localDB.set('activity_logs', logs);
+    sessionKeyRef.current = null;
+    // Cierra la sesión de Firebase Auth de verdad. Antes solo se borraba la copia
+    // local y, al recargar la página, el usuario volvía a estar dentro.
+    try {
+      await firebaseSignOut(auth);
+    } catch (e) {
+      console.error('Error al cerrar la sesión de Firebase Auth:', e);
+    }
     localStorage.removeItem('currentUser');
-    setUser(null); setConfig(null); setFinancialData(null);
+    setUser(null); setConfig(null); setFinancialData(null); setErrorGuardado(null);
     navigate('/');
   };
 
@@ -609,7 +875,10 @@ function AppInner({ isHome }) {
       <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 8, maxWidth: 300 }}>
         El usuario <b>{user.displayName}</b> no tiene permisos para acceder a <b>{activeView}</b>.
       </div>
-      <button className="btn btn-primary" style={{ marginTop: 24 }} onClick={() => setActiveView('dashboard')}>
+      <button className="btn btn-primary" style={{ marginTop: 24 }} onClick={() => {
+        const primera = PERMISSIONS.find(p => hasPermission(user, p.id) && (config?.visibleViews?.includes(p.id) || p.id === 'settings'));
+        setActiveView(primera ? primera.id : 'settings');
+      }}>
         Volver al Inicio
       </button>
     </div>
@@ -636,6 +905,17 @@ function AppInner({ isHome }) {
           setDashboardMode={setDashboardMode}
         />
         <AvisoSuscripcion user={user} />
+        {errorGuardado && (
+          <div role="alert" style={{
+            margin: '12px 16px 0', padding: '12px 16px', borderRadius: 10,
+            display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+            background: 'rgba(220,38,38,.10)', border: '1px solid rgba(220,38,38,.45)'
+          }}>
+            <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
+            <div style={{ flex: 1, minWidth: 220, fontSize: 13 }}><b>No se ha guardado.</b> {errorGuardado}</div>
+            <button className="btn btn-ghost" onClick={() => setErrorGuardado(null)}>Cerrar</button>
+          </div>
+        )}
         <div className="page-content fade-in">{renderView()}</div>
       </div>
       {showTutorial && (
@@ -740,7 +1020,7 @@ const TOPBAR_STYLES = `
 // ─── TOPBAR ──────────────────────────────────────────────────────────────────
 function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSidebar, selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, financialData, dashboardMode, setDashboardMode }) {
   const { t } = useApp();
-  const titles = { dashboard: t.dashboard, monthly: t.monthly, networth: t.networth, loans: t.loans, settings: t.settings, users: 'Gestión' };
+  const titles = { dashboard: t.dashboard, monthly: t.monthly, networth: t.networth, loans: t.loans, trading: 'Trading', analysis: 'Análisis', settings: t.settings, users: 'Gestión' };
   return (
     <div className="topbar">
       <div className="topbar-left">
@@ -992,10 +1272,12 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   }, 0), 0);
   const remanente = totalIncomeBudgeted - totalExpensesBudgeted;
 
-  const tradingPnL = (fullData.trading || []).reduce((s, t) => s + t.pnl, 0);
-  const winRate = fullData.trading?.length > 0
-    ? (fullData.trading.filter(t => t.pnl > 0).length / fullData.trading.length * 100).toFixed(1)
-    : 0;
+  // Mismo cálculo que la pestaña Trading (las operaciones no llevan un campo
+  // pnl: el resultado se obtiene cerrando posiciones contra el precio medio).
+  const tradingStats = procesarTrades(fullData.trading || []);
+  const tradingPnL = tradingStats.totalRealizedPnL;
+  const tradingCerradas = tradingStats.wins + tradingStats.losses;
+  const winRate = tradingCerradas > 0 ? (tradingStats.wins / tradingCerradas * 100).toFixed(1) : 0;
 
   const renderBudgetTable = (mk) => {
     const subs = categories[mk] || [];
@@ -1036,7 +1318,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                               onUpdateCfg(nc);
 
                               const nd = JSON.parse(JSON.stringify(fullData));
-                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                              // Solo el año seleccionado y los posteriores: los años anteriores conservan su historial.
+                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
                               yKeys.forEach(y => {
                                 if (nd[y].categories?.[mk]) {
                                   nd[y].categories[mk] = nd[y].categories[mk].filter(s => s !== sub);
@@ -1058,7 +1341,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                               onUpdateCfg(nc);
 
                               const nd = JSON.parse(JSON.stringify(fullData));
-                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                              // Solo el año seleccionado y los posteriores.
+                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
                               yKeys.forEach(y => {
                                 if (nd[y].categories?.[mk]) {
                                   nd[y].categories[mk] = nd[y].categories[mk].map(s => s === sub ? newName : s);
@@ -1097,7 +1381,9 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                           disabled={budgetLocked}
                           onSave={v => {
                             const nd = JSON.parse(JSON.stringify(fullData));
-                            const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
+                            // El importe del presupuesto es propio de cada año: no se copia a los años siguientes
+                            // (al crear un año nuevo ya se hereda el presupuesto del anterior).
+                            const yKeys = Object.keys(nd).filter(k => parseInt(k) === year);
                             yKeys.forEach(k => {
                               if (!nd[k].budget) nd[k].budget = {};
                               nd[k].budget[sub] = v;
@@ -1142,7 +1428,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                             onUpdateCfg(nc);
 
                             const nd = JSON.parse(JSON.stringify(fullData));
-                            const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                            // Solo el año seleccionado y los posteriores.
+                            const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
                             yKeys.forEach(y => {
                               if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(nc.categories));
                               if (!nd[y].categories[mk]) nd[y].categories[mk] = [];
@@ -1384,12 +1671,13 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   // Loan progress data (only if loans view is visible)
   const showLoans = (visibleViews || []).includes('loans');
   const loansData = showLoans ? (fullData.loans || []).map(loan => {
-    const start = new Date(loan.startDate);
+    const start = fechaLocal(loan.startDate);
     const now = new Date();
+    const totalCuotas = simularPrestamo(loan).length || loan.installmentsCount;
     const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-    const passed = Math.max(0, Math.min(loan.installmentsCount, diffMonths + 1));
-    const progress = (passed / loan.installmentsCount) * 100;
-    return { name: loan.name, progress, passed, total: loan.installmentsCount, amount: loan.totalAmount };
+    const passed = Math.max(0, Math.min(totalCuotas, diffMonths + 1));
+    const progress = (passed / totalCuotas) * 100;
+    return { name: loan.name, progress, passed, total: totalCuotas, amount: loan.totalAmount };
   }) : [];
 
   // Trading data (only if trading view is visible)
@@ -1926,9 +2214,10 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
                                 if (e.key === 'Enter') {
                                   const inputs = Array.from(document.querySelectorAll('.nw-input'));
                                   const idx = inputs.indexOf(e.target);
-                                  if (idx !== -1 && inputs[idx + months.length]) {
-                                    inputs[idx + months.length].focus();
-                                    inputs[idx + months.length].select();
+                                  // Salta a la misma columna de la fila siguiente (en móvil solo hay una columna).
+                                  if (idx !== -1 && inputs[idx + displayMonths.length]) {
+                                    inputs[idx + displayMonths.length].focus();
+                                    inputs[idx + displayMonths.length].select();
                                   }
                                 }
                               }} />
@@ -2074,49 +2363,9 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     onUpdate(nd);
   };
 
-  const getAmortizationTable = (loan) => {
-    const list = [];
-    let pending = loan.totalAmount;
-    let totalAmortized = 0;
-    const i = (loan.interestRate / 100) / 12;
-    const start = new Date(loan.startDate);
-
-    for (let n = 1; n <= loan.installmentsCount && pending > 0.01; n++) {
-      let interest = pending * i;
-      let principal = loan.amount - interest;
-      if (principal > pending) { principal = pending; }
-      totalAmortized += principal;
-      pending -= principal;
-
-      let extraHere = 0;
-      const extras = (loan.extraAmortizations || []).filter(e => e.paymentNo === n);
-      for (const ex of extras) {
-        const am = Math.min(ex.amount, pending);
-        extraHere += am;
-        pending -= am;
-        totalAmortized += am;
-      }
-
-      const d = new Date(start);
-      d.setMonth(start.getMonth() + n - 1);
-      const mLabel = d.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
-
-      list.push({
-        num: n,
-        month: mLabel,
-        date: d,
-        fixed: loan.amount,
-        interest: interest,
-        principal: principal,
-        extraAmortization: extraHere,
-        extrasList: extras,
-        totalAmortized: totalAmortized,
-        pending: Math.max(0, pending)
-      });
-      if (pending <= 0.01) break;
-    }
-    return list;
-  };
+  // El cuadro sale del mismo simulador que usan el Dashboard, el Seguimiento y
+  // el Patrimonio, así las amortizaciones anticipadas cuadran en todas las vistas.
+  const getAmortizationTable = (loan) => simularPrestamo(loan);
 
   return (
     <div className="section-gap">
@@ -2150,14 +2399,16 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
             <p>{t.noLoans}</p>
           </div>
         ) : loans.map(l => {
-          const start = new Date(l.startDate);
-          const end = new Date(l.endDate);
+          const start = fechaLocal(l.startDate);
+          const totalCuotas = simularPrestamo(l).length || l.installmentsCount;
+          const end = finRealPrestamo(l); // contando amortizaciones anticipadas
           const now = new Date();
-          const isFinished = now > end;
+          const isFinished = new Date(now.getFullYear(), now.getMonth(), 1) > end;
+          const endLabel = end.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
 
           const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
-          const passed = Math.max(0, Math.min(l.installmentsCount, diffMonths + 1));
-          const progress = (passed / l.installmentsCount) * 100;
+          const passed = Math.max(0, Math.min(totalCuotas, diffMonths + 1));
+          const progress = (passed / totalCuotas) * 100;
 
           return (
             <div className="card" key={l.id} style={{ padding: 0, overflow: 'hidden' }}>
@@ -2186,12 +2437,12 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                   <div className="loan-stat"><span className="loan-stat-label">{t.loanTotal}</span><span className="loan-stat-value">{fmt(l.totalAmount)}</span></div>
                   <div className="loan-stat"><span className="loan-stat-label">{t.installment}</span><span className="loan-stat-value" style={{ color: 'var(--blue)' }}>{fmt(l.amount)}</span></div>
                   <div className="loan-stat"><span className="loan-stat-label">{t.interestRate}</span><span className="loan-stat-value">{l.interestRate}%</span></div>
-                  <div className="loan-stat"><span className="loan-stat-label">{t.endDate}</span><span className="loan-stat-value">{l.endDate}</span></div>
+                  <div className="loan-stat"><span className="loan-stat-label">{t.endDate}</span><span className="loan-stat-value" style={{ textTransform: 'capitalize' }}>{endLabel}</span></div>
                 </div>
 
                 <div className="loan-progress" style={{ marginTop: 24 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700, marginBottom: 6 }}>
-                    <span>{passed} / {l.installmentsCount} {t.installments}</span>
+                    <span>{passed} / {totalCuotas} {t.installments}</span>
                     <span>{progress.toFixed(0)}%</span>
                   </div>
                   <div className="loan-progress-bar" style={{ height: 6 }}>
@@ -2695,12 +2946,16 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                 </button>
               </div>
             </div>
-            {/* Default year */}
+            {/* Año con el que se abre la app: 0 = automático (año en curso) */}
             <div>
               <label style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8, display: 'block' }}>{t.defaultYear}</label>
-              <select className="select-input" value={config?.defaultYear || new Date().getFullYear()} onChange={e => { const nc = { ...config, defaultYear: parseInt(e.target.value) }; onUpdate(nc); }} style={{ width: '100%', maxWidth: 250, height: 46 }}>
-                {Array.from({ length: 11 }, (_, i) => { const year = new Date().getFullYear(); return year + i; }).map(y => <option key={y} value={y}>{y}</option>)}
+              <select className="select-input" value={config?.anioInicial || 0} onChange={e => { onUpdate({ ...config, anioInicial: parseInt(e.target.value) || 0 }); }} style={{ width: '100%', maxWidth: 250, height: 46 }}>
+                <option value={0}>Automático (año en curso)</option>
+                {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 1 + i).map(y => <option key={y} value={y}>{y}</option>)}
               </select>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                Los años nuevos se crean solos al seleccionarlos en la barra superior, heredando las categorías, el presupuesto y los saldos del año anterior. Después, cada año guarda sus propios cambios.
+              </div>
             </div>
           </div>
         </div>
@@ -2835,86 +3090,7 @@ function TradingView({ trades, onUpdate, fullData }) {
     onUpdate(nd);
   };
 
-  const processed = useMemo(() => {
-    const assets = {};
-    let totalRealizedPnL = 0;
-    let totalGrossPnL = 0;
-    let totalFees = 0;
-    let wins = 0;
-    let losses = 0;
-    const history = [];
-    // Sort by date, and then by the order they were added (ts or array position)
-    // Since existing trades don't have ts, we rely on the fact they are stored newest first.
-    // We reverse to get oldest -> newest, then apply a stable sort by date.
-    const sorted = [...trades].reverse().sort((a, b) => {
-      const da = new Date(a.date);
-      const db = new Date(b.date);
-      if (da - db !== 0) return da - db;
-      // If same date, use timestamp if available, otherwise stay in reversed order (chronological)
-      if (a.ts && b.ts) return a.ts - b.ts;
-      return 0;
-    });
-
-    sorted.forEach(t => {
-      const qty = parseFloat(t.amount);
-      const price = parseFloat(t.price);
-      const fees = parseFloat(t.fees || 0);
-      const assetName = t.asset?.trim();
-      if (!assetName || isNaN(qty) || isNaN(price)) return;
-
-      if (!assets[assetName]) {
-        assets[assetName] = { totalQty: 0, totalCost: 0, avgPrice: 0, realizedPnL: 0, fees: 0, type: t.type };
-      }
-      const a = assets[assetName];
-
-      // If position was closed, reset type to current trade's type
-      if (a.totalQty === 0) a.type = t.type;
-
-      let tGrossPnL = 0;
-
-      if (a.type === 'Long') {
-        if (t.action === 'COMPRA') {
-          a.totalCost += qty * price;
-          a.totalQty += qty;
-          a.avgPrice = a.totalQty > 0 ? a.totalCost / a.totalQty : 0;
-        } else {
-          const closingQty = Math.min(qty, a.totalQty);
-          if (closingQty > 0) {
-            tGrossPnL = (price - a.avgPrice) * closingQty;
-            a.totalQty -= closingQty;
-            a.totalCost = a.totalQty * a.avgPrice;
-          }
-        }
-      } else { // Short
-        if (t.action === 'VENTA') {
-          a.totalCost += qty * price;
-          a.totalQty += qty;
-          a.avgPrice = a.totalQty > 0 ? a.totalCost / a.totalQty : 0;
-        } else {
-          const closingQty = Math.min(qty, a.totalQty);
-          if (closingQty > 0) {
-            tGrossPnL = (a.avgPrice - price) * closingQty;
-            a.totalQty -= closingQty;
-            a.totalCost = a.totalQty * a.avgPrice;
-          }
-        }
-      }
-
-      if (tGrossPnL > 0) wins++;
-      else if (tGrossPnL < 0) losses++;
-
-      const tNetPnL = tGrossPnL - fees;
-      a.realizedPnL += tNetPnL;
-      a.fees += fees;
-
-      totalGrossPnL += tGrossPnL;
-      totalFees += fees;
-      totalRealizedPnL += tNetPnL;
-
-      history.push({ name: t.date, pnl: totalRealizedPnL });
-    });
-    return { assets, totalRealizedPnL, totalGrossPnL, totalFees, history, wins, losses };
-  }, [trades]);
+  const processed = useMemo(() => procesarTrades(trades), [trades]);
 
   const stats = {
     total: trades.length,
@@ -3341,7 +3517,7 @@ function CompoundInterestView() {
                     <th>{t.month}</th>
                     <th className="text-right">{t.contribution}</th>
                     <th className="text-right">{t.monthInterestLabel}</th>
-                    <th className="text-right">{t.invested}</th>
+                    <th className="text-right">{t.investedCapital}</th>
                     <th className="text-right">{t.accInterest}</th>
                     <th className="text-right">{t.totalBalance}</th>
                   </>
@@ -3416,26 +3592,16 @@ function UserManagementView() {
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [systemErrors, setSystemErrors] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Real-time users
+    // Usuarios en tiempo real (solo Firestore: la lista antigua de localStorage ya no existe).
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      const fbUsers = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
-      const localUsers = localDB.get('users_list') || [];
-      const dbUsers = [...fbUsers];
-      localUsers.forEach(lu => {
-        if (!dbUsers.find(u => u.uid === lu.uid || (u.email && u.email.toLowerCase() === lu.email.toLowerCase()))) {
-          dbUsers.push(lu);
-        }
-      });
-      setUsers(dbUsers);
+      setUsers(snap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
       setLoading(false);
     }, (err) => {
       console.error(err);
-      setUsers(localDB.get('users_list') || []);
       setLoading(false);
     });
 
@@ -3445,7 +3611,7 @@ function UserManagementView() {
       setLogs(list);
     }, (err) => {
       console.error("Logs sync error:", err);
-      setLogs(localDB.get('activity_logs') || []);
+      setLogs([]);
     });
 
     // Real-time system errors
@@ -3501,9 +3667,10 @@ function UserManagementView() {
     const rows = logs.map(l => [
       users.find(u => u.uid === l.uid)?.displayName || 'Desconocido',
       l.email,
-      new Date(l.start).toLocaleString(),
+      // Los registros antiguos no tienen `start`: se estima restando el tiempo acumulado.
+      new Date(l.start || ((l.lastSeen || 0) - (l.totalTime || 0))).toLocaleString(),
       l.end ? new Date(l.end).toLocaleString() : 'Sesión Activa',
-      Math.round(((l.end || l.lastSeen) - l.start) / 60000)
+      Math.round((l.totalTime || 0) / 60000)
     ]);
     const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -3516,40 +3683,45 @@ function UserManagementView() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    if (!editingUser) return;
     const fd = new FormData(e.target);
     const perms = PERMISSIONS.map(p => p.id).filter(id => fd.get(`perm_${id}`) === 'on');
 
-    const uid = editingUser ? editingUser.uid : `u-${Date.now()}`;
-    // Sin campo password: las credenciales las gestiona Firebase Auth.
-    // Para cambiar una contraseña se envia un correo de restablecimiento.
-    // Pago recibido por Revolut: se apunta aqui la fecha hasta la que queda
-    // cubierto. Las reglas solo dejan escribir este campo al admin.
+    // Las cuentas se crean registrándose en la web (Firebase Auth); aquí solo se
+    // editan. El email no se toca: cambiarlo solo en Firestore lo desacoplaría de
+    // Auth. Pago recibido: se apunta la fecha hasta la que queda cubierto; las
+    // reglas solo dejan escribir ese campo al admin.
     const fechaPago = fd.get('paidUntil');
+    const esUnoMismo = editingUser.uid === auth?.currentUser?.uid;
     const userData = {
       displayName: fd.get('name'),
-      email: fd.get('email').toLowerCase().trim(),
-      isAdmin: fd.get('role') === 'admin',
+      isAdmin: esUnoMismo ? true : fd.get('role') === 'admin', // un admin no puede quitarse el rol a sí mismo
       permissions: perms,
       paidUntil: fechaPago ? new Date(`${fechaPago}T23:59:59`).getTime() : 0,
       lastUpdated: Date.now()
     };
 
     try {
-      await setDoc(doc(db, 'users', uid), userData, { merge: true });
+      await setDoc(doc(db, 'users', editingUser.uid), userData, { merge: true });
       setEditingUser(null);
-      setShowAdd(false);
     } catch (err) {
       alert("Error al guardar usuario: " + err.message);
     }
   };
 
-  const handleDelete = async (uid) => {
-    if (uid === 'admin-001' || users.find(u => u.uid === uid)?.email === 'brianantigua@gmail.com') return alert('No puedes eliminar al administrador');
-    if (!window.confirm('¿Eliminar usuario?')) return;
+  // Desde el navegador no se puede borrar una cuenta de Firebase Auth, y borrar
+  // solo el documento dejaba al usuario entrar de nuevo con una prueba gratuita
+  // nueva. En su lugar se bloquea: conserva la lectura de sus datos (RGPD) pero
+  // las reglas le deniegan cualquier escritura.
+  const handleBloqueo = async (u) => {
+    if (u.isAdmin || u.uid === auth?.currentUser?.uid) return alert('No puedes bloquear a un administrador');
+    const bloquear = !u.bloqueado;
+    const nombre = u.displayName || u.email || u.uid;
+    if (!window.confirm(bloquear ? `¿Bloquear a ${nombre}? No podrá guardar cambios hasta que lo desbloquees.` : `¿Desbloquear a ${nombre}?`)) return;
     try {
-      await deleteDoc(doc(db, 'users', uid));
+      await setDoc(doc(db, 'users', u.uid), { bloqueado: bloquear, lastUpdated: Date.now() }, { merge: true });
     } catch (err) {
-      alert("Error al eliminar: " + err.message);
+      alert("Error al actualizar el usuario: " + err.message);
     }
   };
 
@@ -3560,11 +3732,11 @@ function UserManagementView() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>Datos de Cuenta</h3>
             <div><label className="login-label">Nombre</label><input name="name" className="text-input" defaultValue={u?.displayName} required /></div>
-            <div><label className="login-label">Email</label><input name="email" type="email" className="text-input" defaultValue={u?.email} required /></div>
+            <div><label className="login-label">Email</label><input type="email" className="text-input" value={u?.email || ''} readOnly disabled title="El email lo gestiona Firebase Auth" /></div>
             {/* Campo de contraseña eliminado: mostraba en claro la contraseña
                 almacenada. Firebase Auth custodia las credenciales. */}
             <div>
-              <label className="login-label">Pagado hasta (Revolut)</label>
+              <label className="login-label">Pagado hasta</label>
               <input
                 name="paidUntil"
                 type="date"
@@ -3699,15 +3871,13 @@ function UserManagementView() {
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Usuarios del Sistema</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Gestión de identidades y privilegios granulares.</p>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button className="btn btn-primary" onClick={() => { setEditingUser(null); setShowAdd(true); }}>
-            <Ic d={PATHS.plus} size={16} /> Añadir Usuario
-          </button>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 360, textAlign: 'right' }}>
+          Las cuentas se crean cuando el usuario se registra en la web. Aquí se editan nombre, rol, permisos y pagos, y se bloquean o desbloquean.
         </div>
       </div>
 
-      {(showAdd || editingUser) && (
-        <UserForm u={editingUser} onCancel={() => { setShowAdd(false); setEditingUser(null); }} />
+      {editingUser && (
+        <UserForm u={editingUser} onCancel={() => setEditingUser(null)} />
       )}
 
       <div className="card">
@@ -3740,16 +3910,19 @@ function UserManagementView() {
                       {(!u.isAdmin && (!u.permissions || u.permissions.length === 0)) && (
                         <span style={{ fontSize: 11, color: 'var(--red)', fontStyle: 'italic' }}>Sin accesos</span>
                       )}
+                      {u.bloqueado && (
+                        <span className="badge" style={{ fontSize: 9, background: 'var(--red)', color: 'white' }}>BLOQUEADO</span>
+                      )}
                     </div>
                   </td>
                   <td className="text-center">
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-                      <button className="btn btn-icon" onClick={() => { setEditingUser(u); setShowAdd(false); }}>
+                      <button className="btn btn-icon" title="Editar" onClick={() => setEditingUser(u)}>
                         <Ic d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" size={14} />
                       </button>
-                      {u.uid !== 'admin-001' && (
-                        <button className="btn btn-icon btn-danger" onClick={() => handleDelete(u.uid)}>
-                          <Ic d={PATHS.trash} size={14} />
+                      {!u.isAdmin && (
+                        <button className={`btn btn-icon ${u.bloqueado ? 'btn-primary' : 'btn-danger'}`} title={u.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={() => handleBloqueo(u)}>
+                          <Ic d={u.bloqueado ? PATHS.unlock : PATHS.lock} size={14} />
                         </button>
                       )}
                     </div>

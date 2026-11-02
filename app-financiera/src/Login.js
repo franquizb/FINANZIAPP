@@ -3,8 +3,6 @@ import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, create
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 
-const LOCAL_USERS = [];
-
 // Duracion de la prueba gratuita, en dias. Debe coincidir con duracionPrueba()
 // de firestore.rules, que es quien realmente lo hace cumplir.
 const DIAS_PRUEBA = 15;
@@ -17,6 +15,30 @@ const MARGEN_RELOJ_MS = 60 * 60 * 1000;
 
 const nuevaPrueba = () =>
   Date.now() + DIAS_PRUEBA * 24 * 60 * 60 * 1000 - MARGEN_RELOJ_MS;
+
+const PERMISOS_BASICOS = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
+const PERMISOS_ADMIN = [...PERMISOS_BASICOS, 'users'];
+
+// Construye el usuario de sesión a partir del perfil de Firestore. El rol de
+// administrador sale SOLO de ese documento (el cliente no puede modificarlo):
+// no hay ningún correo privilegiado incrustado en el código.
+const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
+  const isAdmin = perfil.isAdmin === true;
+  return {
+    uid,
+    email,
+    displayName: perfil.displayName || displayNameAuth || email.split('@')[0],
+    avatar: perfil.avatar || '👤',
+    isAdmin,
+    permissions: isAdmin ? PERMISOS_ADMIN : (perfil.permissions || PERMISOS_BASICOS),
+    // Sin estos campos, AvisoSuscripcion leeria 0 y le mostraria el cartel de
+    // "prueba terminada" incluso a quien acaba de pagar.
+    trialEndsAt: perfil.trialEndsAt || 0,
+    paidUntil: perfil.paidUntil || 0,
+    plan: perfil.plan || 'trial',
+    bloqueado: perfil.bloqueado === true
+  };
+};
 
 export default function Login({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -38,52 +60,28 @@ export default function Login({ onLogin }) {
       const emailQuery = email.trim().toLowerCase();
 
       if (isLogin) {
-        let userCredential;
         let finalUid = null;
 
-        // Intentar loguear en Firebase Auth
+        // Firebase Auth es la UNICA autoridad de credenciales.
         try {
-          userCredential = await signInWithEmailAndPassword(auth, emailQuery, password);
+          const userCredential = await signInWithEmailAndPassword(auth, emailQuery, password);
           finalUid = userCredential.user.uid;
         } catch (authErr) {
-          // Firebase Auth es la UNICA autoridad de credenciales. Se elimino el
-          // camino alternativo que comparaba contraseñas en claro guardadas en
-          // localStorage: permitia entrar sin pasar por Auth.
           if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/wrong-password') {
             throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
           }
           throw authErr;
         }
 
-        // Ya estamos autenticados, podemos consultar su perfil en Firebase
-        let userDoc = null;
+        // Ya autenticados: el perfil vive en Firestore (no hay copia local).
         const profileSnap = await getDoc(doc(db, 'users', finalUid));
         const perfilExistia = profileSnap.exists();
-        if (perfilExistia) {
-          userDoc = profileSnap.data();
-        } else {
-          // Si no estaba en BD remota pero sí local
-          const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
-          userDoc = usersList.find(u => u.email.trim().toLowerCase() === emailQuery) || {};
-        }
+        const userDoc = perfilExistia ? (profileSnap.data() || {}) : {};
 
-        const isUserAdmin = emailQuery === 'brianantigua@gmail.com' || !!userDoc.isAdmin;
-        const sessionUser = {
-          uid: finalUid,
-          email: emailQuery,
-          displayName: userDoc.displayName || emailQuery.split('@')[0],
-          isAdmin: isUserAdmin,
-          permissions: isUserAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (userDoc.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
-          // Sin estos campos, AvisoSuscripcion leeria 0 y le mostraria el cartel
-          // de "prueba terminada" incluso a quien acaba de pagar.
-          trialEndsAt: userDoc.trialEndsAt || 0,
-          paidUntil: userDoc.paidUntil || 0,
-          plan: userDoc.plan || 'trial'
-        };
+        const sessionUser = sesionDesdePerfil(finalUid, emailQuery, userDoc, null);
 
         // Solo campos no privilegiados. isAdmin y permissions se gestionan desde
         // el panel de admin; si el cliente los enviara, las reglas lo rechazarian.
-        // Tampoco se reenvia `...userDoc`, que arrastraba el viejo campo password.
         const perfil = {
           uid: finalUid,
           email: emailQuery,
@@ -97,7 +95,7 @@ export default function Login({ onLogin }) {
           // para siempre, y ya no hay forma de arreglarlo desde el cliente
           // porque trialEndsAt es inmutable en las actualizaciones.
           perfil.isAdmin = false;
-          perfil.permissions = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
+          perfil.permissions = PERMISOS_BASICOS;
           perfil.trialEndsAt = nuevaPrueba();
           sessionUser.trialEndsAt = perfil.trialEndsAt;
         }
@@ -133,7 +131,7 @@ export default function Login({ onLogin }) {
             email: emailQuery,
             displayName: name.trim() || emailQuery.split('@')[0],
             isAdmin: false,
-            permissions: ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'],
+            permissions: PERMISOS_BASICOS,
             // Prueba gratuita. Las reglas acotan este valor a 15 dias como
             // maximo y despues lo vuelven inmutable: el cliente no se la puede
             // prolongar. El pago lo marca el admin escribiendo paidUntil.
@@ -144,25 +142,7 @@ export default function Login({ onLogin }) {
           // Auth ok, ahora sí tenemos permisos para crear su perfil de BD
           await setDoc(doc(db, 'users', newUid), newUser);
 
-          // Fallback local
-          const currentList = JSON.parse(localStorage.getItem('users_list') || '[]');
-          if (!currentList.find(u => u.email === emailQuery)) {
-            currentList.push(newUser);
-            localStorage.setItem('users_list', JSON.stringify(currentList));
-          }
-
-          const sessionUser = {
-            uid: newUser.uid,
-            email: newUser.email,
-            displayName: newUser.displayName,
-            isAdmin: newUser.isAdmin,
-            permissions: newUser.permissions,
-            // Sin esto, al recien registrado le saldria el cartel de prueba
-            // caducada en su primera sesion.
-            trialEndsAt: newUser.trialEndsAt,
-            paidUntil: 0,
-            plan: 'trial'
-          };
+          const sessionUser = sesionDesdePerfil(newUid, emailQuery, newUser, null);
 
           localStorage.setItem('currentUser', JSON.stringify(sessionUser));
           onLogin(sessionUser);
@@ -198,11 +178,6 @@ export default function Login({ onLogin }) {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
-      const allUsers = [...LOCAL_USERS, ...usersList];
-
-      const existingUser = allUsers.find(u => u.email.toLowerCase() === user.email.toLowerCase());
-
       // Guardar perfil en Firestore.
       // La prueba gratuita SOLO se estampa si el documento no existia todavia.
       // En logins posteriores no se puede reenviar trialEndsAt: las reglas
@@ -211,74 +186,31 @@ export default function Login({ onLogin }) {
       const refPerfil = doc(db, 'users', user.uid);
       const perfilPrevio = await getDoc(refPerfil);
       const esAltaNueva = !perfilPrevio.exists();
+      const datosPrevios = esAltaNueva ? {} : (perfilPrevio.data() || {});
 
       const profile = {
         uid: user.uid,
         email: user.email,
-        displayName: user.displayName || user.email.split('@')[0],
+        displayName: datosPrevios.displayName || user.displayName || user.email.split('@')[0],
         photoURL: user.photoURL || null,
         lastLogin: Date.now()
       };
 
       if (esAltaNueva) {
         profile.isAdmin = false;
-        profile.permissions = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
+        profile.permissions = PERMISOS_BASICOS;
         profile.trialEndsAt = nuevaPrueba();
+        profile.isGoogle = true;
       }
 
       await setDoc(refPerfil, profile, { merge: true });
 
-      // Campos de suscripcion para la sesion. Si no viajan aqui, AvisoSuscripcion
-      // leeria 0 y le mostraria "tu prueba ha terminado" nada mas entrar.
-      const datosPrevios = esAltaNueva ? {} : (perfilPrevio.data() || {});
-      const susc = {
-        trialEndsAt: esAltaNueva ? profile.trialEndsAt : (datosPrevios.trialEndsAt || 0),
-        paidUntil: datosPrevios.paidUntil || 0,
-        plan: datosPrevios.plan || 'trial'
-      };
-
-      if (existingUser) {
-        // Iniciar sesión con el usuario existente
-        const isAdmin = existingUser.email.toLowerCase() === 'brianantigua@gmail.com';
-        const sessionUser = {
-          uid: existingUser.uid,
-          email: existingUser.email,
-          displayName: existingUser.displayName || user.displayName || 'Usuario Google',
-          isAdmin: isAdmin,
-          permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (existingUser.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
-          ...susc
-        };
-        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-        onLogin(sessionUser);
-      } else {
-        // Si el usuario no existe localmente, crearlo
-        const isAdmin = user.email.toLowerCase() === 'brianantigua@gmail.com';
-        const newUser = {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || user.email.split('@')[0],
-          isAdmin: isAdmin,
-          isGoogle: true,
-          permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']
-        };
-
-        // Guardar en la lista local y Firebase (opcional, Firebase es lo principal ahora)
-        const currentList = JSON.parse(localStorage.getItem('users_list') || '[]');
-        currentList.push(newUser);
-        localStorage.setItem('users_list', JSON.stringify(currentList));
-
-        // Iniciar sesión inmediatamente
-        const sessionUser = {
-          uid: newUser.uid,
-          email: newUser.email,
-          displayName: newUser.displayName,
-          isAdmin: isAdmin,
-          permissions: newUser.permissions,
-          ...susc
-        };
-        localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-        onLogin(sessionUser);
-      }
+      // La sesión se construye siempre con el uid de Firebase Auth y el perfil
+      // de Firestore. Antes se usaba una lista de usuarios de localStorage que
+      // podía devolver un uid antiguo distinto y cargar datos de otra ruta.
+      const sessionUser = sesionDesdePerfil(user.uid, user.email, { ...datosPrevios, ...profile }, user.displayName);
+      localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+      onLogin(sessionUser);
     } catch (err) {
       console.error(err);
       setError('Error al iniciar sesión con Google: ' + err.message);
@@ -322,7 +254,7 @@ export default function Login({ onLogin }) {
           display: flex; background: #252840; border-radius: 12px; padding: 4px; margin-bottom: 24px;
         }
         .tab-btn {
-          flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent; 
+          flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent;
           color: #8b92b8; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
         }
         .tab-btn.active { background: #6366f1; color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
