@@ -222,6 +222,68 @@ const hasPermission = (user, permId) => {
   return user.permissions?.includes(permId);
 };
 
+// ─── SUSCRIPCION ──────────────────────────────────────────────────────────────
+// Enlace de cobro de Revolut. Cuando entre el pago, el admin marca `paidUntil`
+// en el panel de Gestion y las reglas devuelven el acceso de escritura.
+const ENLACE_PAGO = 'https://revolut.me/CAMBIAME';
+const PRECIO = '4,99 € / mes';
+
+// OJO: esto es solo para la interfaz. Quien impide escribir de verdad son las
+// reglas de Firestore (suscripcionActiva). Manipular esto en el navegador no
+// da acceso a nada.
+const estadoSuscripcion = (user) => {
+  if (!user) return { activa: false, motivo: 'sin-sesion' };
+  if (user.isAdmin) return { activa: true, motivo: 'admin' };
+
+  const ahora = Date.now();
+  if ((user.paidUntil || 0) > ahora) {
+    return { activa: true, motivo: 'pagado', hasta: user.paidUntil };
+  }
+  if ((user.trialEndsAt || 0) > ahora) {
+    const dias = Math.ceil((user.trialEndsAt - ahora) / (24 * 60 * 60 * 1000));
+    return { activa: true, motivo: 'prueba', diasRestantes: dias };
+  }
+  return { activa: false, motivo: (user.trialEndsAt ? 'prueba-caducada' : 'sin-prueba') };
+};
+
+// Aviso de prueba a punto de acabar o ya caducada. No bloquea la interfaz: el
+// usuario conserva la lectura de sus datos (derecho de acceso del RGPD) y lo
+// que pierde es la escritura, que ya deniegan las reglas.
+function AvisoSuscripcion({ user }) {
+  const estado = estadoSuscripcion(user);
+  if (estado.motivo === 'admin' || estado.motivo === 'pagado' || estado.motivo === 'sin-sesion') return null;
+  if (estado.activa && estado.diasRestantes > 5) return null;
+
+  const caducada = !estado.activa;
+  return (
+    <div style={{
+      margin: '12px 16px 0', padding: '12px 16px', borderRadius: 10,
+      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+      background: caducada ? 'rgba(220,38,38,.10)' : 'rgba(234,179,8,.10)',
+      border: `1px solid ${caducada ? 'rgba(220,38,38,.45)' : 'rgba(234,179,8,.45)'}`
+    }}>
+      <span style={{ fontSize: 20, lineHeight: 1 }}>{caducada ? '🔒' : '⏳'}</span>
+      <div style={{ flex: 1, minWidth: 220 }}>
+        <div style={{ fontWeight: 700, fontSize: 14 }}>
+          {caducada
+            ? 'Tu prueba gratuita ha terminado'
+            : `Te quedan ${estado.diasRestantes} ${estado.diasRestantes === 1 ? 'día' : 'días'} de prueba`}
+        </div>
+        <div style={{ fontSize: 12, opacity: .8, marginTop: 2 }}>
+          {caducada
+            ? `Puedes seguir consultando y exportando tus datos, pero no añadir ni modificar nada. Activa tu cuenta por ${PRECIO}.`
+            : `Cuando acabe podrás seguir consultando tus datos, pero no editarlos. ${PRECIO}.`}
+        </div>
+      </div>
+      <a href={ENLACE_PAGO} target="_blank" rel="noopener noreferrer"
+         className="btn btn-primary"
+         style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
+        Pagar con Revolut
+      </a>
+    </div>
+  );
+}
+
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -231,8 +293,8 @@ export default function App() {
           <Route path="/" element={<AppInner isHome />} />
           <Route path="/login" element={<AppInner />} />
           <Route path="/register" element={<AppInner />} />
-          <Route path="/app/*" element={<AppInner />} />
-          <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
+          {PERMISSIONS.map(p => <Route key={p.id} path={`/${p.id}`} element={<AppInner />} />)}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AppProvider>
     </BrowserRouter>
@@ -251,7 +313,25 @@ function AppInner({ isHome }) {
   const [financialData, setFinancialData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeView, setActiveView] = useState('dashboard');
+
+  const location = useLocation();
+  const pathView = location.pathname.substring(1);
+  const validViews = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'];
+  const initialView = validViews.includes(pathView) ? pathView : 'dashboard';
+  const [activeView, _setActiveView] = useState(initialView);
+
+  const setActiveView = (v) => {
+    _setActiveView(v);
+    navigate(`/${v}`);
+  };
+
+  useEffect(() => {
+    const pv = location.pathname.substring(1);
+    if (pv && validViews.includes(pv) && pv !== activeView) {
+      _setActiveView(pv);
+    }
+  }, [location.pathname, activeView]);
+
   const [selectedYear, setSelectedYear] = useState(defaultStartYear);
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -261,7 +341,7 @@ function AppInner({ isHome }) {
 
   const handleLogin = (u) => {
     setUser(u); setConfig(null); setFinancialData(null); setLoading(true); setError(null); setBudgetLocked(true);
-    navigate('/app/dashboard');
+    navigate('/dashboard');
   };
 
   useEffect(() => {
@@ -276,7 +356,12 @@ function AppInner({ isHome }) {
           email: firebaseUser.email,
           displayName: userData.displayName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
           isAdmin: isAdmin,
-          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (userData.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
+          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (userData.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
+          // Estado de suscripcion. Solo informativo para la interfaz: quien
+          // realmente corta la escritura son las reglas de Firestore.
+          trialEndsAt: userData.trialEndsAt || 0,
+          paidUntil: userData.paidUntil || 0,
+          plan: userData.plan || 'trial'
         };
         setUser(sessionUser);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
@@ -292,7 +377,7 @@ function AppInner({ isHome }) {
 
   useEffect(() => {
     if (user && (window.location.pathname === '/login' || window.location.pathname === '/register' || window.location.pathname === '/')) {
-      navigate('/app/dashboard');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -550,6 +635,7 @@ function AppInner({ isHome }) {
           dashboardMode={dashboardMode}
           setDashboardMode={setDashboardMode}
         />
+        <AvisoSuscripcion user={user} />
         <div className="page-content fade-in">{renderView()}</div>
       </div>
       {showTutorial && (
@@ -747,8 +833,69 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 const CHART_COLORS = ["#2dd4bf", "#38bdf8", "#fbbf24", "#f43f5e", "#818cf8", "#a78bfa", "#f472b6", "#fb923c", "#4ade80"];
 
+// ─── BUDGET INPUT ─────────────────────────────────────────────────────────────
+const BudgetInput = ({ value, disabled, onSave }) => {
+  const [val, setVal] = useState(value);
+  useEffect(() => { setVal(value); }, [value]);
+  return (
+    <input 
+      type="number" 
+      className="budget-input" 
+      value={val}
+      disabled={disabled}
+      onChange={e => setVal(e.target.value)}
+      onBlur={() => {
+        const num = parseFloat(val) || 0;
+        if (num !== value) onSave(num);
+      }}
+    />
+  );
+};
+
+const DeleteConfirmButton = ({ onDelete }) => {
+  const [confirming, setConfirming] = useState(false);
+  if (confirming) {
+    return (
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button className="btn btn-danger" style={{ padding: '2px 6px', fontSize: 10, borderRadius: 4 }} onClick={onDelete}>OK</button>
+        <button className="btn btn-secondary" style={{ padding: '2px 6px', fontSize: 10, borderRadius: 4 }} onClick={() => setConfirming(false)}>✕</button>
+      </div>
+    );
+  }
+  return (
+    <button className="btn btn-icon btn-danger" style={{ width: 18, height: 18, padding: 0 }} onClick={() => setConfirming(true)}>
+      <Ic d="M6 18L18 6M6 6l12 12" size={10} />
+    </button>
+  );
+};
+
+const RenameSpan = ({ sub, onRename, disabled }) => {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(sub);
+  
+  if (editing && !disabled) {
+    return <input autoFocus value={val} onChange={e => setVal(e.target.value)} onBlur={() => {
+      setEditing(false);
+      const newName = val.trim();
+      if (newName && newName !== sub) onRename(newName);
+      else setVal(sub);
+    }} onKeyDown={e => {
+      if (e.key === 'Enter') e.target.blur();
+      if (e.key === 'Escape') { setVal(sub); setEditing(false); }
+    }} style={{ padding: '2px 4px', fontSize: 12, width: '100%', background: 'var(--bg)', color: 'var(--text-primary)', border: '1px solid var(--accent)', borderRadius: 4 }} />;
+  }
+  return (
+    <span style={{ flex: 1, cursor: disabled ? 'default' : 'pointer' }} title={disabled ? '' : 'Click para renombrar'} onClick={() => { if (!disabled) setEditing(true); }}>
+      {sub}
+    </span>
+  );
+};
+
 function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg, config, mode, setMode, budgetLocked, setBudgetLocked, visibleBudgetSections, visibleViews }) {
   const { t, theme } = useApp();
+  const [addingTo, setAddingTo] = useState(null);
+  const [newSub, setNewSub] = useState('');
+
   if (!data) return <div className="loading-state">{t.noData} {year}</div>;
 
   const isDark = theme === 'dark';
@@ -798,17 +945,27 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   // Budget calculations
   const monthsPassed = year === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
 
-  const incomeVsActual = (categories["Ingresos"] || []).map(c => {
-    const budgeted = getEffectiveBudget(c, "Ingresos", year, -1, fullData, data.budget) * (monthsPassed / 12); // proportional, or full year? "datos de cantidad mensual" -> Wait, budget is monthly!
-    // No, getEffectiveBudget returns monthly amount. So budget for x months is * monthsPassed.
-    const budgetedTotal = getEffectiveBudget(c, "Ingresos", year, -1, fullData, data.budget) * monthsPassed;
+  const getSubsWithOneTime = (mk) => Array.from(new Set([
+    ...(categories[mk] || []),
+    ...months.flatMap(m => (data.oneTime?.[m] || []).filter(ot => ot.cat === mk).map(ot => ot.sub))
+  ]));
+
+  const incomeVsActual = getSubsWithOneTime("Ingresos").map(c => {
+    let budgetedTotal = getEffectiveBudget(c, "Ingresos", year, -1, fullData, data.budget) * monthsPassed;
+    budgetedTotal += months.slice(0, monthsPassed).reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === "Ingresos" && ot.sub === c).reduce((ss, ot) => ss + ot.amount, 0), 0);
     const actual = months.slice(0, monthsPassed).reduce((s, m) => s + calcTotal(data.monthly?.[m]?.[c]?.actual || []), 0);
     return { name: c, budgeted: budgetedTotal, actual };
   }).filter(i => i.budgeted > 0 || i.actual > 0);
 
   const expenseVsActual = expenseKeys.map(mk => {
-    const budgetedTotal = (categories[mk] || []).reduce((s, sub) => s + getEffectiveBudget(sub, mk, year, -1, fullData, data.budget), 0) * monthsPassed;
-    const actual = months.slice(0, monthsPassed).reduce((s, m, mIdx) => s + (categories[mk] || []).reduce((ss, sub) => {
+    const subs = getSubsWithOneTime(mk);
+    const budgetedTotal = subs.reduce((s, sub) => {
+      let b = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget) * monthsPassed;
+      b += months.slice(0, monthsPassed).reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((ss, ot) => ss + ot.amount, 0), 0);
+      return s + b;
+    }, 0);
+
+    const actual = months.slice(0, monthsPassed).reduce((s, m, mIdx) => s + subs.reduce((ss, sub) => {
       let val = calcTotal(data.monthly?.[m]?.[sub]?.actual || []);
       if (mk === 'Pago de Deudas' && fullData.loans) {
         const loan = fullData.loans.find(l => l.name === sub);
@@ -822,8 +979,17 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     return { name: mk.replace('Gastos ', '').replace('Ahorro e Inversión', 'Ahorro'), budgeted: budgetedTotal, actual };
   }).filter(i => i.budgeted > 0 || i.actual > 0);
 
-  const totalIncomeBudgeted = (categories["Ingresos"] || []).reduce((s, sub) => s + getEffectiveBudget(sub, "Ingresos", year, -1, fullData, data.budget), 0);
-  const totalExpensesBudgeted = expenseKeys.reduce((s, mk) => s + (categories[mk] || []).reduce((ss, sub) => ss + getEffectiveBudget(sub, mk, year, -1, fullData, data.budget), 0), 0);
+  const totalIncomeBudgeted = getSubsWithOneTime("Ingresos").reduce((s, sub) => {
+    let b = getEffectiveBudget(sub, "Ingresos", year, -1, fullData, data.budget);
+    b += months.reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === "Ingresos" && ot.sub === sub).reduce((ss, ot) => ss + ot.amount, 0), 0) / 12;
+    return s + b;
+  }, 0);
+  
+  const totalExpensesBudgeted = expenseKeys.reduce((s, mk) => s + getSubsWithOneTime(mk).reduce((ss, sub) => {
+    let b = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget);
+    b += months.reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((sss, ot) => sss + ot.amount, 0), 0) / 12;
+    return ss + b;
+  }, 0), 0);
   const remanente = totalIncomeBudgeted - totalExpensesBudgeted;
 
   const tradingPnL = (fullData.trading || []).reduce((s, t) => s + t.pnl, 0);
@@ -840,43 +1006,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     return (
       <div className={`card ${budgetLocked ? 'budget-locked' : ''}`} key={mk} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div className="budget-header-card" style={{ backgroundColor: getCategoryColor(mk) }}>
-          <span>{mk.toUpperCase()}</span>
-          {!budgetLocked && (
-            <button className="btn btn-icon" style={{ padding: 4, height: 24, width: 24, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white' }}
-              onClick={() => {
-                const sub = prompt(`Añadir subcategoría a ${mk}:`);
-                if (sub) {
-                  const nc = JSON.parse(JSON.stringify(config));
-                  if (!nc.categories[mk]) nc.categories[mk] = [];
-                  if (!nc.categories[mk].includes(sub)) {
-                    nc.categories[mk].push(sub);
-                    nc.categories[mk].sort();
-                  }
-                  onUpdateCfg(nc);
-
-                  const nd = JSON.parse(JSON.stringify(fullData));
-                  const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
-                  yKeys.forEach(y => {
-                    if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(nc.categories));
-                    if (!nd[y].categories[mk]) nd[y].categories[mk] = [];
-                    if (!nd[y].categories[mk].includes(sub)) {
-                      nd[y].categories[mk].push(sub);
-                      nd[y].categories[mk].sort();
-                    }
-                    if (!nd[y].budget) nd[y].budget = {};
-                    if (nd[y].budget[sub] === undefined) nd[y].budget[sub] = 0;
-                    if (!nd[y].monthly) nd[y].monthly = {};
-                    months.forEach(m => {
-                      if (!nd[y].monthly[m]) nd[y].monthly[m] = {};
-                      if (!nd[y].monthly[m][sub]) nd[y].monthly[m][sub] = { budgeted: 0, actual: [] };
-                    });
-                  });
-                  onUpdate(nd);
-                }
-              }}>
-              <Ic d={PATHS.plus} size={14} />
-            </button>
-          )}
+          <span>{(t[mk] || mk).toUpperCase()}</span>
+          <button className="btn btn-icon" style={{ padding: 4, height: 24, width: 24, background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white' }}
+            onClick={() => { setAddingTo(mk); setNewSub(''); }}>
+            <Ic d={PATHS.plus} size={14} />
+          </button>
         </div>
         <div className="table-wrap" style={{ flex: 1, borderBottom: '1px solid var(--border)' }}>
           <table style={{ margin: 0 }}>
@@ -896,70 +1030,61 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           {!budgetLocked && (
-                            <button className="btn btn-icon btn-danger" style={{ width: 18, height: 18, padding: 0 }}
-                              onClick={() => {
-                                if (window.confirm(`¿Eliminar ${sub}?`)) {
-                                  const nc = JSON.parse(JSON.stringify(config));
-                                  nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
-                                  onUpdateCfg(nc);
+                            <DeleteConfirmButton onDelete={() => {
+                              const nc = JSON.parse(JSON.stringify(config));
+                              nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
+                              onUpdateCfg(nc);
 
-                                  const nd = JSON.parse(JSON.stringify(fullData));
-                                  const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
-                                  yKeys.forEach(y => {
-                                    if (nd[y].categories?.[mk]) {
-                                      nd[y].categories[mk] = nd[y].categories[mk].filter(s => s !== sub);
-                                    }
-                                    if (nd[y].budget) delete nd[y].budget[sub];
-                                    months.forEach(m => { if (nd[y].monthly?.[m]) delete nd[y].monthly[m][sub]; });
-                                    if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) delete nd[y].netWorth.assets[sub];
-                                    if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) delete nd[y].netWorth.liabilities[sub];
-                                  });
-                                  onUpdate(nd);
+                              const nd = JSON.parse(JSON.stringify(fullData));
+                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                              yKeys.forEach(y => {
+                                if (nd[y].categories?.[mk]) {
+                                  nd[y].categories[mk] = nd[y].categories[mk].filter(s => s !== sub);
                                 }
-                              }}>
-                              <Ic d="M6 18L18 6M6 6l12 12" size={10} />
-                            </button>
+                                if (nd[y].budget) delete nd[y].budget[sub];
+                                months.forEach(m => { if (nd[y].monthly?.[m]) delete nd[y].monthly[m][sub]; });
+                                if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) delete nd[y].netWorth.assets[sub];
+                                if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) delete nd[y].netWorth.liabilities[sub];
+                              });
+                              onUpdate(nd);
+                            }} />
                           )}
-                          <span style={{ flex: 1, cursor: budgetLocked ? 'default' : 'pointer' }}
-                            title={budgetLocked ? '' : 'Click para renombrar'}
-                            onClick={() => {
-                              if (budgetLocked) return;
-                              const newName = prompt(`Renombrar ${sub} a:`, sub);
-                              if (newName && newName !== sub) {
-                                const nc = JSON.parse(JSON.stringify(config));
-                                nc.categories[mk] = nc.categories[mk].map(s => s === sub ? newName : s);
-                                onUpdateCfg(nc);
+                          <RenameSpan 
+                            sub={sub} 
+                            disabled={budgetLocked} 
+                            onRename={newName => {
+                              const nc = JSON.parse(JSON.stringify(config));
+                              nc.categories[mk] = nc.categories[mk].map(s => s === sub ? newName : s);
+                              onUpdateCfg(nc);
 
-                                const nd = JSON.parse(JSON.stringify(fullData));
-                                const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
-                                yKeys.forEach(y => {
-                                  if (nd[y].categories?.[mk]) {
-                                    nd[y].categories[mk] = nd[y].categories[mk].map(s => s === sub ? newName : s);
-                                  }
-                                  if (nd[y].budget && nd[y].budget[sub] !== undefined) {
-                                    nd[y].budget[newName] = nd[y].budget[sub];
-                                    delete nd[y].budget[sub];
-                                  }
-                                  months.forEach(m => {
-                                    if (nd[y].monthly?.[m]?.[sub]) {
-                                      nd[y].monthly[m][newName] = nd[y].monthly[m][sub];
-                                      delete nd[y].monthly[m][sub];
-                                    }
-                                  });
-                                  if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) {
-                                    nd[y].netWorth.assets[newName] = nd[y].netWorth.assets[sub];
-                                    delete nd[y].netWorth.assets[sub];
-                                  }
-                                  if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) {
-                                    nd[y].netWorth.liabilities[newName] = nd[y].netWorth.liabilities[sub];
-                                    delete nd[y].netWorth.liabilities[sub];
+                              const nd = JSON.parse(JSON.stringify(fullData));
+                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                              yKeys.forEach(y => {
+                                if (nd[y].categories?.[mk]) {
+                                  nd[y].categories[mk] = nd[y].categories[mk].map(s => s === sub ? newName : s);
+                                }
+                                if (nd[y].budget && nd[y].budget[sub] !== undefined) {
+                                  nd[y].budget[newName] = nd[y].budget[sub];
+                                  delete nd[y].budget[sub];
+                                }
+                                months.forEach(m => {
+                                  if (nd[y].monthly?.[m]?.[sub]) {
+                                    nd[y].monthly[m][newName] = nd[y].monthly[m][sub];
+                                    delete nd[y].monthly[m][sub];
                                   }
                                 });
-                                onUpdate(nd);
-                              }
-                            }}>
-                            {sub}
-                          </span>
+                                if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) {
+                                  nd[y].netWorth.assets[newName] = nd[y].netWorth.assets[sub];
+                                  delete nd[y].netWorth.assets[sub];
+                                }
+                                if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) {
+                                  nd[y].netWorth.liabilities[newName] = nd[y].netWorth.liabilities[sub];
+                                  delete nd[y].netWorth.liabilities[sub];
+                                }
+                              });
+                              onUpdate(nd);
+                            }} 
+                          />
                         </div>
                       )}
                     </td>
@@ -967,10 +1092,10 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                       {isLoan ? (
                         <span style={{ fontWeight: 600, paddingRight: 4, color: 'var(--text-muted)' }}>{fmt(val)}</span>
                       ) : (
-                        <input type="number" className="budget-input" value={data.budget?.[sub] || 0}
+                        <BudgetInput 
+                          value={data.budget?.[sub] || 0}
                           disabled={budgetLocked}
-                          onChange={e => {
-                            const v = parseFloat(e.target.value) || 0;
+                          onSave={v => {
                             const nd = JSON.parse(JSON.stringify(fullData));
                             const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
                             yKeys.forEach(k => {
@@ -987,12 +1112,68 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                               });
                             });
                             onUpdate(nd);
-                          }} />
+                          }} 
+                        />
                       )}
                     </td>
                   </tr>
                 );
               }).filter(row => row !== null)}
+              {addingTo === mk && (
+                <tr>
+                  <td colSpan={2} style={{ padding: '8px 12px' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <input 
+                        autoFocus
+                        placeholder="Añadir subcategoría..."
+                        className="text-input"
+                        style={{ flex: 1, padding: '4px 8px', fontSize: 13, border: '1px solid var(--accent)' }}
+                        value={newSub}
+                        onChange={e => setNewSub(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && newSub.trim()) {
+                            const sub = newSub.trim();
+                            const nc = JSON.parse(JSON.stringify(config));
+                            if (!nc.categories[mk]) nc.categories[mk] = [];
+                            if (!nc.categories[mk].includes(sub)) {
+                              nc.categories[mk].push(sub);
+                              nc.categories[mk].sort();
+                            }
+                            onUpdateCfg(nc);
+
+                            const nd = JSON.parse(JSON.stringify(fullData));
+                            const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)));
+                            yKeys.forEach(y => {
+                              if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(nc.categories));
+                              if (!nd[y].categories[mk]) nd[y].categories[mk] = [];
+                              if (!nd[y].categories[mk].includes(sub)) {
+                                nd[y].categories[mk].push(sub);
+                                nd[y].categories[mk].sort();
+                              }
+                              if (!nd[y].budget) nd[y].budget = {};
+                              if (nd[y].budget[sub] === undefined) nd[y].budget[sub] = 0;
+                              if (!nd[y].monthly) nd[y].monthly = {};
+                              months.forEach(m => {
+                                if (!nd[y].monthly[m]) nd[y].monthly[m] = {};
+                                if (!nd[y].monthly[m][sub]) nd[y].monthly[m][sub] = { budgeted: 0, actual: [] };
+                              });
+                            });
+                            onUpdate(nd);
+                            setAddingTo(null);
+                            setNewSub('');
+                          } else if (e.key === 'Escape') {
+                            setAddingTo(null);
+                            setNewSub('');
+                          }
+                        }}
+                      />
+                      <button className="btn btn-secondary" style={{ padding: '0 8px' }} onClick={() => { setAddingTo(null); setNewSub(''); }}>
+                        ✕
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -1077,16 +1258,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
             </div>
             <form onSubmit={handleAddOneTime} style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <select name="cat" className="select-input" required onChange={(e) => {
-                  const subSelect = e.target.form.elements.sub;
-                  subSelect.innerHTML = (categories[e.target.value] || []).map(s => `<option value="${s}">${s}</option>`).join('');
-                }}>
+                <select name="cat" className="select-input" required>
                   <option value="">{t.category}</option>
                   {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
-                <select name="sub" className="select-input" required>
-                  <option value="">{t.subCategory}</option>
-                </select>
+                <input name="sub" type="text" className="text-input" placeholder="Nombre (ej. Paga extra)" required />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -1476,7 +1652,10 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   const mIdx = months.indexOf(month);
 
   const renderMonthlyTable = (mk) => {
-    const subs = categories[mk] || [];
+    const subsSet = new Set(categories[mk] || []);
+    (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk).forEach(ot => Object.keys(ot).length > 0 && subsSet.add(ot.sub));
+    const subs = Array.from(subsSet);
+    
     if (!subs.length) return null;
 
     let totalEstimated = 0;
@@ -1484,6 +1663,8 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
     const rows = subs.map(sub => {
       let est = getEffectiveBudget(sub, mk, year, mIdx, fullData, budgetData);
+      est += (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((acc, ot) => acc + ot.amount, 0);
+      
       let act = calcTotal(currentMonthData?.[sub]?.actual || []);
 
       if (mk === 'Pago de Deudas' && fullData.loans) {
@@ -1510,7 +1691,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
     return (
       <div className="card" key={mk} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div className="budget-header-card" style={{ backgroundColor: getCategoryColor(mk) }}>
-          <span>{mk.toUpperCase()}</span>
+          <span>{(t[mk] || mk).toUpperCase()}</span>
         </div>
         <div className="table-wrap" style={{ flex: 1, borderBottom: '1px solid var(--border)' }}>
           <table style={{ margin: 0 }}>
@@ -2532,10 +2713,10 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             Utiliza el selector de año en la barra superior para editar un año en concreto.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {[...ALL_MAIN_KEYS, 'Activos', 'Pasivos'].map(mk => (
+            {['Activos', 'Pasivos'].map(mk => (
               <div key={mk} style={{ borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <span style={{ fontWeight: 600, fontSize: 13, color: getCategoryColor(mk) }}>{mk}</span>
+                  <span style={{ fontWeight: 600, fontSize: 13, color: getCategoryColor(mk) }}>{t[mk] || mk}</span>
                   <button className="btn btn-ghost" style={{ padding: '5px 10px', fontSize: 12 }} onClick={() => { setModalMainCat(mk); setNewCatName(''); setShowModal(true); }}>
                     <Ic d={PATHS.plus} size={13} /> {t.add}
                   </button>
@@ -3339,12 +3520,17 @@ function UserManagementView() {
     const perms = PERMISSIONS.map(p => p.id).filter(id => fd.get(`perm_${id}`) === 'on');
 
     const uid = editingUser ? editingUser.uid : `u-${Date.now()}`;
+    // Sin campo password: las credenciales las gestiona Firebase Auth.
+    // Para cambiar una contraseña se envia un correo de restablecimiento.
+    // Pago recibido por Revolut: se apunta aqui la fecha hasta la que queda
+    // cubierto. Las reglas solo dejan escribir este campo al admin.
+    const fechaPago = fd.get('paidUntil');
     const userData = {
       displayName: fd.get('name'),
       email: fd.get('email').toLowerCase().trim(),
-      password: fd.get('password'),
       isAdmin: fd.get('role') === 'admin',
       permissions: perms,
+      paidUntil: fechaPago ? new Date(`${fechaPago}T23:59:59`).getTime() : 0,
       lastUpdated: Date.now()
     };
 
@@ -3375,7 +3561,23 @@ function UserManagementView() {
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>Datos de Cuenta</h3>
             <div><label className="login-label">Nombre</label><input name="name" className="text-input" defaultValue={u?.displayName} required /></div>
             <div><label className="login-label">Email</label><input name="email" type="email" className="text-input" defaultValue={u?.email} required /></div>
-            <div><label className="login-label">Contraseña</label><input name="password" type="text" className="text-input" defaultValue={u?.password} required /></div>
+            {/* Campo de contraseña eliminado: mostraba en claro la contraseña
+                almacenada. Firebase Auth custodia las credenciales. */}
+            <div>
+              <label className="login-label">Pagado hasta (Revolut)</label>
+              <input
+                name="paidUntil"
+                type="date"
+                className="text-input"
+                defaultValue={u?.paidUntil ? new Date(u.paidUntil).toISOString().slice(0, 10) : ''}
+              />
+              <div style={{ fontSize: 11, opacity: .65, marginTop: 4 }}>
+                {u?.trialEndsAt
+                  ? `Prueba hasta ${new Date(u.trialEndsAt).toLocaleDateString('es-ES')}. `
+                  : 'Sin prueba registrada. '}
+                Déjalo vacío para dejarlo sin pagar.
+              </div>
+            </div>
             <div><label className="login-label">Rol Global</label>
               <select name="role" className="select-input" defaultValue={u?.isAdmin ? 'admin' : 'user'}>
                 <option value="user">Usuario (Basado en Permisos)</option>

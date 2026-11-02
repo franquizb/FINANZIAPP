@@ -2,8 +2,110 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ─── HELPERS ──────────────────────────────────────────────────────────────
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // isAdmin se lee del documento del propio usuario. Es fiable PORQUE las
+    // reglas de abajo impiden que el cliente escriba ese campo.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Campos de privilegio y de suscripcion: el cliente NUNCA los modifica.
+    function noTocaCamposProtegidos() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+                .hasAny(['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil']);
+    }
+
+    // Nunca se admite un campo password en la base de datos.
+    function sinPassword() {
+      return !request.resource.data.keys().hasAny(['password']);
+    }
+
+    // 15 dias en milisegundos.
+    function duracionPrueba() {
+      return 1296000000;
+    }
+
+    // El cliente calcula trialEndsAt con SU reloj, que puede ir adelantado
+    // respecto al del servidor. Sin holgura, un reloj un minuto adelantado
+    // hacia que Firestore rechazara el alta entera y el usuario no pudiera
+    // registrarse. Un dia de tolerancia: no permite abusos reales y evita
+    // dejar gente fuera por un reloj mal puesto.
+    function toleranciaReloj() {
+      return 86400000;
+    }
+
+    // Prueba vigente o suscripcion pagada. Las fechas se guardan en milisegundos
+    // (Date.now()), igual que el resto de marcas de tiempo de la app.
+    function suscripcionActiva(userId) {
+      let perfil = get(/databases/$(database)/documents/users/$(userId)).data;
+      return perfil.get('paidUntil', 0) > request.time.toMillis()
+          || perfil.get('trialEndsAt', 0) > request.time.toMillis();
+    }
+
+    // ─── PERFILES DE USUARIO ──────────────────────────────────────────────────
+    match /users/{userId} {
+      // Antes: cualquiera autenticado leia TODOS los perfiles. Ahora solo el
+      // dueño, y el admin para el panel de gestion.
+      allow read: if isOwner(userId) || isAdmin();
+
+      // Alta: solo tu propio perfil, sin password, sin autoconcederte admin,
+      // sin fijarte tu el estado de pago y con la prueba acotada a 15 dias.
+      allow create: if isOwner(userId)
+                    && sinPassword()
+                    && (!request.resource.data.keys().hasAny(['isAdmin'])
+                        || request.resource.data.isAdmin == false)
+                    && !request.resource.data.keys().hasAny(['plan', 'paidUntil'])
+                    && (!request.resource.data.keys().hasAny(['trialEndsAt'])
+                        || request.resource.data.trialEndsAt <= request.time.toMillis() + duracionPrueba() + toleranciaReloj());
+
+      // Edicion: el dueño no puede introducir password ni escalar privilegios
+      // ni prolongarse la prueba. El admin si (ahi se marca el pago recibido).
+      allow update: if isAdmin()
+                    || (isOwner(userId) && sinPassword() && noTocaCamposProtegidos());
+
+      allow delete: if isAdmin();
+
+      // ─── DATOS FINANCIEROS (data, settings, loans...) ───────────────────────
+      match /{documento=**} {
+        // LECTURA siempre para el dueño, tambien con la prueba caducada: el
+        // derecho de acceso del RGPD no se puede condicionar al pago.
+        allow read: if isOwner(userId) || isAdmin();
+
+        // ESCRITURA solo con prueba vigente o suscripcion pagada.
+        allow write: if isAdmin()
+                     || (isOwner(userId) && suscripcionActiva(userId));
+      }
+    }
+
+    // ─── REGISTRO DE ACTIVIDAD ────────────────────────────────────────────────
+    match /activity_logs/{logId} {
+      allow read: if isAdmin();
+      allow create, update: if isSignedIn()
+                            && request.resource.data.uid == request.auth.uid;
+      allow delete: if isAdmin();
+    }
+
+    // ─── ERRORES DE SISTEMA ───────────────────────────────────────────────────
+    match /system_errors/{errorId} {
+      allow read: if isAdmin();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    // ─── TODO LO DEMAS: DENEGADO ──────────────────────────────────────────────
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

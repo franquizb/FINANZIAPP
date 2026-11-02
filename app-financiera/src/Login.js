@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, setDoc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 
 const LOCAL_USERS = [];
+
+// Duracion de la prueba gratuita, en dias. Debe coincidir con duracionPrueba()
+// de firestore.rules, que es quien realmente lo hace cumplir.
+const DIAS_PRUEBA = 15;
+
+// Las reglas comparan el trialEndsAt que envia el cliente contra la hora del
+// SERVIDOR. Si el reloj del usuario va adelantado, el valor se pasaria del
+// limite y Firestore rechazaria el alta entera. Restamos una hora de holgura
+// (las reglas ademas toleran un dia).
+const MARGEN_RELOJ_MS = 60 * 60 * 1000;
+
+const nuevaPrueba = () =>
+  Date.now() + DIAS_PRUEBA * 24 * 60 * 60 * 1000 - MARGEN_RELOJ_MS;
 
 export default function Login({ onLogin }) {
   const [isLogin, setIsLogin] = useState(true);
@@ -33,33 +46,20 @@ export default function Login({ onLogin }) {
           userCredential = await signInWithEmailAndPassword(auth, emailQuery, password);
           finalUid = userCredential.user.uid;
         } catch (authErr) {
-          // Fallback solo local: Si no existe en Auth, intentamos ver si estaba en localStorage
+          // Firebase Auth es la UNICA autoridad de credenciales. Se elimino el
+          // camino alternativo que comparaba contraseñas en claro guardadas en
+          // localStorage: permitia entrar sin pasar por Auth.
           if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/wrong-password') {
-            let foundLocal = false;
-            const usersList = JSON.parse(localStorage.getItem('users_list') || '[]');
-            const localMatch = usersList.find(u => u.email.trim().toLowerCase() === emailQuery && u.password === password);
-            if (localMatch) foundLocal = localMatch;
-
-            if (foundLocal) {
-              // Migrar a Firebase Auth
-              try {
-                userCredential = await createUserWithEmailAndPassword(auth, emailQuery, password);
-                finalUid = userCredential.user.uid;
-              } catch (migErr) {
-                throw new Error('No se pudo verificar la credencial: ' + migErr.message);
-              }
-            } else {
-              throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
-            }
-          } else {
-            throw authErr;
+            throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
           }
+          throw authErr;
         }
 
         // Ya estamos autenticados, podemos consultar su perfil en Firebase
         let userDoc = null;
         const profileSnap = await getDoc(doc(db, 'users', finalUid));
-        if (profileSnap.exists()) {
+        const perfilExistia = profileSnap.exists();
+        if (perfilExistia) {
           userDoc = profileSnap.data();
         } else {
           // Si no estaba en BD remota pero sí local
@@ -73,18 +73,36 @@ export default function Login({ onLogin }) {
           email: emailQuery,
           displayName: userDoc.displayName || emailQuery.split('@')[0],
           isAdmin: isUserAdmin,
-          permissions: isUserAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (userDoc.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
+          permissions: isUserAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (userDoc.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
+          // Sin estos campos, AvisoSuscripcion leeria 0 y le mostraria el cartel
+          // de "prueba terminada" incluso a quien acaba de pagar.
+          trialEndsAt: userDoc.trialEndsAt || 0,
+          paidUntil: userDoc.paidUntil || 0,
+          plan: userDoc.plan || 'trial'
         };
 
-        await setDoc(doc(db, 'users', finalUid), {
-          ...userDoc,
+        // Solo campos no privilegiados. isAdmin y permissions se gestionan desde
+        // el panel de admin; si el cliente los enviara, las reglas lo rechazarian.
+        // Tampoco se reenvia `...userDoc`, que arrastraba el viejo campo password.
+        const perfil = {
           uid: finalUid,
           email: emailQuery,
           displayName: sessionUser.displayName,
-          isAdmin: sessionUser.isAdmin,
-          permissions: sessionUser.permissions,
           lastLogin: Date.now()
-        }, { merge: true });
+        };
+
+        if (!perfilExistia) {
+          // Cuenta de Auth sin documento de perfil: este setDoc lo CREA. Si no
+          // se estampa aqui la prueba, las reglas le denegarian toda escritura
+          // para siempre, y ya no hay forma de arreglarlo desde el cliente
+          // porque trialEndsAt es inmutable en las actualizaciones.
+          perfil.isAdmin = false;
+          perfil.permissions = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
+          perfil.trialEndsAt = nuevaPrueba();
+          sessionUser.trialEndsAt = perfil.trialEndsAt;
+        }
+
+        await setDoc(doc(db, 'users', finalUid), perfil, { merge: true });
 
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);
@@ -107,14 +125,19 @@ export default function Login({ onLogin }) {
           const userCredential = await createUserWithEmailAndPassword(auth, emailQuery, password);
           const newUid = userCredential.user.uid;
 
-          const isAdmin = emailQuery === 'brianantigua@gmail.com';
+          // La contraseña la custodia Firebase Auth. Nunca se guarda en Firestore
+          // ni en localStorage: las reglas rechazan cualquier campo `password`.
+          // isAdmin se concede solo desde el panel de admin, jamas desde el cliente.
           const newUser = {
             uid: newUid,
             email: emailQuery,
-            password: password, // temporal para mock / debug heredado
             displayName: name.trim() || emailQuery.split('@')[0],
-            isAdmin: isAdmin,
-            permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'],
+            isAdmin: false,
+            permissions: ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'],
+            // Prueba gratuita. Las reglas acotan este valor a 15 dias como
+            // maximo y despues lo vuelven inmutable: el cliente no se la puede
+            // prolongar. El pago lo marca el admin escribiendo paidUntil.
+            trialEndsAt: nuevaPrueba(),
             lastLogin: Date.now()
           };
 
@@ -133,7 +156,12 @@ export default function Login({ onLogin }) {
             email: newUser.email,
             displayName: newUser.displayName,
             isAdmin: newUser.isAdmin,
-            permissions: newUser.permissions
+            permissions: newUser.permissions,
+            // Sin esto, al recien registrado le saldria el cartel de prueba
+            // caducada en su primera sesion.
+            trialEndsAt: newUser.trialEndsAt,
+            paidUntil: 0,
+            plan: 'trial'
           };
 
           localStorage.setItem('currentUser', JSON.stringify(sessionUser));
@@ -175,15 +203,39 @@ export default function Login({ onLogin }) {
 
       const existingUser = allUsers.find(u => u.email.toLowerCase() === user.email.toLowerCase());
 
-      // Guardar perfil en Firestore
+      // Guardar perfil en Firestore.
+      // La prueba gratuita SOLO se estampa si el documento no existia todavia.
+      // En logins posteriores no se puede reenviar trialEndsAt: las reglas
+      // prohiben modificar ese campo desde el cliente y denegarian la escritura
+      // entera, dejando el login de Google roto.
+      const refPerfil = doc(db, 'users', user.uid);
+      const perfilPrevio = await getDoc(refPerfil);
+      const esAltaNueva = !perfilPrevio.exists();
+
       const profile = {
         uid: user.uid,
         email: user.email,
         displayName: user.displayName || user.email.split('@')[0],
-        photoURL: user.photoURL,
+        photoURL: user.photoURL || null,
         lastLogin: Date.now()
       };
-      await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
+
+      if (esAltaNueva) {
+        profile.isAdmin = false;
+        profile.permissions = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
+        profile.trialEndsAt = nuevaPrueba();
+      }
+
+      await setDoc(refPerfil, profile, { merge: true });
+
+      // Campos de suscripcion para la sesion. Si no viajan aqui, AvisoSuscripcion
+      // leeria 0 y le mostraria "tu prueba ha terminado" nada mas entrar.
+      const datosPrevios = esAltaNueva ? {} : (perfilPrevio.data() || {});
+      const susc = {
+        trialEndsAt: esAltaNueva ? profile.trialEndsAt : (datosPrevios.trialEndsAt || 0),
+        paidUntil: datosPrevios.paidUntil || 0,
+        plan: datosPrevios.plan || 'trial'
+      };
 
       if (existingUser) {
         // Iniciar sesión con el usuario existente
@@ -193,7 +245,8 @@ export default function Login({ onLogin }) {
           email: existingUser.email,
           displayName: existingUser.displayName || user.displayName || 'Usuario Google',
           isAdmin: isAdmin,
-          permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (existingUser.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'])
+          permissions: isAdmin ? ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'] : (existingUser.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
+          ...susc
         };
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);
@@ -220,7 +273,8 @@ export default function Login({ onLogin }) {
           email: newUser.email,
           displayName: newUser.displayName,
           isAdmin: isAdmin,
-          permissions: newUser.permissions
+          permissions: newUser.permissions,
+          ...susc
         };
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);

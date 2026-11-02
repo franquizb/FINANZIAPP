@@ -670,7 +670,9 @@ label {
     padding: 2px 4px;
     font-size: 13px;
     font-family: var(--font);
-    width: 100px;
+    width: 100%;
+    min-width: 60px;
+    max-width: 150px;
     outline: none;
     transition: border-color 0.15s;
 }
