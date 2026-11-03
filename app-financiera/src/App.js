@@ -1,5 +1,5 @@
 // App.js — App Financiera (localStorage, sin Firebase, sin IA)
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Login from './Login';
 import LandingPage from './LandingPage';
@@ -317,11 +317,16 @@ const enAniosDesde = (fullData, startY, fn) => {
   return nd;
 };
 
-// ¿Existe ya `name` en la sección mk, en la configuración o en algún año >= startY?
-// Un duplicado en cualquiera de ellos dejaría dos entradas iguales y pisaría sus datos.
-const existeSub = (fullData, config, mk, name, startY) =>
-  (config?.categories?.[mk] || []).includes(name) ||
-  aniosConDatos(fullData).filter(y => y >= startY).some(y => (fullData[y]?.categories?.[mk] || []).includes(name));
+// ¿Chocaría renombrar oldName → newName en la sección mk? Solo si en la
+// configuración o en algún año >= startY conviven los dos nombres: ahí el
+// renombrado fusionaría dos subcategorías y pisaría datos. Donde oldName ya no
+// existe (p. ej. un año posterior ya renombrado) no pasa nada, así que se puede
+// alinear el historial de un año anterior sin que el nombre nuevo lo impida.
+const renombradoConflictivo = (fullData, config, mk, oldName, newName, startY) => {
+  const chocan = (lista) => lista.includes(oldName) && lista.includes(newName);
+  return chocan(config?.categories?.[mk] || []) ||
+    aniosConDatos(fullData).filter(y => y >= startY).some(y => chocan(fullData[y]?.categories?.[mk] || []));
+};
 
 // Configuración global con la subcategoría añadida / quitada / renombrada.
 const configConSub = (config, mk, sub) => {
@@ -770,10 +775,13 @@ function AppInner({ isHome }) {
   const initialView = VISTAS_POR_DEFECTO.includes(pathView) ? pathView : 'dashboard';
   const [activeView, _setActiveView] = useState(initialView);
 
-  const setActiveView = (v) => {
+  // Memoizada: el tutorial la tiene como dependencia de un efecto que reinicia
+  // la acción pedida al usuario; recreada en cada render, cualquier snapshot de
+  // Firestore deshacía el progreso del paso.
+  const setActiveView = useCallback((v) => {
     _setActiveView(v);
     navigate(`/${v}`);
-  };
+  }, [navigate]);
 
   useEffect(() => {
     const pv = location.pathname.substring(1);
@@ -918,15 +926,27 @@ function AppInner({ isHome }) {
     });
 
     // Listen for real-time updates for Financial Data
-    const unsubData = onSnapshot(dataRef, (snap) => {
+    const unsubData = onSnapshot(dataRef, async (snap) => {
       if (snap.exists()) {
         const bruto = snap.data();
+        const necesitaMigrar = (parseInt(bruto.version) || 1) < VERSION_DATOS;
+        // La migración usa las categorías de la configuración para los años que
+        // no tengan las suyas. Los dos snapshots llegan en cualquier orden: si
+        // el de datos va primero, se lee la configuración antes de convertir.
+        if (necesitaMigrar && !configActual.current) {
+          try {
+            const cs = await getDoc(configRef);
+            if (!configActual.current) configActual.current = normalizarConfig(cs.exists() ? cs.data() : null);
+          } catch (e) {
+            console.error('No se pudo leer la configuración antes de migrar:', e);
+          }
+        }
         const fd = normalizarFD(bruto, configActual.current?.categories);
         setFinancialData(fd);
         // Datos en el formato antiguo: se guardan ya convertidos (una vez por
         // sesión; si la escritura falla, la app sigue funcionando con la copia
         // convertida en memoria y lo reintentará al abrir de nuevo).
-        if ((parseInt(bruto.version) || 1) < VERSION_DATOS && !migracionEscrita.current) {
+        if (necesitaMigrar && !migracionEscrita.current) {
           migracionEscrita.current = true;
           setDoc(dataRef, fd).catch(e => {
             console.error('No se pudo guardar la migración del modelo de datos:', e);
@@ -1601,8 +1621,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                             onRename={raw => {
                               const newName = nombreSubValido(raw);
                               if (!newName || newName === sub) return;
-                              // Renombrar a un nombre que ya existe pisaría sus datos y dejaría dos filas iguales.
-                              if (existeSub(fullData, config, mk, newName, year)) { alert(`"${newName}" ya existe en ${mk}.`); return; }
+                              // Renombrar a un nombre que ya existe junto al actual pisaría sus datos y dejaría dos filas iguales.
+                              if (renombradoConflictivo(fullData, config, mk, sub, newName, year)) { alert(`"${newName}" ya existe en ${mk} (en este año, en uno posterior o en la configuración).`); return; }
                               onUpdateCfg(configRenombrada(config, mk, sub, newName));
                               onUpdate(enAniosDesde(fullData, year, d => renombrarSub(d, mk, sub, newName)));
                             }}
@@ -3137,9 +3157,9 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     if (!newName) return;
     const { mk, oldName } = renameTarget;
     if (oldName === newName) { setRenameTarget(null); return; }
-    // Si el nombre nuevo ya existe en este año, en uno posterior o en la
-    // configuración, renombrar duplicaría la entrada y pisaría sus datos.
-    if (existeSub(financialData, config, mk, newName, selectedYear)) {
+    // Si el nombre nuevo convive con el actual en este año, en uno posterior o
+    // en la configuración, renombrar duplicaría la entrada y pisaría sus datos.
+    if (renombradoConflictivo(financialData, config, mk, oldName, newName, selectedYear)) {
       alert(`"${newName}" ya existe en ${mk} (en este año, en uno posterior o en la configuración).`);
       return;
     }
