@@ -39,7 +39,9 @@ una cuenta de Stripe.
 
 2. **Parámetros** (no secretos): copia `functions/.env.example` a
    `functions/.env` y pon el `STRIPE_PRICE_ID`. `APP_URL` es la URL pública de
-   la app (a la que vuelve Stripe tras el pago).
+   la app (a la que vuelve Stripe tras el pago): `https://finanziapp.com`
+   (el hosting también responde en `finanzas.franquizb.com` y
+   `personal-franquizb.web.app`).
 
 3. **Secretos** (desde `app-financiera/`, con la CLI de Firebase autenticada):
 
