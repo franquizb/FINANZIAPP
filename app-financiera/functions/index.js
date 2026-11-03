@@ -34,6 +34,23 @@ const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
 const STRIPE_PRICE_ID = defineString('STRIPE_PRICE_ID');
 const APP_URL = defineString('APP_URL', { default: 'https://personal-franquizb.web.app' });
 
+// Dominios desde los que se usa la app. Stripe vuelve al MISMO dominio desde el
+// que se pagó (la app lo envía en `origen`): la sesión de Firebase Auth es
+// distinta en cada dominio y, si volviera a otro, el usuario aterrizaría sin
+// sesión. Si el origen no está en la lista se usa APP_URL.
+const ORIGENES_PERMITIDOS = [
+  'https://finanziapp.com',
+  'https://www.finanziapp.com',
+  'https://finanzas.franquizb.com',
+  'https://personal-franquizb.web.app',
+  'https://personal-franquizb.firebaseapp.com'
+];
+const urlApp = (req) => {
+  const o = typeof req?.data?.origen === 'string' ? req.data.origen.trim().replace(/\/+$/, '') : '';
+  if (ORIGENES_PERMITIDOS.includes(o) || /^http:\/\/localhost(:\d+)?$/.test(o)) return o;
+  return APP_URL.value();
+};
+
 // Días de margen tras el fin del periodo pagado (reintentos de cobro de Stripe).
 const DIAS_GRACIA = 3;
 const ESTADOS_ACTIVOS = ['active', 'trialing'];
@@ -119,7 +136,7 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
 
   // Si ya tiene una suscripción viva, lo que toca es gestionarla, no crear otra.
   if (u.stripeSubscriptionId && ['active', 'trialing', 'past_due'].includes(u.stripeStatus)) {
-    const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${APP_URL.value()}/settings` });
+    const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${urlApp(req)}/settings` });
     return { url: portal.url, portal: true };
   }
 
@@ -137,8 +154,8 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
     subscription_data: subscriptionData,
     allow_promotion_codes: true,
     locale,
-    success_url: `${APP_URL.value()}/settings?pago=ok`,
-    cancel_url: `${APP_URL.value()}/settings?pago=cancelado`,
+    success_url: `${urlApp(req)}/settings?pago=ok`,
+    cancel_url: `${urlApp(req)}/settings?pago=cancelado`,
     metadata: { uid }
   });
   return { url: sesion.url, portal: false };
@@ -149,7 +166,7 @@ exports.crearPortalCliente = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req
   const uid = usuarioAutenticado(req);
   const u = (await db.collection('users').doc(uid).get()).data() || {};
   if (!u.stripeCustomerId) throw new HttpsError('failed-precondition', 'Todavía no tienes una suscripción.');
-  const portal = await stripeCliente().billingPortal.sessions.create({ customer: u.stripeCustomerId, return_url: `${APP_URL.value()}/settings` });
+  const portal = await stripeCliente().billingPortal.sessions.create({ customer: u.stripeCustomerId, return_url: `${urlApp(req)}/settings` });
   return { url: portal.url };
 });
 

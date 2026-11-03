@@ -14,7 +14,7 @@ import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
-import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL_EUR, STRIPE_ACTIVO } from './suscripcion';
+import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
 
 const logErrorToFirebase = async (context, err) => {
   try {
@@ -2519,13 +2519,52 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 }
 
 // ─── MONTHLY VIEW ─────────────────────────────────────────────────────────────
+// Cifra editable "en la celda": se muestra formateada; al hacer clic aparece un
+// campo numérico que guarda al salir o con Enter (Esc cancela).
+const CeldaCifra = ({ value, onSave, title, color, bold, disabled }) => {
+  const [editando, setEditando] = useState(false);
+  const [val, setVal] = useState('');
+  const cancelado = useRef(false);
+  const abrir = () => { if (disabled) return; cancelado.current = false; setVal(String(Math.round((parseFloat(value) || 0) * 100) / 100)); setEditando(true); };
+  const confirmar = () => {
+    setEditando(false);
+    if (cancelado.current) return;
+    const num = parseFloat(String(val).replace(',', '.'));
+    if (!isNaN(num) && Math.abs(num - (parseFloat(value) || 0)) > 0.004) onSave(Math.round(num * 100) / 100);
+  };
+  if (!editando) {
+    return (
+      <span onClick={abrir} title={disabled ? '' : title}
+        style={{ cursor: disabled ? 'default' : 'pointer', fontWeight: bold ? 700 : 500, color: color || 'inherit', borderBottom: disabled ? 'none' : '1px dashed var(--border)', paddingBottom: 1 }}>
+        {fmt(value)}
+      </span>
+    );
+  }
+  return (
+    <input type="number" step="0.01" autoFocus className="budget-input" value={val}
+      style={{ textAlign: 'right', fontWeight: bold ? 700 : 500, color: color || 'inherit', minWidth: 80, maxWidth: 130 }}
+      onFocus={e => e.target.select()}
+      onChange={e => setVal(e.target.value)}
+      onBlur={confirmar}
+      onKeyDown={e => {
+        if (e.key === 'Enter') e.target.blur();
+        if (e.key === 'Escape') { cancelado.current = true; e.target.blur(); }
+      }} />
+  );
+};
+
 function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData }) {
   const { t, tf, mes } = useApp();
 
   const [txDate, setTxDate] = useState(hoyLocal);
   const [txAmount, setTxAmount] = useState('');
+  const [txNota, setTxNota] = useState('');
   const [txMainCat, setTxMainCat] = useState(() => Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || '');
   const [txSubCat, setTxSubCat] = useState(() => { const mk = Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || ''; return (categories[mk] || [])[0] || ''; });
+  // Edición dentro de la tabla: fila desplegada, movimiento nuevo y movimiento en edición.
+  const [filaAbierta, setFilaAbierta] = useState(null);
+  const [nuevoMov, setNuevoMov] = useState({ amount: '', date: '', nota: '' });
+  const [editMov, setEditMov] = useState(null);
 
   // Al cambiar de mes o de año en la barra superior, la fecha propuesta pasa a
   // ese mes (hoy, si es el mes en curso). Antes se proponía siempre la fecha de
@@ -2534,7 +2573,11 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   useEffect(() => {
     const mIdx = months.indexOf(month);
     const hoy = new Date();
-    setTxDate(hoy.getFullYear() === year && hoy.getMonth() === mIdx ? hoyLocal() : `${year}-${String(mIdx + 1).padStart(2, '0')}-01`);
+    const propuesta = hoy.getFullYear() === year && hoy.getMonth() === mIdx ? hoyLocal() : `${year}-${String(mIdx + 1).padStart(2, '0')}-01`;
+    setTxDate(propuesta);
+    setFilaAbierta(null);
+    setEditMov(null);
+    setNuevoMov({ amount: '', date: propuesta, nota: '' });
   }, [year, month]);
 
   // La subcategoría elegida tiene que existir en el año que se está viendo. Al
@@ -2548,6 +2591,12 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   if (!currentMonthData) return <div className="loading-state">{t.noData} {mes(month)} {year}</div>;
 
   const expenseKeys = EXPENSE_KEYS;
+  const mIdx = months.indexOf(month);
+  const fechaPropuesta = () => {
+    const hoy = new Date();
+    return hoy.getFullYear() === year && hoy.getMonth() === mIdx ? hoyLocal() : `${year}-${String(mIdx + 1).padStart(2, '0')}-01`;
+  };
+
   // Cada subcategoría se lee con su clave "Sección|Nombre": las homónimas de
   // secciones distintas ("Otros") ya no comparten movimientos.
   const allTxs = [];
@@ -2563,7 +2612,6 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
   // Inject automatic loan transactions
   if (fullData.loans) {
-    const mIdx = months.indexOf(month);
     fullData.loans.forEach(loan => {
       const lv = getLoanValues(loan, year, mIdx);
       if (lv.active) {
@@ -2583,35 +2631,186 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
   const totalIncome = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
-  const mIdx = months.indexOf(month);
+  // ─── Guardado desde la tabla ───────────────────────────────────────────────
+  const cuboDe = (nd, mk, sub) => { asegurarSub(nd[year], mk, sub); return nd[year].monthly[month][claveSub(mk, sub)]; };
+
+  // Presupuesto mensual del año para esa subcategoría (todos los meses).
+  const guardarEstimado = (mk, sub, v) => {
+    const nd = clonar(fullData);
+    asegurarSub(nd[year], mk, sub);
+    const c = claveSub(mk, sub);
+    nd[year].budget[c] = v;
+    months.forEach(m => {
+      if (!nd[year].monthly[m]) nd[year].monthly[m] = {};
+      if (!nd[year].monthly[m][c]) nd[year].monthly[m][c] = { budgeted: 0, actual: [] };
+      nd[year].monthly[m][c].budgeted = v;
+    });
+    onUpdate(nd);
+  };
+
+  // Total real del mes escrito a mano: se crea o ajusta un movimiento para que
+  // la suma coincida. Las cuotas automáticas de préstamos no se tocan.
+  const guardarReal = (mk, sub, v) => {
+    const cuotas = mk === 'Pago de Deudas' ? cuotaPrestamos(fullData, sub, year, mIdx) : 0;
+    const objetivo = Math.round((v - cuotas) * 100) / 100;
+    const nd = clonar(fullData);
+    const cubo = cuboDe(nd, mk, sub);
+    const lista = cubo.actual || [];
+    const diff = Math.round((objetivo - calcTotal(lista)) * 100) / 100;
+    if (Math.abs(diff) < 0.005) return;
+    if (lista.length === 0) {
+      lista.push({ id: crypto.randomUUID(), amount: objetivo, date: fechaPropuesta() });
+    } else if (lista.length === 1) {
+      if (Math.abs(objetivo) < 0.005) lista.length = 0; else lista[0].amount = objetivo;
+    } else {
+      lista.push({ id: crypto.randomUUID(), amount: diff, date: fechaPropuesta(), nota: t.smAjuste });
+    }
+    cubo.actual = lista;
+    onUpdate(nd);
+  };
+
+  const anadirMov = (mk, sub) => {
+    const amount = parseFloat(String(nuevoMov.amount).replace(',', '.'));
+    if (isNaN(amount) || !nuevoMov.date) { alert(t.completaCampos); return; }
+    const nd = clonar(fullData);
+    const cubo = cuboDe(nd, mk, sub);
+    const mov = { id: crypto.randomUUID(), amount: Math.round(amount * 100) / 100, date: nuevoMov.date };
+    if (nuevoMov.nota.trim()) mov.nota = nuevoMov.nota.trim();
+    cubo.actual = [...(cubo.actual || []), mov];
+    onUpdate(nd);
+    setNuevoMov({ amount: '', date: nuevoMov.date, nota: '' });
+  };
+
+  const guardarEdicionMov = () => {
+    if (!editMov) return;
+    const amount = parseFloat(String(editMov.amount).replace(',', '.'));
+    if (isNaN(amount) || !editMov.date) { alert(t.completaCampos); return; }
+    const nd = clonar(fullData);
+    const cubo = nd[year]?.monthly?.[month]?.[editMov.clave];
+    if (cubo) {
+      cubo.actual = (cubo.actual || []).map(tx => {
+        if (tx.id !== editMov.id) return tx;
+        const n = { ...tx, amount: Math.round(amount * 100) / 100, date: editMov.date };
+        const nota = String(editMov.nota || '').trim();
+        if (nota) n.nota = nota; else delete n.nota;
+        return n;
+      });
+    }
+    onUpdate(nd);
+    setEditMov(null);
+  };
+
+  const handleDelete = (clave, id) => {
+    if (String(id).startsWith('loan-')) {
+      alert(t.cuotasAutomaticas);
+      return;
+    }
+    const nd = clonar(fullData);
+    const cubo = nd[year]?.monthly?.[month]?.[clave];
+    if (cubo) cubo.actual = (cubo.actual || []).filter(tx => tx.id !== id);
+    onUpdate(nd);
+    if (editMov?.id === id) setEditMov(null);
+  };
+
+  const abrirFila = (c) => {
+    const abierta = filaAbierta === c;
+    setFilaAbierta(abierta ? null : c);
+    setEditMov(null);
+    setNuevoMov({ amount: '', date: fechaPropuesta(), nota: '' });
+  };
+
+  const inputPeq = { height: 30, fontSize: 12, padding: '0 8px' };
+
+  // Movimientos de una categoría dentro de la tabla: lista editable y alta.
+  const renderDetalle = (mk, sub, c, lista, esPrestamo, cuotas) => (
+    <tr key={`${c}-detalle`}>
+      <td colSpan={3} style={{ padding: '8px 12px 14px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase' }}>{tf('smMovimientosDe', { sub })}</div>
+        {esPrestamo && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{t.smCuotaAuto}: <b>{fmt(cuotas)}</b></div>}
+        <table style={{ margin: 0, fontSize: 12 }}>
+          <tbody>
+            {lista.length === 0 && <tr><td colSpan={4} style={{ color: 'var(--text-muted)', padding: '4px 0 8px' }}>{t.smSinMovimientos}</td></tr>}
+            {[...lista].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(tx => (
+              editMov && editMov.id === tx.id ? (
+                <tr key={tx.id}>
+                  <td><input type="date" className="date-input" style={inputPeq} value={editMov.date} onChange={e => setEditMov({ ...editMov, date: e.target.value })} /></td>
+                  <td><input className="text-input" style={inputPeq} placeholder={t.smConceptoOpcional} value={editMov.nota} onChange={e => setEditMov({ ...editMov, nota: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} /></td>
+                  <td className="text-right"><input type="number" step="0.01" className="number-input" style={{ ...inputPeq, width: 100, textAlign: 'right' }} value={editMov.amount} onChange={e => setEditMov({ ...editMov, amount: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} autoFocus /></td>
+                  <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
+                    <button className="btn btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={guardarEdicionMov}>{t.smGuardar}</button>
+                    <button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, marginLeft: 4 }} onClick={() => setEditMov(null)}>✕</button>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={tx.id} title={t.smEditarAyuda} style={{ cursor: 'pointer' }} onClick={() => setEditMov({ clave: c, id: tx.id, amount: String(tx.amount), date: tx.date, nota: tx.nota || '' })}>
+                  <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tx.date}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{tx.nota || ''}</td>
+                  <td className="text-right" style={{ fontWeight: 600, color: tx.amount < 0 ? 'var(--yellow)' : 'inherit' }}>{fmt(tx.amount)}</td>
+                  <td className="text-right">
+                    <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} title={t.delete} onClick={e => { e.stopPropagation(); handleDelete(c, tx.id); }}><Ic d={PATHS.trash} size={11} /></button>
+                  </td>
+                </tr>
+              )
+            ))}
+            <tr>
+              <td><input type="date" className="date-input" style={inputPeq} value={nuevoMov.date} onChange={e => setNuevoMov({ ...nuevoMov, date: e.target.value })} /></td>
+              <td><input className="text-input" style={inputPeq} placeholder={t.smConceptoOpcional} value={nuevoMov.nota} onChange={e => setNuevoMov({ ...nuevoMov, nota: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} /></td>
+              <td className="text-right"><input type="number" step="0.01" className="number-input" style={{ ...inputPeq, width: 100, textAlign: 'right' }} placeholder="0.00" value={nuevoMov.amount} onChange={e => setNuevoMov({ ...nuevoMov, amount: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} /></td>
+              <td className="text-right"><button className="btn btn-primary" style={{ padding: '2px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => anadirMov(mk, sub)}>+ {t.add}</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  );
 
   const renderMonthlyTable = (mk) => {
     const subsSet = new Set(categories[mk] || []);
     (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk).forEach(ot => Object.keys(ot).length > 0 && subsSet.add(ot.sub));
     const subs = Array.from(subsSet);
-    
+
     if (!subs.length) return null;
 
     let totalEstimated = 0;
     let totalReal = 0;
+    const colorReal = mk === 'Ingresos' ? 'var(--green)' : 'var(--red)';
 
-    const rows = subs.map(sub => {
-      let est = getEffectiveBudget(sub, mk, year, mIdx, fullData, budgetData);
-      est += (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((acc, ot) => acc + ot.amount, 0);
-      
-      let act = calcTotal(currentMonthData?.[claveSub(mk, sub)]?.actual || []);
-      if (mk === 'Pago de Deudas') act += cuotaPrestamos(fullData, sub, year, mIdx);
+    const rows = subs.flatMap(sub => {
+      const c = claveSub(mk, sub);
+      const esPrestamo = mk === 'Pago de Deudas' && prestamosDe(fullData, sub).length > 0;
+      const cuotas = esPrestamo ? cuotaPrestamos(fullData, sub, year, mIdx) : 0;
+      const base = getEffectiveBudget(sub, mk, year, mIdx, fullData, budgetData);
+      const puntuales = (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((acc, ot) => acc + ot.amount, 0);
+      const est = base + puntuales;
+      const lista = currentMonthData?.[c]?.actual || [];
+      const act = calcTotal(lista) + cuotas;
 
       totalEstimated += est;
       totalReal += act;
+      const abierta = filaAbierta === c;
 
-      return (
-        <tr key={sub}>
-          <td>{sub}</td>
-          <td className="text-right" style={{ color: 'var(--text-muted)' }}>{fmt(est)}</td>
-          <td className="text-right" style={{ fontWeight: 700, color: mk === 'Ingresos' ? 'var(--green)' : 'var(--red)' }}>{fmt(act)}</td>
+      const filas = [
+        <tr key={c} style={abierta ? { background: 'var(--bg-secondary)' } : undefined}>
+          <td>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button className="btn btn-icon btn-ghost" style={{ width: 22, height: 22, padding: 0, fontSize: 11, flexShrink: 0 }} title={abierta ? t.smOcultar : t.smVer} onClick={() => abrirFila(c)}>{abierta ? '▾' : '▸'}</button>
+              <span>{sub}</span>
+              {lista.length > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>({lista.length})</span>}
+            </div>
+          </td>
+          <td className="text-right" style={{ color: 'var(--text-muted)' }}>
+            {esPrestamo
+              ? <span title={t.smCuotaAuto}>{fmt(est)}</span>
+              : <CeldaCifra value={base} onSave={v => guardarEstimado(mk, sub, v)} title={tf('smEstimadoAyuda', { year })} color="var(--text-muted)" />}
+            {puntuales !== 0 && <div style={{ fontSize: 10, color: 'var(--accent)' }}>+ {fmt(puntuales)} {t.smPuntuales}</div>}
+          </td>
+          <td className="text-right">
+            <CeldaCifra value={act} onSave={v => guardarReal(mk, sub, v)} title={t.smRealAyuda} color={colorReal} bold />
+          </td>
         </tr>
-      );
+      ];
+      if (abierta) filas.push(renderDetalle(mk, sub, c, lista, esPrestamo, cuotas));
+      return filas;
     });
 
     const isIncome = mk === 'Ingresos';
@@ -2654,22 +2853,14 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   const handleAdd = () => {
     if (!txAmount || parseFloat(txAmount) <= 0 || !txSubCat || !txDate) { alert(t.completaCampos); return; }
     if (!(categories[txMainCat] || []).includes(txSubCat)) { alert(tf('subNoExiste', { sub: txSubCat, seccion: t[txMainCat] || txMainCat, year })); return; }
-    const nd = JSON.parse(JSON.stringify(fullData));
+    const nd = clonar(fullData);
     asegurarSub(nd[year], txMainCat, txSubCat);
-    nd[year].monthly[month][claveSub(txMainCat, txSubCat)].actual.push({ id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate });
+    const mov = { id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate };
+    if (txNota.trim()) mov.nota = txNota.trim();
+    nd[year].monthly[month][claveSub(txMainCat, txSubCat)].actual.push(mov);
     onUpdate(nd);
     setTxAmount('');
-  };
-
-  const handleDelete = (clave, id) => {
-    if (String(id).startsWith('loan-')) {
-      alert(t.cuotasAutomaticas);
-      return;
-    }
-    const nd = JSON.parse(JSON.stringify(fullData));
-    const cubo = nd[year]?.monthly?.[month]?.[clave];
-    if (cubo) cubo.actual = (cubo.actual || []).filter(tx => tx.id !== id);
-    onUpdate(nd);
+    setTxNota('');
   };
 
   return (
@@ -2681,8 +2872,10 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
         <div className="card"><div className="card-title">{t.savings}</div><div className={`card-value ${totalIncome - totalExpenses >= 0 ? 'blue' : 'yellow'}`}>{fmt(totalIncome - totalExpenses)}</div></div>
       </div>
 
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>{t.smAyudaTabla}</div>
+
       {/* Budget Tables */}
-      <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginTop: 24, marginBottom: 24 }}>
+      <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginTop: 12, marginBottom: 24 }}>
         {ALL_MAIN_KEYS.map(renderMonthlyTable)}
       </div>
 
@@ -2707,7 +2900,11 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
             <input type="date" className="date-input" value={txDate} onChange={e => setTxDate(e.target.value)} />
           </div>
           <div>
-            <label>{t.amount} (€)</label>
+            <label>{t.smConceptoOpcional}</label>
+            <input type="text" className="text-input" value={txNota} onChange={e => setTxNota(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
+          </div>
+          <div>
+            <label>{t.amount}</label>
             <input type="number" className="number-input" placeholder="0.00" value={txAmount} onChange={e => setTxAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
           </div>
           <div>
@@ -2743,7 +2940,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
                         <span className="badge badge-accent" style={{ fontSize: 11 }}>{t[tx.mainCategory] || tx.mainCategory}</span>
                       </div>
                     </td>
-                    <td>{tx.category}</td>
+                    <td>{tx.category}{tx.nota && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}> · {tx.nota}</span>}{tx.isAuto && <span style={{ color: 'var(--text-muted)', fontSize: 11 }}> · {t.smCuotaAuto}</span>}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: tx.type === 'income' ? 'var(--green)' : 'var(--red)' }}>{fmt(tx.amount)}</td>
                     <td className="text-center">
                       <button className="btn btn-icon btn-danger" onClick={() => handleDelete(tx.clave, tx.id)} title={t.delete}>
@@ -4164,7 +4361,7 @@ function UserManagementView() {
         ))}
         <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--green)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.admMrr}</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--green)', marginTop: 4 }}>{(dePago * PRECIO_MENSUAL_EUR).toLocaleString(locale, { style: 'currency', currency: 'EUR' })}</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--green)', marginTop: 4 }}>{(dePago * PRECIO_MENSUAL).toLocaleString(locale, { style: 'currency', currency: MONEDA_PRECIO })}</div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('admMrrAyuda', { n: dePago, precio: t.precioMes })}</div>
         </div>
       </div>

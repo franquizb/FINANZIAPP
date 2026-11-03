@@ -1,7 +1,10 @@
 # Suscripciones con Stripe
 
-Cómo funciona y qué hay que configurar para cobrar la suscripción (4,99 €/mes)
-con 15 días de prueba gratuita.
+Cómo funciona y qué hay que configurar para cobrar la suscripción (2,50 USD/mes,
+precio de acceso anticipado para el lanzamiento en EE. UU.) con 15 días de
+prueba gratuita. El precio se define en Stripe (STRIPE_PRICE_ID) y, para la
+interfaz, en `src/suscripcion.js` (PRECIO_MENSUAL, MONEDA_PRECIO) y en los
+textos `precioMes` / `susIncluye` de `src/i18n/`.
 
 ## Cómo funciona
 
@@ -33,28 +36,44 @@ Requisitos: proyecto en plan Blaze (ya lo está: hay funciones desplegadas) y
 una cuenta de Stripe.
 
 1. **Producto y precio en Stripe** (dashboard → Catálogo de productos): crea
-   «FinanziApp» con un precio recurrente mensual de 4,99 €. Copia el ID del
-   precio (`price_…`). Hazlo primero en *modo de prueba* y, cuando funcione,
-   repite en *modo en vivo* (los IDs y claves son distintos en cada modo).
+   «FinanziApp» con un precio recurrente mensual de **2,50 USD** (moneda USD).
+   Copia el ID del precio (`price_…`). Hazlo primero en *modo de prueba* y,
+   cuando funcione, repite en *modo en vivo* (los IDs y claves son distintos
+   en cada modo). Para subir el precio más adelante: crea un precio nuevo en
+   Stripe y cambia `STRIPE_PRICE_ID`; los suscriptores existentes conservan el
+   precio con el que se dieron de alta (es lo que promete el texto de acceso
+   anticipado de la app).
 
 2. **Parámetros** (no secretos): copia `functions/.env.example` a
-   `functions/.env` y pon el `STRIPE_PRICE_ID`. `APP_URL` es la URL pública de
-   la app (a la que vuelve Stripe tras el pago): `https://finanziapp.com`
-   (el hosting también responde en `finanzas.franquizb.com` y
-   `personal-franquizb.web.app`).
+   `functions/.env` y pon el `STRIPE_PRICE_ID`. La app envía a la función el
+   dominio desde el que se paga y Stripe vuelve a ese mismo dominio (lista
+   `ORIGENES_PERMITIDOS` en `functions/index.js`: finanziapp.com,
+   finanzas.franquizb.com y personal-franquizb.web.app); `APP_URL` solo es el
+   respaldo si no llega ninguno. Ojo: finanziapp.com solo funcionará cuando su
+   DNS apunte a Firebase Hosting (registro A `199.36.158.100` y TXT
+   `hosting-site=personal-franquizb`).
 
-3. **Secretos** (desde `app-financiera/`, con la CLI de Firebase autenticada):
+3. **Secretos**. Dos opciones equivalentes:
 
-   ```bash
-   firebase functions:secrets:set STRIPE_SECRET_KEY
-   ```
+   - Con la CLI de Firebase autenticada, desde `app-financiera/`:
 
-   Pega la clave secreta de Stripe (`sk_test_…` o `sk_live_…`). El secreto del
-   webhook se crea en el paso 5; de momento pon cualquier valor provisional:
+     ```bash
+     firebase functions:secrets:set STRIPE_SECRET_KEY
+     ```
 
-   ```bash
-   firebase functions:secrets:set STRIPE_WEBHOOK_SECRET
-   ```
+     Pega la clave secreta de Stripe (`sk_test_…` o `sk_live_…`), y lo mismo con
+     `STRIPE_WEBHOOK_SECRET` (el secreto de firma del webhook, paso 5).
+
+   - Sin CLI, en la consola de Google Cloud → Seguridad → Secret Manager →
+     «Crear secreto», con esos dos nombres exactos (`STRIPE_SECRET_KEY` y
+     `STRIPE_WEBHOOK_SECRET`) y el valor correspondiente. Al desplegar, la CLI
+     de Firebase concede acceso a la cuenta de las funciones. Para cambiar un
+     valor (por ejemplo pasar de prueba a en vivo) se añade una versión nueva
+     al secreto y se vuelven a desplegar las funciones.
+
+   La URL del webhook es conocida de antemano, así que puedes crear el
+   endpoint en Stripe (paso 5) antes de desplegar y tener ya el `whsec_…`:
+   `https://europe-west1-personal-franquizb.cloudfunctions.net/stripeWebhook`.
 
 4. **Desplegar las funciones**:
 

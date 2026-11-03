@@ -3,7 +3,7 @@
 export const suscripcion = {
   es: {
     susTitulo: 'Suscripción',
-    susIncluye: 'Acceso completo a todas las secciones, sin límites y en cualquier dispositivo. Cancela cuando quieras.',
+    susIncluye: 'Acceso completo a todas las secciones, sin límites y en cualquier dispositivo. Cancela cuando quieras. Precio de acceso anticipado: 2,50 $ al mes, y lo conservas mientras mantengas la suscripción.',
     susEstadoPrueba: 'Prueba gratuita · {n} días restantes',
     susEstadoPruebaUno: 'Prueba gratuita · último día',
     susEstadoActiva: 'Activa · se renueva el {fecha}',
@@ -78,7 +78,7 @@ export const suscripcion = {
   },
   en: {
     susTitulo: 'Subscription',
-    susIncluye: 'Full access to every section, without limits, on any device. Cancel whenever you want.',
+    susIncluye: 'Full access to every section, without limits, on any device. Cancel whenever you want. Early-access price: $2.50 a month, locked in for as long as you keep your subscription.',
     susEstadoPrueba: 'Free trial · {n} days left',
     susEstadoPruebaUno: 'Free trial · last day',
     susEstadoActiva: 'Active · renews on {fecha}',
@@ -152,7 +152,7 @@ export const suscripcion = {
   },
   de: {
     susTitulo: 'Abonnement',
-    susIncluye: 'Voller Zugriff auf alle Bereiche, ohne Limits, auf jedem Gerät. Jederzeit kündbar.',
+    susIncluye: 'Voller Zugriff auf alle Bereiche, ohne Limits, auf jedem Gerät. Jederzeit kündbar. Early-Access-Preis: 2,50 $ im Monat, garantiert, solange Sie Ihr Abonnement behalten.',
     susEstadoPrueba: 'Kostenlose Testphase · noch {n} Tage',
     susEstadoPruebaUno: 'Kostenlose Testphase · letzter Tag',
     susEstadoActiva: 'Aktiv · verlängert sich am {fecha}',
