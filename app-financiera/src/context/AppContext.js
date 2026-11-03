@@ -1,6 +1,21 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { app as textosApp } from '../i18n/app';
+import { publico as textosPublico } from '../i18n/publico';
 
 const AppContext = createContext();
+
+// Idiomas disponibles y su configuración regional para fechas y moneda.
+export const IDIOMAS = ['es', 'en', 'de'];
+export const LOCALES = { es: 'es-ES', en: 'en-GB', de: 'de-DE' };
+
+// Los meses se guardan en los datos con su nombre en español (son claves del
+// modelo); aquí solo se traduce cómo se muestran.
+export const MESES_CLAVE = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const MESES = {
+    es: MESES_CLAVE,
+    en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    de: ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+};
 
 export const translations = {
     es: {
@@ -83,6 +98,7 @@ export const translations = {
         debtPayments: 'Pago de Deudas',
         savingsInvestment: 'Ahorro e Inversión',
         essentialPlusDiscretionary: 'Esenciales + Discrecionales',
+        savingsTotal: 'Total Ahorro e Inversión',
         oneTimeExpenses: 'Gastos Puntuales',
         addOneTime: 'Añadir Gasto Puntual',
         loanManagement: 'Gestión de Préstamos e Hipotecas',
@@ -385,9 +401,54 @@ export const translations = {
     }
 };
 
+// Diccionario completo de un idioma: textos base + pantallas de la app +
+// pantallas públicas (landing, login, tutorial).
+const diccionario = (lang) => ({ ...translations[lang], ...(textosApp[lang] || {}), ...(textosPublico[lang] || {}) });
+const DICCIONARIOS = Object.fromEntries(IDIOMAS.map(l => [l, diccionario(l)]));
+
+// Cualquier clave que falte en un idioma cae al español (el texto original) y,
+// si tampoco existe, se muestra la propia clave: así nunca aparece "undefined".
+const conFallback = (lang) => new Proxy(DICCIONARIOS[lang], {
+    get: (obj, k) => (typeof k === 'string' && obj[k] !== undefined) ? obj[k] : (DICCIONARIOS.es[k] !== undefined ? DICCIONARIOS.es[k] : (typeof k === 'string' ? k : undefined))
+});
+const TEXTOS = Object.fromEntries(IDIOMAS.map(l => [l, conFallback(l)]));
+
+// Idioma inicial: el elegido por el usuario y, si nunca eligió, el del navegador
+// (si está entre los disponibles); en último caso, español.
+const detectarIdioma = () => {
+    try {
+        const guardado = localStorage.getItem('appLanguage');
+        if (guardado && IDIOMAS.includes(guardado)) return guardado;
+    } catch { /* sin localStorage */ }
+    const candidatos = (typeof navigator !== 'undefined' && (navigator.languages?.length ? navigator.languages : [navigator.language])) || [];
+    for (const c of candidatos) {
+        const codigo = String(c || '').slice(0, 2).toLowerCase();
+        if (IDIOMAS.includes(codigo)) return codigo;
+    }
+    return 'es';
+};
+
+// Idioma y configuración regional activos, para las funciones que viven fuera
+// de los componentes (fmt, nombres de mes en los gráficos, avisos de los
+// helpers del modelo). Se actualizan de forma síncrona al cambiar de idioma,
+// antes del re-render, para que ese mismo render ya los use.
+let idiomaActual = detectarIdioma();
+let localeActual = LOCALES[idiomaActual];
+export const getLocale = () => localeActual;
+export const getIdioma = () => idiomaActual;
+
+// Texto con variables: tf('clave', { n: 3 }) sustituye {n} en el texto.
+const interpolar = (texto, vars) => String(texto).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] !== undefined) ? vars[k] : '');
+
+// Texto traducido fuera de un componente (mismo fallback que `t`).
+export const tx = (clave, vars) => interpolar((TEXTOS[idiomaActual] || TEXTOS.es)[clave], vars);
+// Nombre de mes (completo o de 3 letras) a partir de su clave en español, en el idioma activo.
+export const nombreMes = (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? String(clave) : (MESES[idiomaActual] || MESES.es)[i]; };
+export const nombreMesCorto = (clave) => nombreMes(clave).slice(0, 3);
+
 export function AppProvider({ children }) {
     const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
-    const [language, setLanguage] = useState(() => localStorage.getItem('appLanguage') || 'es');
+    const [language, setLanguage] = useState(detectarIdioma);
 
     useEffect(() => {
         localStorage.setItem('appTheme', theme);
@@ -396,17 +457,37 @@ export function AppProvider({ children }) {
     }, [theme]);
 
     useEffect(() => {
-        localStorage.setItem('appLanguage', language);
+        document.documentElement.lang = language;
     }, [language]);
 
-    const t = translations[language];
-
+    // Solo se guarda cuando el usuario elige un idioma a mano; así, mientras no
+    // lo haga, la app sigue al idioma del navegador.
+    const setLanguageTo = (lang) => {
+        if (!IDIOMAS.includes(lang)) return;
+        try { localStorage.setItem('appLanguage', lang); } catch { /* sin localStorage */ }
+        idiomaActual = lang;
+        localeActual = LOCALES[lang];
+        setLanguage(lang);
+    };
     const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    const toggleLanguage = () => setLanguage(prev => prev === 'es' ? 'en' : prev === 'en' ? 'de' : 'es');
-    const setLanguageTo = (lang) => setLanguage(lang);
+    const toggleLanguage = () => setLanguageTo(language === 'es' ? 'en' : language === 'en' ? 'de' : 'es');
+
+    const value = useMemo(() => {
+        const t = TEXTOS[language] || TEXTOS.es;
+        const nombres = MESES[language] || MESES.es;
+        return {
+            theme, toggleTheme, language, toggleLanguage, setLanguageTo, t,
+            locale: LOCALES[language] || LOCALES.es,
+            tf: (clave, vars) => interpolar(t[clave], vars),
+            // Nombre del mes a partir de su clave en español ("enero" → "January").
+            mes: (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? clave : nombres[i]; },
+            mesCorto: (clave) => { const i = MESES_CLAVE.indexOf(clave); return (i === -1 ? String(clave) : nombres[i]).slice(0, 3); }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [theme, language]);
 
     return (
-        <AppContext.Provider value={{ theme, toggleTheme, language, toggleLanguage, setLanguageTo, t }}>
+        <AppContext.Provider value={value}>
             {children}
         </AppContext.Provider>
     );

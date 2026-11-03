@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { useApp } from './context/AppContext';
 
 // Duracion de la prueba gratuita, en dias. Debe coincidir con duracionPrueba()
 // de firestore.rules, que es quien realmente lo hace cumplir.
@@ -41,6 +42,7 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
 };
 
 export default function Login({ onLogin }) {
+  const { t, tf } = useApp();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,7 +57,7 @@ export default function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      if (!db || !auth) throw new Error("Firebase Auth/DB no inicializada aún");
+      if (!db || !auth) throw new Error(t.loginErrFirebaseNotReady);
 
       const emailQuery = email.trim().toLowerCase();
 
@@ -68,7 +70,7 @@ export default function Login({ onLogin }) {
           finalUid = userCredential.user.uid;
         } catch (authErr) {
           if (authErr.code === 'auth/user-not-found' || authErr.code === 'auth/invalid-credential' || authErr.code === 'auth/wrong-password') {
-            throw new Error('Credenciales incorrectas. Verifica tu email y contraseña.');
+            throw new Error(t.loginErrBadCredentials);
           }
           throw authErr;
         }
@@ -108,12 +110,12 @@ export default function Login({ onLogin }) {
       } else {
         // REGISTRO
         if (password.length < 8) {
-          setError('La contraseña debe tener al menos 8 caracteres.');
+          setError(t.loginErrPasswordLength);
           setLoading(false);
           return;
         }
         if (password !== confirmPassword) {
-          setError('Las contraseñas no coinciden.');
+          setError(t.loginErrPasswordMismatch);
           setLoading(false);
           return;
         }
@@ -149,7 +151,7 @@ export default function Login({ onLogin }) {
 
         } catch (regErr) {
           if (regErr.code === 'auth/email-already-in-use') {
-            setError('Este email ya está registrado. Por favor, inicia sesión.');
+            setError(t.loginErrEmailInUse);
           } else {
             throw regErr;
           }
@@ -158,9 +160,9 @@ export default function Login({ onLogin }) {
     } catch (err) {
       console.error("Error detallado auth:", err);
       // Extraer mensaje de error natural si proviene de firebase
-      let errorMsg = err.message || "Error desconocido en Firebase";
+      let errorMsg = err.message || t.loginErrUnknown;
       if (err.code) errorMsg = err.message;
-      setError('Error en la autenticación: ' + errorMsg);
+      setError(tf('loginErrAuth', { msg: errorMsg }));
     } finally {
       setLoading(false);
     }
@@ -168,7 +170,7 @@ export default function Login({ onLogin }) {
 
   const handleGoogleSignIn = async () => {
     if (!auth) {
-      setError('Firebase no está configurado correctamente. Revisa src/firebase.js');
+      setError(t.loginErrFirebaseConfig);
       return;
     }
     setError('');
@@ -213,7 +215,7 @@ export default function Login({ onLogin }) {
       onLogin(sessionUser);
     } catch (err) {
       console.error(err);
-      setError('Error al iniciar sesión con Google: ' + err.message);
+      setError(tf('loginErrGoogle', { msg: err.message }));
     }
     setLoading(false);
   };
@@ -313,14 +315,14 @@ export default function Login({ onLogin }) {
       <div className="login-card">
         <div className="login-logo">FZ</div>
         <div className="login-title">Finanzi<span style={{ color: '#2dd4bf' }}>App</span></div>
-        <div className="login-sub">Gestión de finanzas personales</div>
+        <div className="login-sub">{t.loginSubtitle}</div>
 
         <div className="tab-container">
           <button type="button" className={`tab-btn ${isLogin ? 'active' : ''}`} onClick={() => setIsLogin(true)}>
-            Iniciar Sesión
+            {t.loginSignIn}
           </button>
           <button type="button" className={`tab-btn ${!isLogin ? 'active' : ''}`} onClick={() => setIsLogin(false)}>
-            Regístrate
+            {t.loginRegister}
           </button>
         </div>
 
@@ -328,30 +330,30 @@ export default function Login({ onLogin }) {
           {error && <div className="login-error">{error}</div>}
           {!isLogin && (
             <div className="login-field">
-              <label className="login-label">Nombre</label>
-              <input className="login-input" type="text" placeholder="Tu nombre" value={name} onChange={e => setName(e.target.value)} required />
+              <label className="login-label">{t.loginName}</label>
+              <input className="login-input" type="text" placeholder={t.loginNamePlaceholder} value={name} onChange={e => setName(e.target.value)} required />
             </div>
           )}
           <div className="login-field">
-            <label className="login-label">Email</label>
-            <input className="login-input" type="email" placeholder="ejemplo@correo.com" value={email} onChange={e => setEmail(e.target.value)} autoFocus required />
+            <label className="login-label">{t.loginEmail}</label>
+            <input className="login-input" type="email" placeholder={t.loginEmailPlaceholder} value={email} onChange={e => setEmail(e.target.value)} autoFocus required />
           </div>
           <div className="login-field">
-            <label className="login-label">Contraseña</label>
+            <label className="login-label">{t.loginPassword}</label>
             <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
           </div>
           {!isLogin && (
             <div className="login-field">
-              <label className="login-label">Repetir Contraseña</label>
+              <label className="login-label">{t.loginRepeatPassword}</label>
               <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} />
             </div>
           )}
           <button className="login-btn" type="submit" disabled={loading}>
-            {loading ? 'Cargando...' : (isLogin ? 'Iniciar Sesión' : 'Crear Cuenta')}
+            {loading ? t.loginLoading : (isLogin ? t.loginSignIn : t.loginCreateAccount)}
           </button>
         </form>
 
-        <div className="divider">O INICIA SESIÓN CON</div>
+        <div className="divider">{t.loginOrSignInWith}</div>
 
         <button className="login-btn login-btn-google" onClick={handleGoogleSignIn} disabled={loading}>
           <svg style={{ width: 18, height: 18 }} viewBox="0 0 24 24">
@@ -364,7 +366,7 @@ export default function Login({ onLogin }) {
         </button>
 
         <div style={{ textAlign: 'center', marginTop: 24 }}>
-          <a href="/" style={{ color: '#8b92b8', fontSize: 13, textDecoration: 'none' }}>← Volver al inicio</a>
+          <a href="/" style={{ color: '#8b92b8', fontSize: 13, textDecoration: 'none' }}>{t.loginBackHome}</a>
         </div>
       </div>
     </div>

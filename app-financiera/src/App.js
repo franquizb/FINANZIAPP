@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Login from './Login';
 import LandingPage from './LandingPage';
-import { AppProvider, useApp } from './context/AppContext';
+import { AppProvider, useApp, getLocale, nombreMesCorto, tx } from './context/AppContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
@@ -147,22 +147,23 @@ const SECCIONES_PRESUPUESTO = ["Ingresos", "Gastos Esenciales", "Gastos Discreci
 // Catálogo de bloques del dashboard. Cada usuario elige cuáles ve, en qué orden
 // y a qué anchura; algunos tienen opciones propias (categoría elegida, objetivo).
 // "vista" indica que el bloque solo tiene sentido si esa sección está visible.
+// "clave" es la entrada del diccionario con el título del bloque.
 const WIDGETS_DASHBOARD = [
-  { id: 'kpis', titulo: 'Resumen del año (ingresos, gastos, ahorro)', size: 'full' },
-  { id: 'salud', titulo: 'Salud financiera', size: 'full' },
-  { id: 'flujo', titulo: 'Ingresos vs. gastos mensuales', size: 'half' },
-  { id: 'distribucion', titulo: 'Distribución de gastos', size: 'half' },
-  { id: 'ahorro-acumulado', titulo: 'Ahorro acumulado: plan vs. real', size: 'half' },
-  { id: 'objetivo', titulo: 'Objetivo de ahorro anual', size: 'half' },
-  { id: 'presupuesto-ingresos', titulo: 'Ingresos: presupuesto vs. real', size: 'half' },
-  { id: 'presupuesto-gastos', titulo: 'Gastos: presupuesto vs. real', size: 'half' },
-  { id: 'top-gastos', titulo: 'Dónde se va el dinero (top gastos)', size: 'half' },
-  { id: 'categoria', titulo: 'Evolución de una categoría', size: 'half' },
-  { id: 'ahorro-mensual', titulo: 'Ahorro por mes', size: 'full' },
-  { id: 'comparativa', titulo: 'Este año vs. el anterior', size: 'full' },
-  { id: 'patrimonio', titulo: 'Patrimonio neto', size: 'half', vista: 'networth' },
-  { id: 'prestamos', titulo: 'Progreso de préstamos', size: 'half', vista: 'loans' },
-  { id: 'trading', titulo: 'Resumen de trading', size: 'full', vista: 'trading' }
+  { id: 'kpis', clave: 'wKpis', size: 'full' },
+  { id: 'salud', clave: 'wSalud', size: 'full' },
+  { id: 'flujo', clave: 'wFlujo', size: 'half' },
+  { id: 'distribucion', clave: 'wDistribucion', size: 'half' },
+  { id: 'ahorro-acumulado', clave: 'wAhorroAcumulado', size: 'half' },
+  { id: 'objetivo', clave: 'wObjetivo', size: 'half' },
+  { id: 'presupuesto-ingresos', clave: 'wPresupuestoIngresos', size: 'half' },
+  { id: 'presupuesto-gastos', clave: 'wPresupuestoGastos', size: 'half' },
+  { id: 'top-gastos', clave: 'wTopGastos', size: 'half' },
+  { id: 'categoria', clave: 'wCategoria', size: 'half' },
+  { id: 'ahorro-mensual', clave: 'wAhorroMensual', size: 'full' },
+  { id: 'comparativa', clave: 'wComparativa', size: 'full' },
+  { id: 'patrimonio', clave: 'wPatrimonio', size: 'half', vista: 'networth' },
+  { id: 'prestamos', clave: 'wPrestamos', size: 'half', vista: 'loans' },
+  { id: 'trading', clave: 'wTrading', size: 'full', vista: 'trading' }
 ];
 
 // Disposición guardada -> lista completa y saneada: conserva el orden, la
@@ -213,7 +214,7 @@ const getCategoryColor = (mk) => {
   }
 };
 
-const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString('es-ES', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString(getLocale(), { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const EXPENSE_KEYS = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
 const ALL_MAIN_KEYS = ["Ingresos", ...EXPENSE_KEYS];
@@ -243,7 +244,7 @@ const hoyLocal = () => fechaISO(new Date());
 const nombreSubValido = (raw) => {
   const s = String(raw || '').trim();
   if (!s) return null;
-  if (s.includes(SEP_CLAVE)) { alert(`El nombre no puede contener el carácter "${SEP_CLAVE}".`); return null; }
+  if (s.includes(SEP_CLAVE)) { alert(tx('nombreSinSeparador', { sep: SEP_CLAVE })); return null; }
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
@@ -420,7 +421,7 @@ const fechaLocal = (s) => {
 const _cacheSimulaciones = new Map();
 const simularPrestamo = (loan) => {
   if (!loan || !loan.startDate) return [];
-  const clave = [loan.id, loan.totalAmount, loan.installmentsCount, loan.interestRate, loan.amount, loan.startDate, JSON.stringify(loan.extraAmortizations || [])].join('|');
+  const clave = [getLocale(), loan.id, loan.totalAmount, loan.installmentsCount, loan.interestRate, loan.amount, loan.startDate, JSON.stringify(loan.extraAmortizations || [])].join('|');
   if (_cacheSimulaciones.has(clave)) return _cacheSimulaciones.get(clave);
 
   const rows = [];
@@ -454,7 +455,7 @@ const simularPrestamo = (loan) => {
     rows.push({
       num: n,
       date: d,
-      month: d.toLocaleString('es-ES', { month: 'long', year: 'numeric' }),
+      month: d.toLocaleString(getLocale(), { month: 'long', year: 'numeric' }),
       fixed: interest + principal, // lo que se paga de verdad ese mes (la última cuota puede ser menor)
       interest,
       principal,
@@ -542,7 +543,7 @@ const calcularTotalesMensuales = (data, categories, fullData, year) => months.ma
     if (mk === 'Pago de Deudas') val += cuotaPrestamos(fullData, sub, year, mIdx);
     return ss + val;
   }, 0), 0);
-  return { name: m.substring(0, 3).toUpperCase(), income, expenses };
+  return { name: nombreMesCorto(m).toUpperCase(), income, expenses };
 });
 
 // ─── TRADING ─────────────────────────────────────────────────────────────────
@@ -655,16 +656,21 @@ const PATHS = {
   analysis: "M21 21H3V3M7 14l3-3 5 5 6-6"
 };
 
+// El nombre visible de cada sección es t[id] (traducido).
 const PERMISSIONS = [
-  { id: 'dashboard', label: 'Dashboard', icon: PATHS.dashboard },
-  { id: 'monthly', label: 'Seguimiento Mensual', icon: PATHS.monthly },
-  { id: 'networth', label: 'Patrimonio Neto', icon: PATHS.networth },
-  { id: 'loans', label: 'Préstamos', icon: PATHS.loan },
-  { id: 'trading', label: 'Trading', icon: PATHS.trading },
-  { id: 'analysis', label: 'Análisis', icon: PATHS.analysis },
-  { id: 'settings', label: 'Configuración', icon: PATHS.settings },
-  { id: 'users', label: 'Gestión', icon: PATHS.users },
+  { id: 'dashboard', icon: PATHS.dashboard },
+  { id: 'monthly', icon: PATHS.monthly },
+  { id: 'networth', icon: PATHS.networth },
+  { id: 'loans', icon: PATHS.loan },
+  { id: 'trading', icon: PATHS.trading },
+  { id: 'analysis', icon: PATHS.analysis },
+  { id: 'settings', icon: PATHS.settings },
+  { id: 'users', icon: PATHS.users },
 ];
+
+// Texto con tramos en negrita marcados con **...** (p. ej. "Llevas **{a}** de {b}").
+// Permite traducir frases enteras sin romper el orden de las palabras.
+const Negrita = ({ texto, estilo }) => String(texto || '').split('**').map((trozo, i) => i % 2 ? <b key={i} style={estilo}>{trozo}</b> : <React.Fragment key={i}>{trozo}</React.Fragment>);
 
 const AVATARS = [
   '👤', '👨‍💻', '👩‍💻', '👨‍💼', '👩‍💼', '🦁', '🦊', '🐱', '🐶', '🦄',
@@ -682,7 +688,6 @@ const hasPermission = (user, permId) => {
 // Enlace de cobro de Revolut. Cuando entre el pago, el admin marca `paidUntil`
 // en el panel de Gestion y las reglas devuelven el acceso de escritura.
 const ENLACE_PAGO = 'https://revolut.me/CAMBIAME';
-const PRECIO = '4,99 € / mes';
 
 // OJO: esto es solo para la interfaz. Quien impide escribir de verdad son las
 // reglas de Firestore (suscripcionActiva). Manipular esto en el navegador no
@@ -706,11 +711,13 @@ const estadoSuscripcion = (user) => {
 // usuario conserva la lectura de sus datos (derecho de acceso del RGPD) y lo
 // que pierde es la escritura, que ya deniegan las reglas.
 function AvisoSuscripcion({ user }) {
+  const { t, tf } = useApp();
   const estado = estadoSuscripcion(user);
   if (estado.motivo === 'admin' || estado.motivo === 'pagado' || estado.motivo === 'sin-sesion') return null;
   if (estado.activa && estado.diasRestantes > 5) return null;
 
   const caducada = !estado.activa;
+  const precio = t.precioMes;
   return (
     <div style={{
       margin: '12px 16px 0', padding: '12px 16px', borderRadius: 10,
@@ -722,19 +729,17 @@ function AvisoSuscripcion({ user }) {
       <div style={{ flex: 1, minWidth: 220 }}>
         <div style={{ fontWeight: 700, fontSize: 14 }}>
           {caducada
-            ? 'Tu prueba gratuita ha terminado'
-            : `Te quedan ${estado.diasRestantes} ${estado.diasRestantes === 1 ? 'día' : 'días'} de prueba`}
+            ? t.subTrialEnded
+            : (estado.diasRestantes === 1 ? t.subDaysLeftOne : tf('subDaysLeft', { n: estado.diasRestantes }))}
         </div>
         <div style={{ fontSize: 12, opacity: .8, marginTop: 2 }}>
-          {caducada
-            ? `Puedes seguir consultando y exportando tus datos, pero no añadir ni modificar nada. Activa tu cuenta por ${PRECIO}.`
-            : `Cuando acabe podrás seguir consultando tus datos, pero no editarlos. ${PRECIO}.`}
+          {caducada ? tf('subExpiredBody', { precio }) : tf('subTrialBody', { precio })}
         </div>
       </div>
       <a href={ENLACE_PAGO} target="_blank" rel="noopener noreferrer"
          className="btn btn-primary"
          style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
-        Pagar con Revolut
+        {t.subPay}
       </a>
     </div>
   );
@@ -758,7 +763,7 @@ export default function App() {
 }
 
 function AppInner({ isHome }) {
-  const { theme } = useApp();
+  const { theme, t, tf } = useApp();
   const navigate = useNavigate();
 
   const getSavedUser = () => { try { const s = localStorage.getItem('currentUser'); return s ? JSON.parse(s) : null; } catch { return null; } };
@@ -966,7 +971,8 @@ function AppInner({ isHome }) {
       setLoading(false);
     }, (err) => {
       console.error("Error syncing data:", err);
-      setError("Error de sincronización: " + err.message);
+      // tx (y no tf) para no añadir el idioma como dependencia del efecto de carga.
+      setError(tx('errSync', { msg: err.message }));
       setLoading(false);
     });
 
@@ -1021,15 +1027,15 @@ function AppInner({ isHome }) {
   const explicarErrorGuardado = (e) => {
     const code = String(e?.code || '');
     if (code.includes('permission-denied')) {
-      if (user?.bloqueado) return 'Tu cuenta está bloqueada: no se pueden guardar cambios. Contacta con el administrador.';
+      if (user?.bloqueado) return t.errBloqueado;
       const estado = estadoSuscripcion(user);
-      if (!estado.activa) return 'Tu prueba gratuita ha terminado: los cambios no se guardan. Activa tu cuenta para seguir editando.';
-      return 'Firestore ha rechazado el cambio por falta de permisos. Se ha restaurado la última versión guardada.';
+      if (!estado.activa) return t.errPruebaTerminada;
+      return t.errPermisos;
     }
     if (code.includes('unavailable') || (typeof navigator !== 'undefined' && navigator.onLine === false)) {
-      return 'Sin conexión: el cambio no se ha podido guardar. Se ha restaurado la última versión guardada.';
+      return t.errSinConexion;
     }
-    return `No se pudo guardar el cambio (${e?.message || 'error desconocido'}). Se ha restaurado la última versión guardada.`;
+    return tf('errGuardar', { msg: e?.message || t.errDesconocido });
   };
 
   // Vuelve a cargar los datos tal y como están en la nube, para deshacer un
@@ -1151,7 +1157,7 @@ function AppInner({ isHome }) {
   const commonProps = { data: financialData?.[selectedYear], year: selectedYear, categories: financialData?.[selectedYear]?.categories || config?.categories, onUpdate: updateFD, fullData: financialData, onUpdateCfg: updateCfg, config, budgetData: financialData?.[selectedYear]?.budget };
 
   const renderView = () => {
-    if (loading) return <div className="loading-state"><div className="spinner" /><span>Cargando...</span></div>;
+    if (loading) return <div className="loading-state"><div className="spinner" /><span>{t.loading}</span></div>;
     if (error) return <div className="loading-state" style={{ color: 'var(--red)' }}>{error}</div>;
     if (!financialData || !config) return <div className="loading-state"><div className="spinner" /></div>;
 
@@ -1191,15 +1197,15 @@ function AppInner({ isHome }) {
   const AccessDenied = () => (
     <div className="loading-state" style={{ color: 'var(--red)', flexDirection: 'column', textAlign: 'center', padding: 40 }}>
       <Ic d={PATHS.lock} size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-      <div style={{ fontWeight: 800, fontSize: 18 }}>Acceso Restringido</div>
+      <div style={{ fontWeight: 800, fontSize: 18 }}>{t.accesoRestringido}</div>
       <div style={{ color: 'var(--text-muted)', fontSize: 14, marginTop: 8, maxWidth: 300 }}>
-        El usuario <b>{user.displayName}</b> no tiene permisos para acceder a <b>{activeView}</b>.
+        {t.elUsuario} <b>{user.displayName}</b> {t.sinPermisoPara} <b>{t[activeView] || activeView}</b>.
       </div>
       <button className="btn btn-primary" style={{ marginTop: 24 }} onClick={() => {
         const primera = PERMISSIONS.find(p => hasPermission(user, p.id) && (config?.visibleViews?.includes(p.id) || p.id === 'settings'));
         setActiveView(primera ? primera.id : 'settings');
       }}>
-        Volver al Inicio
+        {t.volverInicio}
       </button>
     </div>
   );
@@ -1232,8 +1238,8 @@ function AppInner({ isHome }) {
             background: 'rgba(220,38,38,.10)', border: '1px solid rgba(220,38,38,.45)'
           }}>
             <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
-            <div style={{ flex: 1, minWidth: 220, fontSize: 13 }}><b>No se ha guardado.</b> {errorGuardado}</div>
-            <button className="btn btn-ghost" onClick={() => setErrorGuardado(null)}>Cerrar</button>
+            <div style={{ flex: 1, minWidth: 220, fontSize: 13 }}><b>{t.noGuardado}</b> {errorGuardado}</div>
+            <button className="btn btn-ghost" onClick={() => setErrorGuardado(null)}>{t.cerrar}</button>
           </div>
         )}
         <div className="page-content fade-in">{renderView()}</div>
@@ -1272,9 +1278,9 @@ function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config
       </div>
       <div className="sidebar-nav">
         {navItems.map(item => (
-          <button key={item.id} className={`nav-item ${activeView === item.id ? 'active' : ''}`} onClick={() => setActiveView(item.id)} title={collapsed ? item.label : ''}>
+          <button key={item.id} className={`nav-item ${activeView === item.id ? 'active' : ''}`} onClick={() => setActiveView(item.id)} title={collapsed ? t[item.id] : ''}>
             <Ic d={item.icon} size={18} />
-            {!collapsed && <span className="nav-label">{item.label}</span>}
+            {!collapsed && <span className="nav-label">{t[item.id]}</span>}
           </button>
         ))}
       </div>
@@ -1287,7 +1293,7 @@ function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.displayName}</div>
               <div className={`badge ${user?.isAdmin ? 'badge-accent' : 'badge-ghost'}`} style={{ fontSize: 9, marginTop: 2 }}>
-                {user?.isAdmin ? 'ADMIN' : 'USUARIO'}
+                {user?.isAdmin ? t.rolAdmin : t.rolUsuario}
               </div>
             </div>
           )}
@@ -1339,15 +1345,14 @@ const TOPBAR_STYLES = `
 
 // ─── TOPBAR ──────────────────────────────────────────────────────────────────
 function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSidebar, selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, financialData, dashboardMode, setDashboardMode }) {
-  const { t } = useApp();
-  const titles = { dashboard: t.dashboard, monthly: t.monthly, networth: t.networth, loans: t.loans, trading: 'Trading', analysis: 'Análisis', settings: t.settings, users: 'Gestión' };
+  const { t, mes } = useApp();
   return (
     <div className="topbar">
       <div className="topbar-left">
         <button className="toggle-btn" onClick={toggleSidebar} title={sidebarCollapsed ? t.expandMenu : t.collapseMenu}>
           <Ic d={sidebarCollapsed ? PATHS.menu : "M18 6L6 18M6 6l12 12"} size={16} />
         </button>
-        <span className="topbar-title">{titles[activeView] || activeView}</span>
+        <span className="topbar-title">{t[activeView] || activeView}</span>
       </div>
       <div className="topbar-right" style={{ gap: 16 }}>
         {activeView === 'dashboard' && (
@@ -1385,7 +1390,7 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
         </select>
         {activeView === 'monthly' && (
           <select className="select-input" style={{ width: 'auto', textTransform: 'capitalize' }} value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
-            {months.map(m => <option key={m} value={m} style={{ textTransform: 'capitalize' }}>{m}</option>)}
+            {months.map(m => <option key={m} value={m} style={{ textTransform: 'capitalize' }}>{mes(m)}</option>)}
           </select>
         )}
 
@@ -1408,7 +1413,7 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
         >
           <div style={{ fontSize: 13, fontWeight: 700, textAlign: 'right', display: 'none', flexShrink: 0 }} className="desktop-only-flex">
             <div style={{ color: 'var(--text-primary)', lineHeight: 1 }}>{user?.displayName}</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginTop: 2 }}>{user?.isAdmin ? 'ADMIN' : 'USUARIO'}</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, marginTop: 2 }}>{user?.isAdmin ? t.rolAdmin : t.rolUsuario}</div>
           </div>
           <div style={{
             width: 38, height: 38,
@@ -1492,7 +1497,7 @@ const RenameSpan = ({ sub, onRename, disabled }) => {
 };
 
 function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg, config, mode, setMode, budgetLocked, setBudgetLocked, visibleBudgetSections, visibleViews }) {
-  const { t, theme } = useApp();
+  const { t, tf, theme, locale, mes, mesCorto } = useApp();
   const [addingTo, setAddingTo] = useState(null);
   const [newSub, setNewSub] = useState('');
   const [editandoDashboard, setEditandoDashboard] = useState(false);
@@ -1622,7 +1627,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                               const newName = nombreSubValido(raw);
                               if (!newName || newName === sub) return;
                               // Renombrar a un nombre que ya existe junto al actual pisaría sus datos y dejaría dos filas iguales.
-                              if (renombradoConflictivo(fullData, config, mk, sub, newName, year)) { alert(`"${newName}" ya existe en ${mk} (en este año, en uno posterior o en la configuración).`); return; }
+                              if (renombradoConflictivo(fullData, config, mk, sub, newName, year)) { alert(tf('yaExisteEn', { nombre: newName, seccion: t[mk] || mk })); return; }
                               onUpdateCfg(configRenombrada(config, mk, sub, newName));
                               onUpdate(enAniosDesde(fullData, year, d => renombrarSub(d, mk, sub, newName)));
                             }}
@@ -1661,7 +1666,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                     <div style={{ display: 'flex', gap: 6 }}>
                       <input 
                         autoFocus
-                        placeholder="Añadir subcategoría..."
+                        placeholder={t.addSubPlaceholder}
                         className="text-input"
                         style={{ flex: 1, padding: '4px 8px', fontSize: 13, border: '1px solid var(--accent)' }}
                         value={newSub}
@@ -1670,7 +1675,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                           if (e.key === 'Enter' && newSub.trim()) {
                             const sub = nombreSubValido(newSub);
                             if (!sub) return;
-                            if ((categories[mk] || []).includes(sub)) { alert('Ya existe en este año'); return; }
+                            if ((categories[mk] || []).includes(sub)) { alert(t.yaExisteAnio); return; }
                             onUpdateCfg(configConSub(config, mk, sub));
                             // Solo el año seleccionado y los posteriores.
                             onUpdate(enAniosDesde(fullData, year, d => asegurarSub(d, mk, sub)));
@@ -1694,12 +1699,12 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
         </div>
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', fontSize: 13 }}>
-            <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Total</span>
+            <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{t.total}</span>
             <span className="text-right" style={{ fontWeight: 800, color: getCategoryColor(mk) }}>{fmt(total)}</span>
           </div>
           {mk !== 'Ingresos' && totalIncomeBudgeted > 0 && (
             <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)', fontSize: 11, fontWeight: 700, textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
-              <span style={{ color: getCategoryColor(mk) }}>{((total / totalIncomeBudgeted) * 100).toFixed(1)}%</span> del presupuesto
+              <span style={{ color: getCategoryColor(mk) }}>{((total / totalIncomeBudgeted) * 100).toFixed(1)}%</span> {t.delPresupuesto}
             </div>
           )}
         </div>
@@ -1719,7 +1724,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
       const amount = parseFloat(fd.get('amount'));
 
       if (!cat || !sub || activeMonths.length === 0 || isNaN(amount)) {
-        alert('Por favor, selecciona al menos un mes e introduce un importe válido.');
+        alert(t.puntualAviso);
         return;
       }
 
@@ -1750,18 +1755,18 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
       <div className="section-gap" style={{ marginTop: 20 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 24, marginBottom: 32 }}>
           <div>
-            <h2 style={{ fontSize: 32, fontWeight: 900, margin: 0, letterSpacing: '-0.04em' }}>PRESUPUESTO ANUAL</h2>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Planifica tus finanzas mensuales para {year}.</p>
+            <h2 style={{ fontSize: 32, fontWeight: 900, margin: 0, letterSpacing: '-0.04em' }}>{t.presupuestoAnual}</h2>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{tf('planificaFinanzas', { year })}</p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div className={`remanente-card ${remanente > 0 ? 'positive' : remanente < 0 ? 'negative' : 'zero'}`}>
-              <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.8, marginBottom: 4 }}>REMANENTE MENSUAL</div>
+              <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.8, marginBottom: 4 }}>{t.remanenteMensual}</div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{fmt(remanente)}</div>
             </div>
             <button className={`btn ${budgetLocked ? 'btn-ghost' : 'btn-primary'}`} style={{ height: 60, padding: '0 24px', borderRadius: 16 }} onClick={() => setBudgetLocked(!budgetLocked)}>
               <Ic d={budgetLocked ? PATHS.lock : PATHS.unlock} size={18} style={{ marginRight: 8 }} />
-              {budgetLocked ? 'Desbloquear Edición' : 'Bloquear Edición'}
+              {budgetLocked ? t.desbloquearEdicion : t.bloquearEdicion}
             </button>
           </div>
         </div>
@@ -1782,17 +1787,17 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <select name="cat" className="select-input" required>
                   <option value="">{t.category}</option>
-                  {categoriesList.map(c => <option key={c} value={c}>{c}</option>)}
+                  {categoriesList.map(c => <option key={c} value={c}>{t[c] || c}</option>)}
                 </select>
-                <input name="sub" type="text" className="text-input" placeholder="Nombre (ej. Paga extra)" required />
+                <input name="sub" type="text" className="text-input" placeholder={t.puntualNombrePlaceholder} required />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>Seleccionar meses:</label>
+                <label style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t.seleccionarMeses}</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                   {months.map(m => (
                     <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, cursor: 'pointer' }}>
-                      <input type="checkbox" name={`month_${m}`} /> {m.slice(0, 3)}
+                      <input type="checkbox" name={`month_${m}`} /> {mesCorto(m)}
                     </label>
                   ))}
                 </div>
@@ -1848,12 +1853,12 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                       rows.push(
                         <tr key={x.key}>
                           <td style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>
-                            {x.months.map(m => m.slice(0, 3)).join(', ')}
+                            {x.months.map(m => mesCorto(m)).join(', ')}
                           </td>
                           <td style={{ fontSize: 11 }}>{x.sub}</td>
                           <td className="text-right" style={{ fontWeight: 600 }}>{fmt(x.amount)}</td>
                           <td className="text-right">
-                            <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} title="Eliminar en todos los meses" onClick={() => handleDeleteOneTimeGroup(x)}>
+                            <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} title={t.eliminarTodosMeses} onClick={() => handleDeleteOneTimeGroup(x)}>
                               <Ic d={PATHS.trash} size={11} />
                             </button>
                           </td>
@@ -1863,9 +1868,9 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
                     loanMap.forEach(x => {
                       rows.push(
-                        <tr key={`auto-${x.id}`} className="loan-row-puntual" title={`Total en ${year}: ${fmt(x.total)}`}>
+                        <tr key={`auto-${x.id}`} className="loan-row-puntual" title={tf('totalEnAnio', { year, importe: fmt(x.total) })}>
                           <td style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 600 }}>
-                            {x.months.map(m => m.slice(0, 3)).join(', ')}
+                            {x.months.map(m => mesCorto(m)).join(', ')}
                           </td>
                           <td style={{ fontSize: 11 }}>
                             {x.name} <span style={{ color: 'var(--blue)', marginLeft: 4 }} title={t.loanLocked}><Ic d={PATHS.lock} size={10} /></span>
@@ -1902,7 +1907,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
         if (lv.active) totalLiab += lv.balance;
       });
     }
-    return { name: m.substring(0, 3).toUpperCase(), [t.assets]: totalAssets, [t.liabilities]: totalLiab, nw: totalAssets - totalLiab };
+    return { name: mesCorto(m).toUpperCase(), [t.assets]: totalAssets, [t.liabilities]: totalLiab, nw: totalAssets - totalLiab };
   }) : [];
 
   // Loan progress data (only if loans view is visible)
@@ -1959,7 +1964,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     return months.map((m, i) => {
       plan += ahorroPlanMes;
       if (i < monthsPassed) real += monthlyTotals[i].income - monthlyTotals[i].expenses;
-      return { name: m.substring(0, 3).toUpperCase(), plan, real: i < monthsPassed ? real : null };
+      return { name: mesCorto(m).toUpperCase(), plan, real: i < monthsPassed ? real : null };
     });
   })();
 
@@ -1971,11 +1976,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const datosAnioAnterior = fullData[year - 1];
   const totalesAnterior = datosAnioAnterior ? calcularTotalesMensuales(datosAnioAnterior, datosAnioAnterior.categories || categories, fullData, year - 1) : null;
   const comparativa = totalesAnterior ? months.map((m, i) => ({
-    name: m.substring(0, 3).toUpperCase(),
-    [`Gastos ${year}`]: monthlyTotals[i].expenses,
-    [`Gastos ${year - 1}`]: totalesAnterior[i].expenses,
-    [`Ingresos ${year}`]: monthlyTotals[i].income,
-    [`Ingresos ${year - 1}`]: totalesAnterior[i].income
+    name: mesCorto(m).toUpperCase(),
+    [`${t.expenses} ${year}`]: monthlyTotals[i].expenses,
+    [`${t.expenses} ${year - 1}`]: totalesAnterior[i].expenses,
+    [`${t.income} ${year}`]: monthlyTotals[i].income,
+    [`${t.income} ${year - 1}`]: totalesAnterior[i].income
   })) : [];
   const anteriorHasta = totalesAnterior ? totalesAnterior.slice(0, monthsPassed) : [];
   const ingresosAnteriorYTD = anteriorHasta.reduce((s, m) => s + m.income, 0);
@@ -1992,7 +1997,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const disponible = (id) => { const def = WIDGETS_DASHBOARD.find(d => d.id === id); return !!def && (!def.vista || (visibleViews || []).includes(def.vista)); };
   const widgetsVisibles = dashboardCfg.widgets.filter(w => w.visible && disponible(w.id));
   const widgetsOcultos = dashboardCfg.widgets.filter(w => !w.visible && disponible(w.id));
-  const tituloDe = (id) => WIDGETS_DASHBOARD.find(d => d.id === id)?.titulo || id;
+  const tituloDe = (id) => { const def = WIDGETS_DASHBOARD.find(d => d.id === id); return def ? t[def.clave] : id; };
   const moverWidget = (id, delta) => {
     const k = widgetsVisibles.findIndex(w => w.id === id);
     const destino = widgetsVisibles[k + delta];
@@ -2002,7 +2007,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     [arr[i], arr[j]] = [arr[j], arr[i]];
     guardarDashboard(arr);
   };
-  const restablecerDashboard = () => { if (window.confirm('¿Volver a la disposición inicial del dashboard?')) guardarDashboard(normalizarDashboard(null).widgets); };
+  const restablecerDashboard = () => { if (window.confirm(t.restablecerConfirm)) guardarDashboard(normalizarDashboard(null).widgets); };
 
   // Evolución de una categoría (opción guardada como "Categoría principal|Subcategoría").
   const todasSubs = ALL_MAIN_KEYS.flatMap(mk => (categories[mk] || []).map(sub => ({ mk, sub, clave: `${mk}|${sub}` })));
@@ -2017,7 +2022,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     let real = calcTotal(data.monthly?.[m]?.[claveSub(mkElegida, subElegida)]?.actual || []);
     if (mkElegida === 'Pago de Deudas') real += cuotaPrestamos(fullData, subElegida, year, i);
     const presupuesto = getEffectiveBudget(subElegida, mkElegida, year, i, fullData, data.budget);
-    return { name: m.substring(0, 3).toUpperCase(), real, presupuesto };
+    return { name: mesCorto(m).toUpperCase(), real, presupuesto };
   }) : [];
 
   // Objetivo de ahorro anual (editable en el propio bloque).
@@ -2032,7 +2037,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     const regular = menorEsMejor ? v <= medio : v >= medio;
     return ok ? 'var(--green)' : regular ? 'var(--yellow)' : 'var(--red)';
   };
-  const tickCompacto = v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v);
+  const tickCompacto = v => new Intl.NumberFormat(locale, { notation: 'compact' }).format(v);
   const sinDatos = (texto) => <div className="loading-state" style={{ height: '80%', fontSize: 12, textAlign: 'center', padding: 12 }}>{texto}</div>;
 
   const renderWidget = (w) => {
@@ -2048,28 +2053,28 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
           <div className="card" style={{ borderLeft: '4px solid var(--red)', background: 'linear-gradient(135deg, var(--bg-card), rgba(244, 63, 94, 0.05))' }}>
             <div className="card-title">{t.totalExpenses}</div>
             <div className="card-value red">{fmt(totalExpenses)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalExpenses / totalIncome) * 100).toFixed(1)}% ${t.ofIncome}` : 'Sin ingresos registrados'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalExpenses / totalIncome) * 100).toFixed(1)}% ${t.ofIncome}` : t.sinIngresosRegistrados}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid var(--blue)', background: 'linear-gradient(135deg, var(--bg-card), rgba(56, 189, 248, 0.05))' }}>
             <div className="card-title">{t.savings}</div>
             <div className="card-value blue">{fmt(totalSavings)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalSavings / totalIncome) * 100).toFixed(1)}% ${t.savingsRate}` : 'Sin ingresos registrados'}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalSavings / totalIncome) * 100).toFixed(1)}% ${t.savingsRate}` : t.sinIngresosRegistrados}</div>
           </div>
         </div>
       );
 
       case 'salud': return (
         <div className="card">
-          <div className="chart-card-title">Salud financiera {esAnioActual ? `(hasta ${months[monthsPassed - 1]})` : `(${year})`}</div>
+          <div className="chart-card-title">{t.wSalud} {esAnioActual ? tf('saludHasta', { mes: mes(months[monthsPassed - 1]) }) : `(${year})`}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
             {[
-              { label: 'Tasa de ahorro', valor: tasaAhorro, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(tasaAhorro, 20, 10), max: 40, nota: 'Lo que guardas de cada euro que ingresas. Referencia: 20 % o más.' },
-              { label: 'Fondo de emergencia', valor: mesesCubiertos, mostrar: v => `${v.toFixed(1)} meses`, color: semaforo(mesesCubiertos, 6, 3), max: 12, nota: `${catsFondo.join(' + ') || 'Activos'} entre el gasto medio mensual. Referencia: de 3 a 6 meses.` },
-              { label: 'Carga de deuda', valor: ratioDeuda, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(ratioDeuda, 30, 40, true), max: 60, nota: 'Cuotas de préstamos sobre el ingreso mensual medio. Referencia: por debajo del 30 %.' }
+              { label: t.tasaAhorro, valor: tasaAhorro, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(tasaAhorro, 20, 10), max: 40, nota: t.tasaAhorroNota },
+              { label: t.fondoEmergencia, valor: mesesCubiertos, mostrar: v => `${v.toFixed(1)} ${t.meses}`, color: semaforo(mesesCubiertos, 6, 3), max: 12, nota: tf('fondoNota', { cats: catsFondo.join(' + ') || t.assets }) },
+              { label: t.cargaDeuda, valor: ratioDeuda, mostrar: v => `${v.toFixed(1)} %`, color: semaforo(ratioDeuda, 30, 40, true), max: 60, nota: t.cargaDeudaNota }
             ].map(g => (
               <div key={g.label} style={{ padding: 14, borderRadius: 12, background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{g.label}</div>
-                <div style={{ fontSize: 24, fontWeight: 900, color: g.color, margin: '6px 0' }}>{(g.valor === null || g.valor === undefined || isNaN(g.valor)) ? 'Sin datos' : g.mostrar(g.valor)}</div>
+                <div style={{ fontSize: 24, fontWeight: 900, color: g.color, margin: '6px 0' }}>{(g.valor === null || g.valor === undefined || isNaN(g.valor)) ? t.sinDatos : g.mostrar(g.valor)}</div>
                 <div style={{ height: 8, background: 'var(--bg-input)', borderRadius: 4, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, ((g.valor || 0) / g.max) * 100))}%`, background: g.color, borderRadius: 4, transition: 'width .4s' }} />
                 </div>
@@ -2120,13 +2125,13 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 <Legend layout="vertical" verticalAlign="middle" align="right" wrapperStyle={{ fontSize: 11, paddingLeft: 20 }} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
-          ) : sinDatos('Sin datos')}
+          ) : sinDatos(t.sinDatos)}
         </div>
       );
 
       case 'ahorro-acumulado': return (
         <div className="chart-card" style={{ height: 320 }}>
-          <div className="chart-card-title">Ahorro acumulado: plan vs. real</div>
+          <div className="chart-card-title">{t.wAhorroAcumulado}</div>
           <ResponsiveContainer width="100%" height="85%">
             <AreaChart data={ahorroAcumulado}>
               <defs>
@@ -2140,8 +2145,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
               <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
-              <Area type="monotone" dataKey="plan" name="Plan (según presupuesto)" stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 4" fillOpacity={0} />
-              <Area type="monotone" dataKey="real" name="Real" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorAcumulado)" connectNulls={false} />
+              <Area type="monotone" dataKey="plan" name={t.planSegunPresupuesto} stroke="var(--accent)" strokeWidth={2} strokeDasharray="6 4" fillOpacity={0} />
+              <Area type="monotone" dataKey="real" name={t.real} stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorAcumulado)" connectNulls={false} />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -2151,9 +2156,9 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
         const colorObjetivo = objetivoAhorro > 0 ? (proyeccionAhorro >= objetivoAhorro ? 'var(--green)' : progresoObjetivo >= (monthsPassed / 12) * 100 ? 'var(--yellow)' : 'var(--red)') : 'var(--accent)';
         return (
           <div className="card" style={{ height: 320, display: 'flex', flexDirection: 'column' }}>
-            <div className="chart-card-title">Objetivo de ahorro anual</div>
+            <div className="chart-card-title">{t.wObjetivo}</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-              <label style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>Objetivo para {year} (€)</label>
+              <label style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>{tf('objetivoPara', { year })}</label>
               <BudgetInput value={objetivoAhorro} disabled={false} onSave={v => setOpcionesWidget('objetivo', { objetivo: v })} />
             </div>
             {objetivoAhorro > 0 ? (
@@ -2163,16 +2168,16 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                   <div style={{ height: '100%', width: `${Math.max(0, Math.min(100, progresoObjetivo))}%`, background: colorObjetivo, borderRadius: 5, transition: 'width .4s' }} />
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  Llevas <b>{fmt(ahorroYTD)}</b> de {fmt(objetivoAhorro)}.
+                  <Negrita texto={tf('llevasDe', { a: fmt(ahorroYTD), b: fmt(objetivoAhorro) })} />
                   {esAnioActual ? (
-                    <> Al ritmo actual ({fmt(ritmoMensual)} al mes) terminarás el año con <b>{fmt(proyeccionAhorro)}</b>: {proyeccionAhorro >= objetivoAhorro ? 'vas por delante del objetivo.' : `te faltarían ${fmt(objetivoAhorro - proyeccionAhorro)}.`}</>
+                    <> <Negrita texto={tf('ritmoActual', { ritmo: fmt(ritmoMensual), proy: fmt(proyeccionAhorro) })} /> {proyeccionAhorro >= objetivoAhorro ? t.vasPorDelante : tf('teFaltarian', { x: fmt(objetivoAhorro - proyeccionAhorro) })}</>
                   ) : (
-                    <> {ahorroYTD >= objetivoAhorro ? 'Objetivo cumplido.' : `Faltaron ${fmt(objetivoAhorro - ahorroYTD)}.`}</>
+                    <> {ahorroYTD >= objetivoAhorro ? t.objetivoCumplido : tf('faltaron', { x: fmt(objetivoAhorro - ahorroYTD) })}</>
                   )}
                 </div>
               </>
             ) : (
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>Escribe cuánto quieres ahorrar este año y verás el progreso y una proyección a fin de año según tu ritmo actual.</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>{t.objetivoAyuda}</div>
             )}
           </div>
         );
@@ -2180,7 +2185,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
       case 'presupuesto-ingresos': return (
         <div className="chart-card" style={{ height: 280 }}>
-          <div className="chart-card-title">{t.income}: Presupuesto vs Real ({monthsPassed} meses)</div>
+          <div className="chart-card-title">{tf('presupuestoVsRealN', { seccion: t.income, n: monthsPassed })}</div>
           {incomeVsActual.length > 0 ? (
             <ResponsiveContainer width="100%" height="88%">
               <BarChart data={incomeVsActual} barSize={18}>
@@ -2193,13 +2198,13 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 <Bar dataKey="actual" fill="var(--green)" name={t.real} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : sinDatos('Sin datos de presupuesto')}
+          ) : sinDatos(t.sinDatosPresupuesto)}
         </div>
       );
 
       case 'presupuesto-gastos': return (
         <div className="chart-card" style={{ height: 280 }}>
-          <div className="chart-card-title">{t.expenses}: Presupuesto vs Real ({monthsPassed} meses)</div>
+          <div className="chart-card-title">{tf('presupuestoVsRealN', { seccion: t.expenses, n: monthsPassed })}</div>
           {expenseVsActual.length > 0 ? (
             <ResponsiveContainer width="100%" height="88%">
               <BarChart data={expenseVsActual} barSize={18}>
@@ -2212,36 +2217,36 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 <Bar dataKey="actual" fill="var(--red)" name={t.real} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          ) : sinDatos('Sin datos de presupuesto')}
+          ) : sinDatos(t.sinDatosPresupuesto)}
         </div>
       );
 
       case 'top-gastos': return (
         <div className="chart-card" style={{ height: 320 }}>
-          <div className="chart-card-title">Dónde se va el dinero ({year})</div>
+          <div className="chart-card-title">{tf('dondeSeVa', { year })}</div>
           {topGastos.length > 0 ? (
             <ResponsiveContainer width="100%" height="85%">
               <BarChart data={topGastos} layout="vertical" margin={{ left: 4, right: 56, top: 4, bottom: 4 }}>
                 <CartesianGrid horizontal={false} stroke={gridColor} strokeOpacity={0.5} />
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={118} tick={{ fontSize: 11 }} stroke={axisColor} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(99,102,241,0.08)' }} formatter={(v, n, p) => [`${fmt(v)} (${(p?.payload?.pct || 0).toFixed(1)} % del gasto)`, 'Gasto']} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(99,102,241,0.08)' }} formatter={(v, n, p) => [`${fmt(v)} (${(p?.payload?.pct || 0).toFixed(1)} % ${t.delGasto})`, t.gasto]} />
                 <Bar dataKey="value" radius={[0, 6, 6, 0]} label={{ position: 'right', fontSize: 11, fill: axisColor, formatter: v => fmt(v) }}>
                   {topGastos.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : sinDatos('Sin gastos registrados')}
+          ) : sinDatos(t.sinGastosRegistrados)}
         </div>
       );
 
       case 'categoria': return (
         <div className="chart-card" style={{ height: 320 }}>
           <div className="chart-card-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>Evolución de una categoría</span>
+            <span>{t.wCategoria}</span>
             <select className="select-input" style={{ width: 'auto', height: 30, fontSize: 12, padding: '0 8px' }} value={claveCategoria} onChange={e => setOpcionesWidget('categoria', { cat: e.target.value })}>
               {ALL_MAIN_KEYS.map(mk => (
-                <optgroup key={mk} label={mk}>
+                <optgroup key={mk} label={t[mk] || mk}>
                   {(categories[mk] || []).map(sub => <option key={`${mk}|${sub}`} value={`${mk}|${sub}`}>{sub}</option>)}
                 </optgroup>
               ))}
@@ -2255,11 +2260,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                 <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
                 <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="real" name={`Real: ${subElegida}`} fill={getCategoryColor(mkElegida)} radius={[4, 4, 0, 0]} />
-                <Line type="monotone" dataKey="presupuesto" name="Presupuesto" stroke="var(--text-secondary)" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+                <Bar dataKey="real" name={tf('realDe', { sub: subElegida })} fill={getCategoryColor(mkElegida)} radius={[4, 4, 0, 0]} />
+                <Line type="monotone" dataKey="presupuesto" name={t.budget} stroke="var(--text-secondary)" strokeWidth={2} strokeDasharray="6 4" dot={false} />
               </ComposedChart>
             </ResponsiveContainer>
-          ) : sinDatos('Sin categorías')}
+          ) : sinDatos(t.sinCategorias)}
         </div>
       );
 
@@ -2284,21 +2289,21 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
       case 'comparativa': return (
         <div className="chart-card" style={{ height: 340 }}>
-          <div className="chart-card-title">Este año vs. el anterior ({year} vs. {year - 1})</div>
+          <div className="chart-card-title">{tf('esteAnioVsAnterior', { a: year, b: year - 1 })}</div>
           {totalesAnterior ? (
             <>
               <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, marginBottom: 6 }}>
                 {[
-                  { l: 'Ingresos', a: ingresosYTD, b: ingresosAnteriorYTD, mejorSiSube: true },
-                  { l: 'Gastos', a: gastosYTD, b: gastosAnteriorYTD, mejorSiSube: false },
-                  { l: 'Ahorro', a: ahorroYTD, b: ingresosAnteriorYTD - gastosAnteriorYTD, mejorSiSube: true }
+                  { l: t.income, a: ingresosYTD, b: ingresosAnteriorYTD, mejorSiSube: true },
+                  { l: t.expenses, a: gastosYTD, b: gastosAnteriorYTD, mejorSiSube: false },
+                  { l: t.ahorro, a: ahorroYTD, b: ingresosAnteriorYTD - gastosAnteriorYTD, mejorSiSube: true }
                 ].map(d => {
                   const diff = d.a - d.b;
                   const pct = d.b !== 0 ? (diff / Math.abs(d.b)) * 100 : null;
                   const color = (d.mejorSiSube ? diff >= 0 : diff <= 0) ? 'var(--green)' : 'var(--red)';
                   return <span key={d.l}>{d.l}: <b style={{ color }}>{diff >= 0 ? '+' : ''}{fmt(diff)}</b>{pct !== null && <span style={{ color: 'var(--text-muted)' }}> ({pct >= 0 ? '+' : ''}{pct.toFixed(0)} %)</span>}</span>;
                 })}
-                <span style={{ color: 'var(--text-muted)' }}>primeros {monthsPassed} meses</span>
+                <span style={{ color: 'var(--text-muted)' }}>{tf('primerosMeses', { n: monthsPassed })}</span>
               </div>
               <ResponsiveContainer width="100%" height="80%">
                 <ComposedChart data={comparativa} barSize={10}>
@@ -2307,14 +2312,14 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                   <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={tickCompacto} />
                   <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey={`Gastos ${year - 1}`} fill="#94a3b8" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey={`Gastos ${year}`} fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey={`Ingresos ${year - 1}`} stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 4" dot={false} />
-                  <Line type="monotone" dataKey={`Ingresos ${year}`} stroke="#10b981" strokeWidth={2} dot={false} />
+                  <Bar dataKey={`${t.expenses} ${year - 1}`} fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={`${t.expenses} ${year}`} fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey={`${t.income} ${year - 1}`} stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+                  <Line type="monotone" dataKey={`${t.income} ${year}`} stroke="#10b981" strokeWidth={2} dot={false} />
                 </ComposedChart>
               </ResponsiveContainer>
             </>
-          ) : sinDatos(`No hay datos de ${year - 1}. Cuando existan, aquí verás la comparación mes a mes.`)}
+          ) : sinDatos(tf('sinDatosAnioAnterior', { year: year - 1 }))}
         </div>
       );
 
@@ -2395,19 +2400,19 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
           {editandoDashboard
-            ? 'Modo personalización: sube, baja, ensancha u oculta cada bloque. Se guarda en tu cuenta.'
-            : `${widgetsVisibles.length} bloques visibles${widgetsOcultos.length ? ` · ${widgetsOcultos.length} ocultos` : ''}`}
+            ? t.modoPersonalizacion
+            : `${tf('bloquesVisibles', { n: widgetsVisibles.length })}${widgetsOcultos.length ? ` · ${tf('bloquesOcultos', { n: widgetsOcultos.length })}` : ''}`}
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           {editandoDashboard && widgetsOcultos.length > 0 && (
             <select className="select-input" style={{ width: 'auto', height: 36 }} value="" onChange={e => { if (e.target.value) cambiarWidget(e.target.value, { visible: true }); }}>
-              <option value="">+ Añadir bloque…</option>
+              <option value="">{t.anadirBloque}</option>
               {widgetsOcultos.map(w => <option key={w.id} value={w.id}>{tituloDe(w.id)}</option>)}
             </select>
           )}
-          {editandoDashboard && <button className="btn btn-ghost" onClick={restablecerDashboard}>Restablecer</button>}
+          {editandoDashboard && <button className="btn btn-ghost" onClick={restablecerDashboard}>{t.restablecer}</button>}
           <button className={`btn ${editandoDashboard ? 'btn-primary' : 'btn-ghost'} dashboard-personalizar-btn`} onClick={() => setEditandoDashboard(!editandoDashboard)}>
-            <Ic d={PATHS.settings} size={14} /> {editandoDashboard ? 'Listo' : 'Personalizar'}
+            <Ic d={PATHS.settings} size={14} /> {editandoDashboard ? t.listo : t.personalizar}
           </button>
         </div>
       </div>
@@ -2417,10 +2422,10 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
           <div key={w.id} style={{ gridColumn: w.size === 'full' ? '1 / -1' : 'auto', position: 'relative', outline: editandoDashboard ? '2px dashed var(--accent)' : 'none', outlineOffset: 4, borderRadius: 12 }}>
             {editandoDashboard && (
               <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 5, display: 'flex', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: 8, padding: 4, boxShadow: 'var(--shadow)' }}>
-                <button className="btn btn-icon btn-ghost" style={botonEdicion} title="Subir" disabled={idx === 0} onClick={() => moverWidget(w.id, -1)}>▲</button>
-                <button className="btn btn-icon btn-ghost" style={botonEdicion} title="Bajar" disabled={idx === widgetsVisibles.length - 1} onClick={() => moverWidget(w.id, 1)}>▼</button>
-                <button className="btn btn-icon btn-ghost" style={botonEdicion} title={w.size === 'full' ? 'Media anchura' : 'Anchura completa'} onClick={() => cambiarWidget(w.id, { size: w.size === 'full' ? 'half' : 'full' })}>{w.size === 'full' ? '⇥' : '⇔'}</button>
-                <button className="btn btn-icon btn-danger" style={botonEdicion} title="Ocultar" onClick={() => cambiarWidget(w.id, { visible: false })}>✕</button>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title={t.subir} disabled={idx === 0} onClick={() => moverWidget(w.id, -1)}>▲</button>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title={t.bajar} disabled={idx === widgetsVisibles.length - 1} onClick={() => moverWidget(w.id, 1)}>▼</button>
+                <button className="btn btn-icon btn-ghost" style={botonEdicion} title={w.size === 'full' ? t.mediaAnchura : t.anchuraCompleta} onClick={() => cambiarWidget(w.id, { size: w.size === 'full' ? 'half' : 'full' })}>{w.size === 'full' ? '⇥' : '⇔'}</button>
+                <button className="btn btn-icon btn-danger" style={botonEdicion} title={t.ocultar} onClick={() => cambiarWidget(w.id, { visible: false })}>✕</button>
               </div>
             )}
             {renderWidget(w)}
@@ -2428,7 +2433,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
         ))}
         {widgetsVisibles.length === 0 && (
           <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
-            No hay bloques visibles. Pulsa "Personalizar" y añade los que quieras.
+            {t.sinBloques}
           </div>
         )}
       </div>
@@ -2438,7 +2443,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
 // ─── MONTHLY VIEW ─────────────────────────────────────────────────────────────
 function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData }) {
-  const { t } = useApp();
+  const { t, tf, mes } = useApp();
 
   const [txDate, setTxDate] = useState(hoyLocal);
   const [txAmount, setTxAmount] = useState('');
@@ -2463,7 +2468,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
     if (!subs.includes(txSubCat)) setTxSubCat(subs[0] || '');
   }, [categories, txMainCat, txSubCat]);
 
-  if (!currentMonthData) return <div className="loading-state">{t.noData} {month} {year}</div>;
+  if (!currentMonthData) return <div className="loading-state">{t.noData} {mes(month)} {year}</div>;
 
   const expenseKeys = EXPENSE_KEYS;
   // Cada subcategoría se lee con su clave "Sección|Nombre": las homónimas de
@@ -2540,19 +2545,19 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
         </div>
         <div className="table-wrap" style={{ flex: 1, borderBottom: '1px solid var(--border)' }}>
           <table style={{ margin: 0 }}>
-            <thead><tr><th>{t.category}</th><th className="text-right">Estimado</th><th className="text-right">Real</th></tr></thead>
+            <thead><tr><th>{t.category}</th><th className="text-right">{t.estimado}</th><th className="text-right">{t.real}</th></tr></thead>
             <tbody>{rows}</tbody>
           </table>
         </div>
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto auto', padding: '12px 16px', fontSize: 13, alignItems: 'center' }}>
-            <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>Total</div>
+            <div style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{t.total}</div>
             <div className="text-right" style={{ fontWeight: 800, minWidth: '80px', paddingLeft: '16px' }}>{fmt(totalEstimated)}</div>
             <div className="text-right" style={{ fontWeight: 800, color: getCategoryColor(mk), minWidth: '80px', paddingLeft: '16px' }}>{fmt(totalReal)}</div>
           </div>
           {!isIncome && totalIncome > 0 && (
             <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border)', fontSize: 11, fontWeight: 700, textAlign: 'center', background: 'rgba(255,255,255,0.02)' }}>
-              <span style={{ color: getCategoryColor(mk) }}>{((totalReal / totalIncome) * 100).toFixed(1)}%</span> gastado sobre mes
+              <span style={{ color: getCategoryColor(mk) }}>{((totalReal / totalIncome) * 100).toFixed(1)}%</span> {t.gastadoSobreMes}
             </div>
           )}
         </div>
@@ -2570,8 +2575,8 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   }, 0);
 
   const handleAdd = () => {
-    if (!txAmount || parseFloat(txAmount) <= 0 || !txSubCat || !txDate) { alert('Completa todos los campos'); return; }
-    if (!(categories[txMainCat] || []).includes(txSubCat)) { alert(`"${txSubCat}" no existe en ${txMainCat} en ${year}. Elige otra subcategoría.`); return; }
+    if (!txAmount || parseFloat(txAmount) <= 0 || !txSubCat || !txDate) { alert(t.completaCampos); return; }
+    if (!(categories[txMainCat] || []).includes(txSubCat)) { alert(tf('subNoExiste', { sub: txSubCat, seccion: t[txMainCat] || txMainCat, year })); return; }
     const nd = JSON.parse(JSON.stringify(fullData));
     asegurarSub(nd[year], txMainCat, txSubCat);
     nd[year].monthly[month][claveSub(txMainCat, txSubCat)].actual.push({ id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate });
@@ -2581,7 +2586,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
   const handleDelete = (clave, id) => {
     if (String(id).startsWith('loan-')) {
-      alert('Las cuotas de préstamos se generan automáticamente. Para eliminarlas o modificarlas, ve a la pestaña de Préstamos.');
+      alert(t.cuotasAutomaticas);
       return;
     }
     const nd = JSON.parse(JSON.stringify(fullData));
@@ -2611,7 +2616,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
           <div>
             <label>{t.mainCategory}</label>
             <select className="select-input" value={txMainCat} onChange={e => { setTxMainCat(e.target.value); setTxSubCat((categories[e.target.value] || [])[0] || ''); }}>
-              {ALL_MAIN_KEYS.map(mk => <option key={mk} value={mk}>{mk}</option>)}
+              {ALL_MAIN_KEYS.map(mk => <option key={mk} value={mk}>{t[mk] || mk}</option>)}
             </select>
           </div>
           <div>
@@ -2637,7 +2642,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
       {/* Transactions table */}
       <div className="card">
-        <div className="chart-card-title" style={{ marginBottom: 12 }}>{t.transactions} — {month.charAt(0).toUpperCase() + month.slice(1)}</div>
+        <div className="chart-card-title" style={{ marginBottom: 12 }}>{t.transactions} — {mes(month).charAt(0).toUpperCase() + mes(month).slice(1)}</div>
         <div className="table-wrap">
           <table>
             <thead>
@@ -2658,13 +2663,13 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span className="cat-band" style={{ backgroundColor: getCategoryColor(tx.mainCategory) }} />
-                        <span className="badge badge-accent" style={{ fontSize: 11 }}>{tx.mainCategory}</span>
+                        <span className="badge badge-accent" style={{ fontSize: 11 }}>{t[tx.mainCategory] || tx.mainCategory}</span>
                       </div>
                     </td>
                     <td>{tx.category}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: tx.type === 'income' ? 'var(--green)' : 'var(--red)' }}>{fmt(tx.amount)}</td>
                     <td className="text-center">
-                      <button className="btn btn-icon btn-danger" onClick={() => handleDelete(tx.clave, tx.id)} title="Eliminar">
+                      <button className="btn btn-icon btn-danger" onClick={() => handleDelete(tx.clave, tx.id)} title={t.delete}>
                         <Ic d={PATHS.trash} size={14} />
                       </button>
                     </td>
@@ -2681,7 +2686,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
 // ─── NET WORTH ────────────────────────────────────────────────────────────────
 function NetWorthView({ data, categories, onUpdate, fullData, year }) {
-  const { t, theme } = useApp();
+  const { t, theme, locale, mes, mesCorto } = useApp();
   const isDark = theme === 'dark';
   const tooltipStyle = { backgroundColor: isDark ? '#1e2130' : '#fff', border: `1px solid ${isDark ? '#2d3148' : '#e2e5f0'}`, borderRadius: 8, fontSize: 12 };
   const axisColor = isDark ? '#565d80' : '#9098b8';
@@ -2723,7 +2728,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
         if (lv.active) totalLiab += lv.balance;
       });
     }
-    return { name: m.substring(0, 3).toUpperCase(), [t.assets]: totalAssets, [t.liabilities]: totalLiab, [t.netWorth]: totalAssets - totalLiab };
+    return { name: mesCorto(m).toUpperCase(), [t.assets]: totalAssets, [t.liabilities]: totalLiab, [t.netWorth]: totalAssets - totalLiab };
   });
 
   const renderTable = (type) => {
@@ -2734,13 +2739,13 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
 
     return (
       <div className="card">
-        <div className="chart-card-title">{type}</div>
+        <div className="chart-card-title">{t[type] || type}</div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
                 <th>{t.category}</th>
-                {displayMonths.map(m => <th key={m} className="text-right" style={{ fontSize: 10 }}>{m.substring(0, 3).toUpperCase()}</th>)}
+                {displayMonths.map(m => <th key={m} className="text-right" style={{ fontSize: 10 }}>{mesCorto(m).toUpperCase()}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -2795,7 +2800,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
           <LineChart data={chartData}>
             <CartesianGrid stroke={gridColor} strokeOpacity={0.5} />
             <XAxis dataKey="name" stroke={axisColor} tick={{ fontSize: 11 }} />
-            <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
+            <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat(locale, { notation: 'compact' }).format(v)} />
             <Tooltip contentStyle={tooltipStyle} formatter={v => fmt(v)} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <Line type="monotone" dataKey={t.assets} stroke="var(--green)" strokeWidth={2} dot={false} />
@@ -2806,9 +2811,9 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
       </div>
       {isMobileNW && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 12, fontWeight: 700, marginRight: 8, color: 'var(--text-secondary)' }}>Seleccionar mes a visualizar/editar:</label>
+          <label style={{ fontSize: 12, fontWeight: 700, marginRight: 8, color: 'var(--text-secondary)' }}>{t.seleccionarMesMovil}</label>
           <select className="select-input" value={selectedMobileMonth} onChange={e => setSelectedMobileMonth(e.target.value)} style={{ textTransform: 'capitalize', marginTop: 8 }}>
-            {months.map(m => <option key={m} value={m}>{m}</option>)}
+            {months.map(m => <option key={m} value={m}>{mes(m)}</option>)}
           </select>
         </div>
       )}
@@ -2820,7 +2825,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
 
 // ─── LOANS VIEW ───────────────────────────────────────────────────────────────
 function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
-  const { t } = useApp();
+  const { t, tf, locale } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [expandedLoan, setExpandedLoan] = useState(null);
   const [extraAmount, setExtraAmount] = useState('');
@@ -2834,12 +2839,12 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     if (!name) return;
     // Todas las vistas buscan el préstamo por su nombre: con dos iguales solo
     // uno entraba en presupuesto y totales aunque los dos salieran en la lista.
-    if (loans.some(l => l.name === name)) { alert(`Ya hay un préstamo llamado "${name}". Usa otro nombre.`); return; }
+    if (loans.some(l => l.name === name)) { alert(tf('prestamoDuplicado', { nombre: name })); return; }
     const loanTotal = parseFloat(fd.get('loanTotal'));
     const count = parseInt(fd.get('installments'));
     const rateYear = parseFloat(fd.get('rate')) || 0;
     const startStr = fd.get('start');
-    if (!(loanTotal > 0) || !(count > 0) || !startStr) { alert('Revisa el importe, el número de cuotas y la fecha de inicio.'); return; }
+    if (!(loanTotal > 0) || !(count > 0) || !startStr) { alert(t.revisaPrestamo); return; }
 
     // Formula: Cuota = (P * i) / (1 - (1 + i)^-n)
     const i = (rateYear / 100) / 12;
@@ -2897,7 +2902,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     const numero = parseInt(extraMonth);
     const cuotasReales = simularPrestamo(loan).length || loan.installmentsCount;
     if (!(numero >= 1) || numero > cuotasReales) {
-      alert(`El préstamo termina en la cuota ${cuotasReales} (las amortizaciones anticipadas lo acortan). Elige una cuota entre 1 y ${cuotasReales}.`);
+      alert(tf('cuotaFueraCuadro', { n: cuotasReales }));
       return false;
     }
     if (!loan.extraAmortizations) loan.extraAmortizations = [];
@@ -2908,7 +2913,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
   };
 
   const handleDeleteExtraAmort = (loanId, extraId) => {
-    if (!window.confirm("¿Eliminar amortización anticipada?")) return;
+    if (!window.confirm(t.eliminarAmortConfirm)) return;
     const nd = JSON.parse(JSON.stringify(fullData));
     const loan = nd.loans.find(l => l.id === loanId);
     if (!loan || !loan.extraAmortizations) return;
@@ -2932,7 +2937,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
       {showAdd && (
         <div className="card">
           <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
-            <div><label>{t.loanName}</label><input name="name" className="text-input" placeholder="Ej: Hipoteca" required /></div>
+            <div><label>{t.loanName}</label><input name="name" className="text-input" placeholder={t.ejHipoteca} required /></div>
             <div><label>{t.loanTotal} (€)</label><input name="loanTotal" type="number" step="0.01" className="text-input" required /></div>
             <div><label>{t.installments}</label><input name="installments" type="number" min="1" className="text-input" required /></div>
             <div><label>{t.interestRate}</label><input name="rate" type="number" step="0.01" className="text-input" placeholder="0.00" /></div>
@@ -2957,7 +2962,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
           const end = finRealPrestamo(l); // contando amortizaciones anticipadas
           const now = new Date();
           const isFinished = new Date(now.getFullYear(), now.getMonth(), 1) > end;
-          const endLabel = end.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+          const endLabel = end.toLocaleDateString(locale, { month: 'short', year: 'numeric' });
 
           const diffMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
           const passed = Math.max(0, Math.min(totalCuotas, diffMonths + 1));
@@ -2974,7 +2979,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn-icon btn-ghost" onClick={() => { setExtraAmortLoan(extraAmortLoan === l.id ? null : l.id); setExpandedLoan(null); }} title="Amortización Anticipada">
+                    <button className="btn btn-icon btn-ghost" onClick={() => { setExtraAmortLoan(extraAmortLoan === l.id ? null : l.id); setExpandedLoan(null); }} title={t.amortAnticipada}>
                       <Ic d={PATHS.trading} size={14} />
                     </button>
                     <button className="btn btn-icon btn-ghost" onClick={() => { setExpandedLoan(expandedLoan === l.id ? null : l.id); setExtraAmortLoan(null); }} title={t.calendar}>
@@ -3010,7 +3015,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                     <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
                       {t.calendar}
                     </div>
-                    <span className="badge badge-accent" style={{ fontSize: 10 }}>FRANCÉS</span>
+                    <span className="badge badge-accent" style={{ fontSize: 10 }}>{t.frances}</span>
                   </div>
 
                   <div className="table-wrap" style={{ maxHeight: 400, overflowY: 'auto' }}>
@@ -3022,7 +3027,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                           <th className="text-right">{t.installment}</th>
                           <th className="text-right">{t.interest}</th>
                           <th className="text-right">{t.principal}</th>
-                          {l.extraAmortizations && l.extraAmortizations.length > 0 && <th className="text-right">Extra</th>}
+                          {l.extraAmortizations && l.extraAmortizations.length > 0 && <th className="text-right">{t.extra}</th>}
                           <th className="text-right">{t.totalAmortized}</th>
                           <th className="text-right">{t.pendingCapital}</th>
                         </tr>
@@ -3043,7 +3048,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                                       {m.extrasList.map(ex => (
                                         <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                          <button type="button" onClick={() => handleDeleteExtraAmort(l.id, ex.id)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 0 }} title="Eliminar"><Ic d={PATHS.trash} size={10} /></button>
+                                          <button type="button" onClick={() => handleDeleteExtraAmort(l.id, ex.id)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', padding: 0 }} title={t.delete}><Ic d={PATHS.trash} size={10} /></button>
                                           <span>+{fmt(ex.amount)}</span>
                                         </div>
                                       ))}
@@ -3067,11 +3072,11 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                     if (!huerfanas.length) return null;
                     return (
                       <div style={{ padding: '12px 20px 4px', fontSize: 12, color: 'var(--text-muted)' }}>
-                        <div style={{ marginBottom: 6 }}>Amortizaciones anticipadas fuera del cuadro (el préstamo termina en la cuota {filas}, así que no se aplican):</div>
+                        <div style={{ marginBottom: 6 }}>{tf('extrasFueraCuadro', { n: filas })}</div>
                         {huerfanas.map(ex => (
                           <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                            <span>Cuota {ex.paymentNo}: +{fmt(ex.amount)}</span>
-                            <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red)' }} onClick={() => handleDeleteExtraAmort(l.id, ex.id)}>Eliminar</button>
+                            <span>{tf('cuotaN', { n: ex.paymentNo })}: +{fmt(ex.amount)}</span>
+                            <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red)' }} onClick={() => handleDeleteExtraAmort(l.id, ex.id)}>{t.delete}</button>
                           </div>
                         ))}
                       </div>
@@ -3082,19 +3087,19 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
               {extraAmortLoan === l.id && (
                 <div style={{ background: 'var(--bg-card-hover)', borderTop: '1px solid var(--border)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
-                    Nueva Amortización Anticipada
+                    {t.nuevaAmortAnticipada}
                   </div>
                   <form onSubmit={(e) => { if (handleExtraAmort(e, l.id)) setExtraAmortLoan(null); }} className="fade-in" style={{ display: 'flex', gap: 12, alignItems: 'end' }}>
                     <div>
-                      <label style={{ fontSize: 11 }}>Nº Mes (Cuota)</label>
-                      <input className="number-input" type="number" min="1" max={simularPrestamo(l).length || l.installmentsCount} value={extraMonth} onChange={e => setExtraMonth(e.target.value)} required placeholder="Ej: 12" style={{ height: 36, padding: '0 12px', width: 120 }} />
+                      <label style={{ fontSize: 11 }}>{t.numMesCuota}</label>
+                      <input className="number-input" type="number" min="1" max={simularPrestamo(l).length || l.installmentsCount} value={extraMonth} onChange={e => setExtraMonth(e.target.value)} required placeholder={t.ej12} style={{ height: 36, padding: '0 12px', width: 120 }} />
                     </div>
                     <div>
-                      <label style={{ fontSize: 11 }}>Importe extra (€)</label>
+                      <label style={{ fontSize: 11 }}>{t.importeExtra}</label>
                       <input className="number-input" type="number" step="0.01" min="1" value={extraAmount} onChange={e => setExtraAmount(e.target.value)} required placeholder="1000.00" style={{ height: 36, padding: '0 12px', width: 140 }} />
                     </div>
-                    <button type="submit" className="btn btn-primary" style={{ height: 36 }}>Aplicar</button>
-                    <button type="button" className="btn btn-ghost" style={{ height: 36 }} onClick={() => setExtraAmortLoan(null)}>Cancelar</button>
+                    <button type="submit" className="btn btn-primary" style={{ height: 36 }}>{t.aplicar}</button>
+                    <button type="button" className="btn btn-ghost" style={{ height: 36 }} onClick={() => setExtraAmortLoan(null)}>{t.cancel}</button>
                   </form>
                 </div>
               )}
@@ -3109,7 +3114,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial }) {
-  const { t, theme, toggleTheme, language, setLanguageTo } = useApp();
+  const { t, tf, theme, toggleTheme, language, setLanguageTo } = useApp();
   const [showModal, setShowModal] = useState(false);
   const [modalMainCat, setModalMainCat] = useState('Ingresos');
   const [newCatName, setNewCatName] = useState('');
@@ -3126,7 +3131,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
   const handleSaveProfile = () => {
     onUpdateProfile({ displayName: profileName, avatar: profileAvatar });
     setIsEditingProfile(false);
-    alert('Perfil actualizado con éxito');
+    alert(t.perfilActualizado);
   };
 
   // Las tres operaciones afectan al año seleccionado y a los posteriores (los
@@ -3137,7 +3142,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     const name = nombreSubValido(newCatName);
     if (!name) return;
     const currentYearCats = financialData?.[selectedYear]?.categories || config.categories;
-    if ((currentYearCats[modalMainCat] || []).includes(name)) { alert('Ya existe en este año'); return; }
+    if ((currentYearCats[modalMainCat] || []).includes(name)) { alert(t.yaExisteAnio); return; }
     onUpdate(configConSub(config, modalMainCat, name));
     onUpdateFD(enAniosDesde(financialData, selectedYear, d => asegurarSub(d, modalMainCat, name)));
     setShowModal(false); setNewCatName('');
@@ -3160,7 +3165,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     // Si el nombre nuevo convive con el actual en este año, en uno posterior o
     // en la configuración, renombrar duplicaría la entrada y pisaría sus datos.
     if (renombradoConflictivo(financialData, config, mk, oldName, newName, selectedYear)) {
-      alert(`"${newName}" ya existe en ${mk} (en este año, en uno posterior o en la configuración).`);
+      alert(tf('yaExisteEn', { nombre: newName, seccion: t[mk] || mk }));
       return;
     }
     onUpdate(configRenombrada(config, mk, oldName, newName));
@@ -3197,10 +3202,10 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               </div>
               <div style={{ flex: 1, paddingBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <h3 style={{ fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{profileName || 'Usuario'}</h3>
+                  <h3 style={{ fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>{profileName || t.usuario}</h3>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
                     <span className={`badge ${user?.isAdmin ? 'badge-accent' : 'badge-ghost'}`} style={{ padding: '4px 12px', borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
-                      {user?.isAdmin ? 'ADMINISTRADOR' : 'USUARIO'}
+                      {user?.isAdmin ? t.rolAdministrador : t.rolUsuario}
                     </span>
                     <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--text-muted)' }} />
                     <span style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 500 }}>{user?.email}</span>
@@ -3208,7 +3213,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                 </div>
                 {!isEditingProfile && (
                   <button className="btn btn-ghost" onClick={() => setIsEditingProfile(true)}>
-                    <Ic d={PATHS.settings} size={14} /> Editar Perfil
+                    <Ic d={PATHS.settings} size={14} /> {t.editarPerfil}
                   </button>
                 )}
               </div>
@@ -3218,34 +3223,34 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 40 }} className="fade-in">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
                   <div style={{ background: 'var(--bg-input)', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
-                    <label style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 800, marginBottom: 16, display: 'block', letterSpacing: '0.05em' }}>INFORMACIÓN BÁSICA</label>
+                    <label style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 800, marginBottom: 16, display: 'block', letterSpacing: '0.05em' }}>{t.informacionBasica}</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                       <div>
-                        <label style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>NOMBRE PÚBLICO</label>
+                        <label style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, display: 'block' }}>{t.nombrePublico}</label>
                         <input
                           className="text-input"
                           value={profileName}
                           onChange={e => setProfileName(e.target.value)}
                           style={{ height: 46, background: 'var(--bg-card)', fontSize: 14, fontWeight: 600, borderRadius: 10 }}
-                          placeholder="Ej. Juan Pérez"
+                          placeholder={t.ejNombre}
                         />
                       </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 12 }}>
-                    <button className="btn btn-ghost" style={{ flex: 1, height: 50 }} onClick={() => setIsEditingProfile(false)}>Cancelar</button>
+                    <button className="btn btn-ghost" style={{ flex: 1, height: 50 }} onClick={() => setIsEditingProfile(false)}>{t.cancel}</button>
                     <button
                       className="btn btn-primary"
                       style={{ flex: 2, height: 50, justifyContent: 'center' }}
                       onClick={handleSaveProfile}
                     >
-                      <Ic d="M5 13l4 4L19 7" size={20} /> Guardar Perfil
+                      <Ic d="M5 13l4 4L19 7" size={20} /> {t.guardarPerfil}
                     </button>
                   </div>
                 </div>
 
                 <div style={{ background: 'var(--bg-input)', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
-                  <label style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 800, marginBottom: 16, display: 'block', letterSpacing: '0.05em' }}>PERSONALIZAR AVATAR</label>
+                  <label style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 800, marginBottom: 16, display: 'block', letterSpacing: '0.05em' }}>{t.personalizarAvatar}</label>
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(5, 1fr)',
@@ -3284,7 +3289,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                   <Ic d={PATHS.unlock} size={20} />
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                  Pulsa en <b>Editar Perfil</b> para cambiar tu nombre público o elegir un nuevo avatar.
+                  <Negrita texto={t.pulsaEditarPerfil} />
                 </div>
               </div>
             )}
@@ -3305,8 +3310,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
 
         {/* Gestión de Secciones */}
         <div className="card">
-          <div className="chart-card-title">Visibilidad de Secciones</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Personaliza tu barra lateral ocultando las secciones que no utilizas a diario.</div>
+          <div className="chart-card-title">{t.visibilidadSecciones}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{t.visibilidadSeccionesDesc}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {PERMISSIONS.filter(p => !['settings', 'users'].includes(p.id)).map(p => {
               const isVisible = config?.visibleViews?.includes(p.id);
@@ -3330,8 +3335,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                 >
                   <Ic d={p.icon} size={18} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{p.label}</div>
-                    <div style={{ fontSize: 10, opacity: 0.7 }}>{isVisible ? 'VISIBLE' : 'OCULTO'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{t[p.id]}</div>
+                    <div style={{ fontSize: 10, opacity: 0.7 }}>{isVisible ? t.visible : t.oculto}</div>
                   </div>
                   <div style={{
                     width: 20, height: 20, borderRadius: 6,
@@ -3345,8 +3350,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             })}
           </div>
 
-          <div className="chart-card-title" style={{ marginTop: 32 }}>Categorías de Presupuesto Visibles</div>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>Elige qué bloques del presupuesto anual quieres ver en el dashboard.</div>
+          <div className="chart-card-title" style={{ marginTop: 32 }}>{t.categoriasPresupuestoVisibles}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{t.categoriasPresupuestoDesc}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {["Ingresos", "Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"].map(section => {
               const isVisible = config?.visibleBudgetSections?.includes(section);
@@ -3370,8 +3375,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                 >
                   <div style={{ width: 12, height: 12, borderRadius: 4, background: getCategoryColor(section) }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{section}</div>
-                    <div style={{ fontSize: 10, opacity: 0.7 }}>{isVisible ? 'MOSTRAR' : 'OCULTAR'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{t[section] || section}</div>
+                    <div style={{ fontSize: 10, opacity: 0.7 }}>{isVisible ? t.mostrar : t.ocultarMayus}</div>
                   </div>
                   <div style={{
                     width: 20, height: 20, borderRadius: 6,
@@ -3395,7 +3400,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <label>{t.theme}</label>
                 <button className="btn btn-ghost" style={{ fontSize: 11, padding: '4px 8px' }} onClick={onStartTutorial}>
-                  <Ic d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={12} /> Lanzar Tutorial
+                  <Ic d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" size={12} /> {t.lanzarTutorial}
                 </button>
               </div>
               <div className="settings-toggle" style={{ marginTop: 6 }}>
@@ -3426,11 +3431,11 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             <div>
               <label style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8, display: 'block' }}>{t.defaultYear}</label>
               <select className="select-input" value={config?.anioInicial || 0} onChange={e => { onUpdate({ ...config, anioInicial: parseInt(e.target.value) || 0 }); }} style={{ width: '100%', maxWidth: 250, height: 46 }}>
-                <option value={0}>Automático (año en curso)</option>
+                <option value={0}>{t.automaticoAnio}</option>
                 {Array.from({ length: 6 }, (_, i) => new Date().getFullYear() - 1 + i).map(y => <option key={y} value={y}>{y}</option>)}
               </select>
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                Los años nuevos se crean solos al seleccionarlos en la barra superior, heredando las categorías, el presupuesto y los saldos del año anterior. Después, cada año guarda sus propios cambios.
+                {t.aniosNuevosAyuda}
               </div>
             </div>
           </div>
@@ -3440,8 +3445,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         <div className="card">
           <div className="chart-card-title">{t.categoryManager} <span style={{ color: 'var(--accent)', fontWeight: 800 }}>({selectedYear} ➝)</span></div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
-            Modifica las categorías para <b>{selectedYear}</b> y años posteriores.
-            Utiliza el selector de año en la barra superior para editar un año en concreto.
+            <Negrita texto={tf('modificaCategoriasPara', { year: selectedYear })} /> {t.usaSelectorAnio}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
             {['Activos', 'Pasivos'].map(mk => (
@@ -3482,7 +3486,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         showModal && (
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
             <div className="modal" onClick={e => e.stopPropagation()}>
-              <div className="modal-title">{t.addSubcategory} "{modalMainCat}"</div>
+              <div className="modal-title">{t.addSubcategory} "{t[modalMainCat] || modalMainCat}"</div>
               <input className="text-input" placeholder={t.newSubcategoryName} value={newCatName} onChange={e => setNewCatName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddCat()} autoFocus />
               <div className="modal-actions">
                 <button className="btn btn-ghost" onClick={() => setShowModal(false)}>{t.cancel}</button>
@@ -3498,12 +3502,12 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         renameTarget && (
           <div className="modal-overlay" onClick={() => setRenameTarget(null)}>
             <div className="modal" onClick={e => e.stopPropagation()}>
-              <div className="modal-title">Renombrar "{renameTarget.oldName}"</div>
+              <div className="modal-title">{tf('renombrar', { nombre: renameTarget.oldName })}</div>
               <input className="text-input" value={renameValue} onChange={e => setRenameValue(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleRename()} autoFocus />
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>Se modificará en presupuestos, transacciones y patrimonio.</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>{t.seModificaraEn}</div>
               <div className="modal-actions">
                 <button className="btn btn-ghost" onClick={() => setRenameTarget(null)}>{t.cancel}</button>
-                <button className="btn btn-primary" onClick={handleRename}>Guardar</button>
+                <button className="btn btn-primary" onClick={handleRename}>{t.guardar}</button>
               </div>
             </div>
           </div>
@@ -3517,7 +3521,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             <div className="modal" onClick={e => e.stopPropagation()}>
               <div className="modal-title">{t.confirmDelete}</div>
               <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6 }}>
-                ¿Eliminar <strong style={{ color: 'var(--red)' }}>{deleteTarget?.sub}</strong>?<br />
+                <Negrita texto={tf('eliminarSub', { sub: deleteTarget?.sub })} estilo={{ color: 'var(--red)' }} /><br />
                 <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{t.deleteWarning}</span>
               </p>
               <div className="modal-actions">
@@ -3542,7 +3546,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
 
 // ─── TRADING VIEW ──────────────────────────────────────────────────────────────
 function TradingView({ trades, onUpdate, fullData }) {
-  const { theme } = useApp();
+  const { t, tf, theme } = useApp();
   const isDark = theme === 'dark';
   const tooltipStyle = { backgroundColor: isDark ? '#1e2130' : '#fff', border: `1px solid ${isDark ? '#2d3148' : '#e2e5f0'}`, borderRadius: 8, fontSize: 12 };
   const axisColor = isDark ? '#565d80' : '#9098b8';
@@ -3553,8 +3557,8 @@ function TradingView({ trades, onUpdate, fullData }) {
   const handleAdd = (e) => {
     e.preventDefault();
     // Sin fecha, el orden cronológico (del que dependen precio medio y PnL) se rompía.
-    if (!form.date || isNaN(new Date(form.date).getTime())) { alert('Indica la fecha de la operación.'); return; }
-    if (!form.asset.trim() || !form.price || !form.amount) { alert('Indica activo, precio y cantidad.'); return; }
+    if (!form.date || isNaN(new Date(form.date).getTime())) { alert(t.indicaFecha); return; }
+    if (!form.asset.trim() || !form.price || !form.amount) { alert(t.indicaActivo); return; }
     const nt = { ...form, asset: form.asset.trim(), id: crypto.randomUUID(), ts: Date.now(), price: parseFloat(form.price), amount: parseFloat(form.amount), fees: parseFloat(form.fees || 0) };
     const nd = JSON.parse(JSON.stringify(fullData));
     nd.trading = [nt, ...(nd.trading || [])];
@@ -3586,25 +3590,25 @@ function TradingView({ trades, onUpdate, fullData }) {
     <div className="section-gap">
       <div className="grid-3">
         <div className="card" style={{ borderLeft: '4px solid var(--green)' }}>
-          <div className="card-title">Resultado Neto (Realizado)</div>
+          <div className="card-title">{t.resultadoNeto}</div>
           <div className={`card-value ${stats.profit >= 0 ? 'green' : 'red'}`}>{fmt(stats.profit)}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Bruto: {fmt(stats.gross)} | Comis: {fmt(stats.fees)}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('brutoComis', { bruto: fmt(stats.gross), comis: fmt(stats.fees) })}</div>
         </div>
         <div className="card">
-          <div className="card-title">Estadísticas</div>
+          <div className="card-title">{t.estadisticas}</div>
           <div className="card-value blue">{stats.wins}W - {stats.losses}L</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Ratio: {stats.total > 0 ? (stats.wins / (stats.wins + stats.losses || 1) * 100).toFixed(1) : 0}%</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.ratio}: {stats.total > 0 ? (stats.wins / (stats.wins + stats.losses || 1) * 100).toFixed(1) : 0}%</div>
         </div>
         <div className="card">
-          <div className="card-title">Posiciones Abiertas</div>
+          <div className="card-title">{t.posicionesAbiertas}</div>
           <div className="card-value">{stats.openPositions}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>De {stats.total} transacciones</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('deTransacciones', { n: stats.total })}</div>
         </div>
       </div>
 
       <div className="grid-2">
         <div className="chart-card" style={{ height: 300 }}>
-          <div className="chart-card-title">Curva de Equidad (PnL Acumulado)</div>
+          <div className="chart-card-title">{t.curvaEquidad}</div>
           <ResponsiveContainer width="100%" height="85%">
             <AreaChart data={processed.history}>
               <defs>
@@ -3622,10 +3626,10 @@ function TradingView({ trades, onUpdate, fullData }) {
           </ResponsiveContainer>
         </div>
         <div className="chart-card" style={{ height: 300 }}>
-          <div className="chart-card-title">Posiciones Actuales</div>
+          <div className="chart-card-title">{t.posicionesActuales}</div>
           <div className="table-wrap" style={{ height: '80%', overflow: 'auto' }}>
             <table style={{ fontSize: 11 }}>
-              <thead><tr><th>Activo</th><th>Tipo</th><th className="text-right">Cantidad</th><th className="text-right">Precio Avg</th></tr></thead>
+              <thead><tr><th>{t.activo}</th><th>{t.tipo}</th><th className="text-right">{t.cantidad}</th><th className="text-right">{t.precioAvg}</th></tr></thead>
               <tbody>
                 {Object.entries(processed.assets).filter(([_, a]) => a.totalQty > 0).map(([name, a]) => (
                   <tr key={name}>
@@ -3642,53 +3646,53 @@ function TradingView({ trades, onUpdate, fullData }) {
       </div>
 
       <div className="card">
-        <div className="chart-card-title">Nueva Operación</div>
+        <div className="chart-card-title">{t.nuevaOperacion}</div>
         <form onSubmit={handleAdd} className="trading-form" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))' }}>
-          <div><label>Fecha</label><input type="date" className="date-input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
-          <div><label>Activo</label><input type="text" className="text-input" placeholder="BTC/USDT" value={form.asset} onChange={e => setForm({ ...form, asset: e.target.value })} /></div>
-          <div><label>Acción</label>
+          <div><label>{t.date}</label><input type="date" className="date-input" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          <div><label>{t.activo}</label><input type="text" className="text-input" placeholder="BTC/USDT" value={form.asset} onChange={e => setForm({ ...form, asset: e.target.value })} /></div>
+          <div><label>{t.accion}</label>
             <select className="select-input" value={form.action} onChange={e => setForm({ ...form, action: e.target.value })}>
-              <option>COMPRA</option><option>VENTA</option>
+              <option value="COMPRA">{t.COMPRA}</option><option value="VENTA">{t.VENTA}</option>
             </select>
           </div>
-          <div><label>Dirección</label>
+          <div><label>{t.direccion}</label>
             <select className="select-input" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
               <option>Long</option><option>Short</option>
             </select>
           </div>
-          <div><label>Precio</label><input type="number" step="any" className="number-input" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
-          <div><label>Cantidad</label><input type="number" step="any" className="number-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
-          <div><label>Comisiones</label><input type="number" step="any" className="number-input" value={form.fees} onChange={e => setForm({ ...form, fees: e.target.value })} /></div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 42 }}>Añadir</button>
+          <div><label>{t.precio}</label><input type="number" step="any" className="number-input" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} /></div>
+          <div><label>{t.cantidad}</label><input type="number" step="any" className="number-input" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} /></div>
+          <div><label>{t.comisiones}</label><input type="number" step="any" className="number-input" value={form.fees} onChange={e => setForm({ ...form, fees: e.target.value })} /></div>
+          <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 42 }}>{t.add}</button>
         </form>
       </div>
 
       <div className="card">
-        <div className="chart-card-title">Historial de Operaciones</div>
+        <div className="chart-card-title">{t.historialOperaciones}</div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Fecha</th>
-                <th>Activo</th>
-                <th>Acción</th>
-                <th>Tipo</th>
-                <th className="text-right">Cantidad</th>
-                <th className="text-right">Precio</th>
-                <th className="text-center">Acciones</th>
+                <th>{t.date}</th>
+                <th>{t.activo}</th>
+                <th>{t.accion}</th>
+                <th>{t.tipo}</th>
+                <th className="text-right">{t.cantidad}</th>
+                <th className="text-right">{t.precio}</th>
+                <th className="text-center">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
-              {sortedTrades.map(t => (
-                <tr key={t.id}>
-                  <td style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t.date}</td>
-                  <td style={{ fontWeight: 700 }}>{t.asset}</td>
-                  <td><span style={{ fontSize: 10, fontWeight: 800, color: t.action === 'COMPRA' ? 'var(--green)' : 'var(--blue)' }}>{t.action}</span></td>
-                  <td><span className={t.type === 'Long' ? 'trading-badge-long' : 'trading-badge-short'}>{t.type.toUpperCase()}</span></td>
-                  <td className="text-right">{t.amount}</td>
-                  <td className="text-right">{fmt(t.price)}</td>
+              {sortedTrades.map(op => (
+                <tr key={op.id}>
+                  <td style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{op.date}</td>
+                  <td style={{ fontWeight: 700 }}>{op.asset}</td>
+                  <td><span style={{ fontSize: 10, fontWeight: 800, color: op.action === 'COMPRA' ? 'var(--green)' : 'var(--blue)' }}>{t[op.action] || op.action}</span></td>
+                  <td><span className={op.type === 'Long' ? 'trading-badge-long' : 'trading-badge-short'}>{op.type.toUpperCase()}</span></td>
+                  <td className="text-right">{op.amount}</td>
+                  <td className="text-right">{fmt(op.price)}</td>
                   <td className="text-center">
-                    <button className="btn btn-icon btn-danger" onClick={() => handleDelete(t.id)}><Ic d={PATHS.trash} size={14} /></button>
+                    <button className="btn btn-icon btn-danger" onClick={() => handleDelete(op.id)}><Ic d={PATHS.trash} size={14} /></button>
                   </td>
                 </tr>
               ))}
@@ -3702,13 +3706,14 @@ function TradingView({ trades, onUpdate, fullData }) {
 
 // ─── ANALYSIS VIEW (MAIN CONTAINER) ───────────────────────────────────────────
 function AnalysisView() {
+  const { t } = useApp();
   const [activeTab, setActiveTab] = useState('vpn');
 
   return (
     <div className="section-gap">
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, padding: 4, background: 'var(--bg-secondary)', borderRadius: 12, width: 'fit-content' }}>
-        <button className={`btn ${activeTab === 'vpn' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('vpn')} style={{ borderRadius: 8, padding: '8px 20px' }}>VPN / TIR</button>
-        <button className={`btn ${activeTab === 'compound' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('compound')} style={{ borderRadius: 8, padding: '8px 20px' }}>Interés Compuesto</button>
+        <button className={`btn ${activeTab === 'vpn' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('vpn')} style={{ borderRadius: 8, padding: '8px 20px' }}>{t.vpnTir}</button>
+        <button className={`btn ${activeTab === 'compound' ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab('compound')} style={{ borderRadius: 8, padding: '8px 20px' }}>{t.interesCompuesto}</button>
       </div>
 
       {activeTab === 'vpn' ? <VPNView /> : <CompoundInterestView />}
@@ -3718,6 +3723,7 @@ function AnalysisView() {
 
 // ─── VPN / TIR SUB-VIEW ───────────────────────────────────────────────────────
 function VPNView() {
+  const { t, tf } = useApp();
   const [initialInvestment, setInitialInvestment] = useState(10000);
   const [discountRate, setDiscountRate] = useState(10);
   const [periods, setPeriods] = useState(5);
@@ -3754,9 +3760,9 @@ function VPNView() {
   const tir = calculateTIR();
 
   const getSemaforo = (val) => {
-    if (val > 0.01) return { color: 'var(--green)', icon: '🟢', msg: '¡Adelante! Proyecto rentable.' };
-    if (val < -0.01) return { color: 'var(--red)', icon: '🔴', msg: '¡Alto! Destrucción de valor.' };
-    return { color: 'var(--accent)', icon: '🟡', msg: 'Indiferente / Neutro.' };
+    if (val > 0.01) return { color: 'var(--green)', icon: '🟢', msg: t.proyectoRentable };
+    if (val < -0.01) return { color: 'var(--red)', icon: '🔴', msg: t.destruccionValor };
+    return { color: 'var(--accent)', icon: '🟡', msg: t.neutro };
   };
 
   const status = getSemaforo(vpn);
@@ -3765,19 +3771,19 @@ function VPNView() {
     <div className="fade-in">
       <div className="grid-2">
         <div className="card">
-          <div className="chart-card-title">Configuración del Proyecto</div>
+          <div className="chart-card-title">{t.configProyecto}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label>Inversión Inicial ($I_0$)</label>
+              <label>{t.inversionInicial}</label>
               <input type="number" className="text-input" value={initialInvestment} onChange={e => setInitialInvestment(parseFloat(e.target.value) || 0)} />
             </div>
             <div className="grid-2" style={{ gap: 12 }}>
               <div>
-                <label>Tasa Descuento (%)</label>
+                <label>{t.tasaDescuento}</label>
                 <input type="number" className="text-input" value={discountRate} onChange={e => setDiscountRate(parseFloat(e.target.value) || 0)} />
               </div>
               <div>
-                <label>Años/Periodos</label>
+                <label>{t.aniosPeriodos}</label>
                 <input type="number" className="text-input" value={periods} onChange={e => updatePeriods(e.target.value)} />
               </div>
             </div>
@@ -3785,13 +3791,13 @@ function VPNView() {
         </div>
 
         <div className="card" style={{ borderLeft: `6px solid ${status.color}` }}>
-          <div className="chart-card-title">Resultado del Análisis</div>
+          <div className="chart-card-title">{t.resultadoAnalisis}</div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Valor Presente Neto (VPN)</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.vpnLargo}</div>
             <div style={{ fontSize: 32, fontWeight: 900, color: status.color }}>{fmt(vpn)}</div>
           </div>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Tasa Interna de Retorno (TIR)</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.tirLargo}</div>
             <div style={{ fontSize: 24, fontWeight: 700 }}>{tir.toFixed(2)}%</div>
           </div>
           <div style={{ padding: '12px 16px', background: `${status.color}15`, borderRadius: 12, border: `1px solid ${status.color}30` }}>
@@ -3802,11 +3808,11 @@ function VPNView() {
       </div>
 
       <div className="card" style={{ marginTop: 24 }}>
-        <div className="chart-card-title">Flujos de Caja Futuros ($F_t$)</div>
+        <div className="chart-card-title">{t.flujosCaja}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 16 }}>
           {flows.map((f, i) => (
             <div key={i}>
-              <label>Año {i + 1}</label>
+              <label>{tf('anioN', { n: i + 1 })}</label>
               <input type="number" className="text-input" value={f}
                 onChange={e => {
                   const nf = [...flows];
@@ -3820,17 +3826,17 @@ function VPNView() {
 
       <div className="grid-2" style={{ marginTop: 24 }}>
         <div className="card" style={{ fontSize: 13, lineHeight: 1.6 }}>
-          <div className="chart-card-title">¿Qué significa el VPN?</div>
-          <p>Trae todos los flujos futuros al valor de <b>HOY</b> restando la inflación y el costo de oportunidad.</p>
+          <div className="chart-card-title">{t.queEsVpn}</div>
+          <p><Negrita texto={t.vpnExplica} /></p>
           <ul style={{ paddingLeft: 20, marginTop: 10 }}>
-            <li><b style={{ color: 'var(--green)' }}>VPN {'>'} 0</b>: Ganas dinero real por encima de tu rentabilidad exigida.</li>
-            <li><b style={{ color: 'var(--red)' }}>VPN {'<'} 0</b>: Estás perdiendo poder adquisitivo o ganando menos que el mínimo.</li>
+            <li><b style={{ color: 'var(--green)' }}>{t.vpn} {'>'} 0</b>: {t.vpnPositivoTexto}</li>
+            <li><b style={{ color: 'var(--red)' }}>{t.vpn} {'<'} 0</b>: {t.vpnNegativoTexto}</li>
           </ul>
         </div>
         <div className="card" style={{ fontSize: 13, lineHeight: 1.6 }}>
-          <div className="chart-card-title">¿Qué significa la TIR?</div>
-          <p>Es la rentabilidad porcentual anual que genera el proyecto por sí mismo.</p>
-          <p style={{ marginTop: 10 }}>Si tu <b>TIR ({tir.toFixed(1)}%)</b> es mayor que tu <b>Tasa de Descuento ({discountRate}%)</b>, el proyecto vale la pena.</p>
+          <div className="chart-card-title">{t.queEsTir}</div>
+          <p>{t.tirExplica}</p>
+          <p style={{ marginTop: 10 }}><Negrita texto={tf('tirComparacion', { tirVal: tir.toFixed(1), tdVal: discountRate })} /></p>
         </div>
       </div>
     </div>
@@ -3839,7 +3845,7 @@ function VPNView() {
 
 // ─── COMPOUND INTEREST SUB-VIEW ──────────────────────────────────────────────
 function CompoundInterestView() {
-  const { t, theme } = useApp();
+  const { t, tf, theme, locale } = useApp();
   const [initial, setInitial] = useState(5000);
   const [monthly, setMonthly] = useState(200);
   const [rate, setRate] = useState(8);
@@ -3910,40 +3916,39 @@ function CompoundInterestView() {
     <div className="fade-in">
       <div className="grid-2">
         <div className="card">
-          <div className="chart-card-title">Configuración de Ahorro</div>
+          <div className="chart-card-title">{t.configAhorro}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="grid-2" style={{ gap: 12 }}>
-              <div><label>Balance Inicial</label><input type="number" className="text-input" value={initial} onChange={e => setInitial(parseFloat(e.target.value) || 0)} /></div>
-              <div><label>Contribución Mensual</label><input type="number" className="text-input" value={monthly} onChange={e => setMonthly(parseFloat(e.target.value) || 0)} /></div>
+              <div><label>{t.balanceInicial}</label><input type="number" className="text-input" value={initial} onChange={e => setInitial(parseFloat(e.target.value) || 0)} /></div>
+              <div><label>{t.contribucionMensual}</label><input type="number" className="text-input" value={monthly} onChange={e => setMonthly(parseFloat(e.target.value) || 0)} /></div>
             </div>
             <div className="grid-2" style={{ gap: 12 }}>
-              <div><label>Rentabilidad Anual (%)</label><input type="number" className="text-input" value={rate} onChange={e => setRate(parseFloat(e.target.value) || 0)} /></div>
-              <div><label>Años</label><input type="number" className="text-input" value={years} onChange={e => setYears(parseInt(e.target.value) || 1)} /></div>
+              <div><label>{t.rentabilidadAnual}</label><input type="number" className="text-input" value={rate} onChange={e => setRate(parseFloat(e.target.value) || 0)} /></div>
+              <div><label>{t.anios}</label><input type="number" className="text-input" value={years} onChange={e => setYears(parseInt(e.target.value) || 1)} /></div>
             </div>
           </div>
         </div>
         <div className="card">
-          <div className="chart-card-title">Resultado Proyectado</div>
+          <div className="chart-card-title">{t.resultadoProyectado}</div>
           <div className="grid-2" style={{ gap: 24 }}>
             <div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Capital Final</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.capitalFinal}</div>
               <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--accent)' }}>{fmt(finalTotal)}</div>
             </div>
             <div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Intereses Generados</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.interesesGenerados}</div>
               <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--green)' }}>{fmt(totalInterests)}</div>
             </div>
           </div>
           <div style={{ marginTop: 16, fontSize: 13, color: 'var(--text-secondary)' }}>
-            Has invertido un total de <b>{fmt(finalInvested)}</b>.
-            El interés compuesto ha multiplicado tu capital por <b>{(finalTotal / (finalInvested || 1)).toFixed(2)}x</b>.
+            <Negrita texto={tf('hasInvertido', { total: fmt(finalInvested), x: (finalTotal / (finalInvested || 1)).toFixed(2) })} />
           </div>
         </div>
       </div>
 
       {/* Zoomable Chart with Brush */}
       <div className="chart-card" style={{ height: 420, marginTop: 24, padding: 24 }}>
-        <div className="chart-card-title">Crecimiento de la Inversión</div>
+        <div className="chart-card-title">{t.crecimientoInversion}</div>
         <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '-8px 0 12px 0' }}>{t.zoomPrompt}</p>
         <ResponsiveContainer width="100%" height="85%">
           <AreaChart data={yearlyData}>
@@ -3958,12 +3963,12 @@ function CompoundInterestView() {
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke={gridColor} strokeOpacity={0.5} />
-            <XAxis dataKey="year" stroke={axisColor} tick={{ fontSize: 11 }} label={{ value: 'Años', position: 'insideBottom', offset: -5, fontSize: 11, fill: axisColor }} />
-            <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat('es-ES', { notation: 'compact' }).format(v)} />
+            <XAxis dataKey="year" stroke={axisColor} tick={{ fontSize: 11 }} label={{ value: t.anios, position: 'insideBottom', offset: -5, fontSize: 11, fill: axisColor }} />
+            <YAxis stroke={axisColor} tick={{ fontSize: 11 }} tickFormatter={v => new Intl.NumberFormat(locale, { notation: 'compact' }).format(v)} />
             <Tooltip formatter={v => fmt(v)} contentStyle={{ borderRadius: 12, background: tooltipBg, border: 'none', boxShadow: 'var(--shadow)' }} />
             <Legend wrapperStyle={{ fontSize: 12, paddingBottom: 28 }} />
-            <Area type="monotone" dataKey="total" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal2)" name="Balance Total" />
-            <Area type="monotone" dataKey="invested" stroke="var(--text-muted)" strokeWidth={2} fillOpacity={1} fill="url(#colorInvested2)" name="Capital Invertido" />
+            <Area type="monotone" dataKey="total" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal2)" name={t.totalBalance} />
+            <Area type="monotone" dataKey="invested" stroke="var(--text-muted)" strokeWidth={2} fillOpacity={1} fill="url(#colorInvested2)" name={t.investedCapital} />
             <Brush dataKey="year" height={28} stroke="var(--accent)" fill={isDark ? '#161825' : '#eef0f5'} travellerWidth={10} />
           </AreaChart>
         </ResponsiveContainer>
@@ -4034,14 +4039,14 @@ function CompoundInterestView() {
               <tr>
                 {tableMode === 'years' ? (
                   <>
-                    <td style={{ fontWeight: 800 }}>Total</td>
+                    <td style={{ fontWeight: 800 }}>{t.total}</td>
                     <td className="text-right" style={{ fontWeight: 700 }}>{fmt(finalInvested)}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: 'var(--green)' }}>{fmt(totalInterests)}</td>
                     <td className="text-right" style={{ fontWeight: 800, color: 'var(--accent)' }}>{fmt(finalTotal)}</td>
                   </>
                 ) : (
                   <>
-                    <td colSpan={4} style={{ fontWeight: 800 }}>Total</td>
+                    <td colSpan={4} style={{ fontWeight: 800 }}>{t.total}</td>
                     <td className="text-right" style={{ fontWeight: 700 }}>{fmt(finalInvested)}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: 'var(--green)' }}>{fmt(totalInterests)}</td>
                     <td className="text-right" style={{ fontWeight: 800, color: 'var(--accent)' }}>{fmt(finalTotal)}</td>
@@ -4054,13 +4059,13 @@ function CompoundInterestView() {
         {tableMode === 'months' && totalPages > 1 && (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
             <button className="btn btn-ghost" disabled={tablePage === 0} onClick={() => setTablePage(p => p - 1)} style={{ padding: '6px 16px' }}>
-              ← Anterior
+              {t.anterior}
             </button>
             <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600 }}>
-              Página {tablePage + 1} de {totalPages}
+              {tf('paginaDe', { a: tablePage + 1, b: totalPages })}
             </span>
             <button className="btn btn-ghost" disabled={tablePage >= totalPages - 1} onClick={() => setTablePage(p => p + 1)} style={{ padding: '6px 16px' }}>
-              Siguiente →
+              {t.siguiente}
             </button>
           </div>
         )}
@@ -4071,6 +4076,7 @@ function CompoundInterestView() {
 
 // ─── MANAGEMENT VIEW (CRUD + ANALYTICS) ─────────────────────────────────────────
 function UserManagementView() {
+  const { t, tf, locale } = useApp();
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [systemErrors, setSystemErrors] = useState([]);
@@ -4125,7 +4131,7 @@ function UserManagementView() {
   const chartData = Array.from({ length: 30 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (29 - i));
-    const dayStr = d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    const dayStr = d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
     const count = logs.filter(l => {
       if (!l.lastSeen) return false;
       const ld = new Date(l.lastSeen);
@@ -4142,13 +4148,13 @@ function UserManagementView() {
   }).sort((a, b) => b.time - a.time);
 
   const exportCSV = () => {
-    const headers = ['Usuario', 'Email', 'Inicio', 'Fin', 'Duración (min)'];
+    const headers = [t.csvUsuario, t.csvEmail, t.csvInicio, t.csvFin, t.csvDuracion];
     const rows = logs.map(l => [
-      users.find(u => u.uid === l.uid)?.displayName || 'Desconocido',
+      users.find(u => u.uid === l.uid)?.displayName || t.desconocido,
       l.email,
       // Los registros antiguos no tienen `start`: se estima restando el tiempo acumulado.
-      new Date(l.start || ((l.lastSeen || 0) - (l.totalTime || 0))).toLocaleString(),
-      l.end ? new Date(l.end).toLocaleString() : 'Sesión Activa',
+      new Date(l.start || ((l.lastSeen || 0) - (l.totalTime || 0))).toLocaleString(locale),
+      l.end ? new Date(l.end).toLocaleString(locale) : t.sesionActiva,
       Math.round((l.totalTime || 0) / 60000)
     ]);
     // Cada campo entrecomillado: las fechas ("3/11/2026, 10:15:30") y algunos
@@ -4187,7 +4193,7 @@ function UserManagementView() {
       await setDoc(doc(db, 'users', editingUser.uid), userData, { merge: true });
       setEditingUser(null);
     } catch (err) {
-      alert("Error al guardar usuario: " + err.message);
+      alert(tf('errorGuardarUsuario', { msg: err.message }));
     }
   };
 
@@ -4196,14 +4202,14 @@ function UserManagementView() {
   // nueva. En su lugar se bloquea: conserva la lectura de sus datos (RGPD) pero
   // las reglas le deniegan cualquier escritura.
   const handleBloqueo = async (u) => {
-    if (u.isAdmin || u.uid === auth?.currentUser?.uid) return alert('No puedes bloquear a un administrador');
+    if (u.isAdmin || u.uid === auth?.currentUser?.uid) return alert(t.noBloquearAdmin);
     const bloquear = !u.bloqueado;
     const nombre = u.displayName || u.email || u.uid;
-    if (!window.confirm(bloquear ? `¿Bloquear a ${nombre}? No podrá guardar cambios hasta que lo desbloquees.` : `¿Desbloquear a ${nombre}?`)) return;
+    if (!window.confirm(bloquear ? tf('bloquearConfirm', { nombre }) : tf('desbloquearConfirm', { nombre }))) return;
     try {
       await setDoc(doc(db, 'users', u.uid), { bloqueado: bloquear, lastUpdated: Date.now() }, { merge: true });
     } catch (err) {
-      alert("Error al actualizar el usuario: " + err.message);
+      alert(tf('errorActualizarUsuario', { msg: err.message }));
     }
   };
 
@@ -4216,13 +4222,13 @@ function UserManagementView() {
       <form onSubmit={handleSave}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>Datos de Cuenta</h3>
-            <div><label className="login-label">Nombre</label><input name="name" className="text-input" defaultValue={u?.displayName} required /></div>
-            <div><label className="login-label">Email</label><input type="email" className="text-input" value={u?.email || ''} readOnly disabled title="El email lo gestiona Firebase Auth" /></div>
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.datosCuenta}</h3>
+            <div><label className="login-label">{t.nombre}</label><input name="name" className="text-input" defaultValue={u?.displayName} required /></div>
+            <div><label className="login-label">{t.email}</label><input type="email" className="text-input" value={u?.email || ''} readOnly disabled title={t.emailGestionadoAuth} /></div>
             {/* Campo de contraseña eliminado: mostraba en claro la contraseña
                 almacenada. Firebase Auth custodia las credenciales. */}
             <div>
-              <label className="login-label">Pagado hasta</label>
+              <label className="login-label">{t.pagadoHasta}</label>
               <input
                 name="paidUntil"
                 type="date"
@@ -4231,26 +4237,26 @@ function UserManagementView() {
               />
               <div style={{ fontSize: 11, opacity: .65, marginTop: 4 }}>
                 {u?.trialEndsAt
-                  ? `Prueba hasta ${new Date(u.trialEndsAt).toLocaleDateString('es-ES')}. `
-                  : 'Sin prueba registrada. '}
-                Déjalo vacío para dejarlo sin pagar.
+                  ? tf('pruebaHasta', { fecha: new Date(u.trialEndsAt).toLocaleDateString(locale) })
+                  : t.sinPrueba}
+                {t.dejaloVacio}
               </div>
             </div>
-            <div><label className="login-label">Rol Global</label>
+            <div><label className="login-label">{t.rolGlobal}</label>
               <select name="role" className="select-input" defaultValue={u?.isAdmin ? 'admin' : 'user'}>
-                <option value="user">Usuario (Basado en Permisos)</option>
-                <option value="admin">Administrador (Todo permitido)</option>
+                <option value="user">{t.rolUsuarioPermisos}</option>
+                <option value="admin">{t.rolAdminTodo}</option>
               </select>
             </div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>Permisos Específicos</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.permisosEspecificos}</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {PERMISSIONS.map(p => (
                 <label key={p.id} className="permission-toggle">
                   <input type="checkbox" name={`perm_${p.id}`} defaultChecked={u ? u.permissions?.includes(p.id) : true} />
-                  <span>{p.label}</span>
+                  <span>{t[p.id]}</span>
                 </label>
               ))}
             </div>
@@ -4258,8 +4264,8 @@ function UserManagementView() {
         </div>
 
         <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-          <button type="button" className="btn btn-ghost" onClick={onCancel}>Cancelar</button>
-          <button type="submit" className="btn btn-primary">Guardar Cambios</button>
+          <button type="button" className="btn btn-ghost" onClick={onCancel}>{t.cancel}</button>
+          <button type="submit" className="btn btn-primary">{t.guardarCambios}</button>
         </div>
       </form>
       <style>{`
@@ -4280,34 +4286,34 @@ function UserManagementView() {
       {/* Analytics Dashboard - Professional Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 32 }}>
         <div className="card" style={{ padding: '24px', borderLeft: '4px solid var(--green)', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>Estado Realtime</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 8 }}>{t.estadoRealtime}</div>
           <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="pulse-dot"></span> {onlineUsers.length} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-secondary)' }}>usuarios hoy</span>
+            <span className="pulse-dot"></span> {onlineUsers.length} <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--text-secondary)' }}>{t.usuariosHoy}</span>
           </div>
           <div style={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.1 }}><Ic d={PATHS.users} size={80} /></div>
         </div>
 
         <div className="card" style={{ padding: '24px', background: 'var(--bg-secondary)' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>Histórico de Tráfico</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 12 }}>{t.historicoTrafico}</div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats7d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>7 DÍAS</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats30d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>30 DÍAS</div></div>
-            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats90d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>90 DÍAS</div></div>
-            <div style={{ textAlign: 'center', color: 'var(--accent)' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats365d}</div><div style={{ fontSize: 9 }}>ANUAL</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats7d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t.dias7}</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats30d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t.dias30}</div></div>
+            <div style={{ textAlign: 'center' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats90d}</div><div style={{ fontSize: 9, color: 'var(--text-muted)' }}>{t.dias90}</div></div>
+            <div style={{ textAlign: 'center', color: 'var(--accent)' }}><div style={{ fontSize: 18, fontWeight: 800 }}>{stats365d}</div><div style={{ fontSize: 9 }}>{String(t.annual).toUpperCase()}</div></div>
           </div>
         </div>
 
         <div className="card" style={{ padding: '24px', display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center' }}>
           <button className="btn btn-primary" onClick={exportCSV} style={{ padding: '12px 20px', fontSize: 14 }}>
             <Ic d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" size={18} />
-            Exportar Auditoría CSV
+            {t.exportarCsv}
           </button>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24, marginBottom: 32 }}>
         <div className="card" style={{ height: 350 }}>
-          <div className="chart-card-title">Tendencia de Actividad (30 días)</div>
+          <div className="chart-card-title">{t.tendenciaActividad}</div>
           <ResponsiveContainer width="100%" height="90%">
             <BarChart data={chartData}>
               <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
@@ -4323,14 +4329,14 @@ function UserManagementView() {
         </div>
 
         <div className="card">
-          <div className="chart-card-title">Ranking de Engagement</div>
+          <div className="chart-card-title">{t.rankingEngagement}</div>
           <div className="table-wrap">
             <table style={{ marginTop: 10 }}>
               <thead>
                 <tr>
-                  <th style={{ background: 'transparent' }}>Usuario</th>
-                  <th className="text-center" style={{ background: 'transparent' }}>Sesiones</th>
-                  <th className="text-right" style={{ background: 'transparent' }}>Tiempo Total</th>
+                  <th style={{ background: 'transparent' }}>{t.usuario}</th>
+                  <th className="text-center" style={{ background: 'transparent' }}>{t.sesiones}</th>
+                  <th className="text-right" style={{ background: 'transparent' }}>{t.tiempoTotal}</th>
                 </tr>
               </thead>
               <tbody>
@@ -4343,7 +4349,7 @@ function UserManagementView() {
                       </div>
                     </td>
                     <td className="text-center" style={{ fontWeight: 700 }}>{ua.sessions}</td>
-                    <td className="text-right" style={{ color: 'var(--text-secondary)' }}>{ua.time} min</td>
+                    <td className="text-right" style={{ color: 'var(--text-secondary)' }}>{ua.time} {t.min}</td>
                   </tr>
                 ))}
               </tbody>
@@ -4354,11 +4360,11 @@ function UserManagementView() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>Usuarios del Sistema</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Gestión de identidades y privilegios granulares.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{t.usuariosSistema}</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.gestionIdentidades}</p>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 360, textAlign: 'right' }}>
-          Las cuentas se crean cuando el usuario se registra en la web. Aquí se editan nombre, rol, permisos y pagos, y se bloquean o desbloquean.
+          {t.cuentasSeCrean}
         </div>
       </div>
 
@@ -4369,9 +4375,9 @@ function UserManagementView() {
           <table>
             <thead>
               <tr>
-                <th>Usuario</th>
-                <th>Rol / Permisos</th>
-                <th className="text-center">Acciones</th>
+                <th>{t.usuario}</th>
+                <th>{t.rolPermisos}</th>
+                <th className="text-center">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
@@ -4384,28 +4390,28 @@ function UserManagementView() {
                   <td>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                       {u.isAdmin ? (
-                        <span className="badge badge-accent" style={{ fontSize: 9 }}>ADMIN TOTAL</span>
+                        <span className="badge badge-accent" style={{ fontSize: 9 }}>{t.adminTotal}</span>
                       ) : (
                         (u.permissions || []).map(pId => {
                           const p = PERMISSIONS.find(px => px.id === pId);
-                          return <span key={pId} className="badge badge-ghost" style={{ fontSize: 9, opacity: 0.8 }}>{p?.label}</span>;
+                          return <span key={pId} className="badge badge-ghost" style={{ fontSize: 9, opacity: 0.8 }}>{p ? t[p.id] : pId}</span>;
                         })
                       )}
                       {(!u.isAdmin && (!u.permissions || u.permissions.length === 0)) && (
-                        <span style={{ fontSize: 11, color: 'var(--red)', fontStyle: 'italic' }}>Sin accesos</span>
+                        <span style={{ fontSize: 11, color: 'var(--red)', fontStyle: 'italic' }}>{t.sinAccesos}</span>
                       )}
                       {u.bloqueado && (
-                        <span className="badge" style={{ fontSize: 9, background: 'var(--red)', color: 'white' }}>BLOQUEADO</span>
+                        <span className="badge" style={{ fontSize: 9, background: 'var(--red)', color: 'white' }}>{t.bloqueado}</span>
                       )}
                     </div>
                   </td>
                   <td className="text-center">
                     <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
-                      <button className="btn btn-icon" title="Editar" onClick={() => setEditingUser(u)}>
+                      <button className="btn btn-icon" title={t.editar} onClick={() => setEditingUser(u)}>
                         <Ic d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" size={14} />
                       </button>
                       {!u.isAdmin && (
-                        <button className={`btn btn-icon ${u.bloqueado ? 'btn-primary' : 'btn-danger'}`} title={u.bloqueado ? 'Desbloquear' : 'Bloquear'} onClick={() => handleBloqueo(u)}>
+                        <button className={`btn btn-icon ${u.bloqueado ? 'btn-primary' : 'btn-danger'}`} title={u.bloqueado ? t.desbloquear : t.bloquear} onClick={() => handleBloqueo(u)}>
                           <Ic d={u.bloqueado ? PATHS.unlock : PATHS.lock} size={14} />
                         </button>
                       )}
@@ -4420,23 +4426,23 @@ function UserManagementView() {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 24 }}>
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--red)' }}>Auditoría de Errores Críticos (Firebase)</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>Registro de fallos en sincronización o base de datos reportados por la plataforma.</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--red)' }}>{t.auditoriaErrores}</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.auditoriaErroresDesc}</p>
         </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         {systemErrors.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No se han registrado errores en el sistema.</div>
+          <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>{t.sinErrores}</div>
         ) : (
           <div className="table-wrap" style={{ maxHeight: 300, overflowY: 'auto' }}>
             <table style={{ margin: 0 }}>
               <thead>
                 <tr>
-                  <th style={{ background: 'var(--bg-secondary)' }}>Fecha y Hora</th>
-                  <th style={{ background: 'var(--bg-secondary)' }}>Operación</th>
-                  <th style={{ background: 'var(--bg-secondary)' }}>Mensaje de Error</th>
-                  <th style={{ background: 'var(--bg-secondary)', textAlign: 'right' }}>Afectado</th>
+                  <th style={{ background: 'var(--bg-secondary)' }}>{t.fechaHora}</th>
+                  <th style={{ background: 'var(--bg-secondary)' }}>{t.operacion}</th>
+                  <th style={{ background: 'var(--bg-secondary)' }}>{t.mensajeError}</th>
+                  <th style={{ background: 'var(--bg-secondary)', textAlign: 'right' }}>{t.afectado}</th>
                 </tr>
               </thead>
               <tbody>
@@ -4445,7 +4451,7 @@ function UserManagementView() {
                   return (
                     <tr key={err.id}>
                       <td style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                        {new Date(err.timestamp).toLocaleString()}
+                        {new Date(err.timestamp).toLocaleString(locale)}
                       </td>
                       <td style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>
                         {err.context}

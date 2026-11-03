@@ -1,62 +1,69 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useApp } from '../context/AppContext';
 
-const STEPS = [
+// Los textos salen del diccionario (t); target, view, fallback y requireAction
+// son identificadores y no se traducen.
+const pasos = (t) => [
     {
         target: '.sidebar',
         view: 'dashboard',
-        title: 'Menú Lateral de Secciones 🧭',
-        content: 'Toda la navegación está estructurada por módulos. Desde aquí puedes acceder al registro de meses, balances anuales, ajustes y calculadoras patrimoniales de intereses compuestos.'
+        title: t.tutoStep1Title,
+        content: t.tutoStep1Content
     },
     {
         target: '.topbar select',
         view: 'dashboard',
-        title: 'El Tiempo es la Clave ⏳',
-        content: 'Este selector viaja en el tiempo. Selecciona el año en el que quieres operar. De serie se proyectan datos 10 años al pasado o futuro si es que has operado allí. Usa el tiempo sabiamente para simular presupuestos.'
+        title: t.tutoStep2Title,
+        content: t.tutoStep2Content
     },
     {
         target: '.dashboard-personalizar-btn',
         fallback: '.page-content',
         view: 'dashboard',
-        title: 'Tu Dashboard, a tu manera 🧩',
-        content: 'Pulsa "Personalizar" para decidir qué bloques ves y en qué orden y tamaño: salud financiera, ahorro acumulado frente al plan, objetivo de ahorro anual, dónde se va el dinero, la evolución de una categoría o la comparativa con el año anterior. La disposición se guarda en tu cuenta y la verás igual en cualquier dispositivo.'
+        title: t.tutoStep3Title,
+        content: t.tutoStep3Content
     },
     {
         target: '.settings-toggle',
         view: 'dashboard',
-        title: 'Estimación y Control 📊',
-        content: 'Alterna entre la visión en Gráficos o el Modo Presupuesto. Haz clic en "Modo Presupuesto" o en el botón para continuar y ver cómo cambia.',
+        title: t.tutoStep4Title,
+        content: t.tutoStep4Content,
         requireAction: 'dashboardMode'
     },
     {
         target: '.monthly-view-container, .page-content',
         fallback: '.page-content',
         view: 'monthly',
-        title: 'Día a Día (El flujo Mensual) 📅',
-        content: 'Tu "hoja clínica". Introduce aquí cada ticket de compra, nómina o ingreso durante el mes. En la derecha te contrastará inmediatamente tú progreso real contra el presupuesto anual asigado.'
+        title: t.tutoStep5Title,
+        content: t.tutoStep5Content
     },
     {
         target: '.networth-view-container, .page-content',
         fallback: '.page-content',
         view: 'networth',
-        title: 'Activos, Pasivos y Ahorros 🏦',
-        content: 'Esto no es un gasto cotidiano, ¡es el inventario de lo que posees y debes! Guarda aquí el saldo del banco, o el valor de la vivienda y mantén tracking de cómo te vuelves más rico a través del tiempo.'
+        title: t.tutoStep6Title,
+        content: t.tutoStep6Content
     },
     {
         target: '#tour-category-manager',
         fallback: '.page-content',
         view: 'settings',
-        title: 'Categorías Inteligentes ⚙️',
-        content: 'En "Ajustes", al crear o borrar categorías aplican ÚNICAMENTE al año seleccionado en adelante. Protegiendo tu pasado sin alterarlo. Muy superior al sistema clásico.'
+        title: t.tutoStep7Title,
+        content: t.tutoStep7Content
     },
     {
         target: null, // Full screen darken
         view: 'dashboard',
-        title: '¡Añade Tus Propios Datos! 🚀',
-        content: 'Para que FinanziApp rinda, empieza creando tus límites en el Presupuesto, actualiza tus saldos en Patrimonio Neto y deja el Dashboard con los bloques que te interesen. ¡Tú diriges tu economía!'
+        title: t.tutoStep8Title,
+        content: t.tutoStep8Content
     }
 ];
 
 export default function TutorialWizard({ onClose, onComplete, activeView, setActiveView, dashboardMode }) {
+    const { t, tf } = useApp();
+    // Memorizado por idioma: `step` va en las dependencias del efecto de abajo y
+    // debe mantener su identidad entre renders.
+    const STEPS = useMemo(() => pasos(t), [t]);
     const [currentStep, setCurrentStep] = useState(0);
     const [rect, setRect] = useState(null);
     const [initialMode, setInitialMode] = useState(dashboardMode);
@@ -199,10 +206,10 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
             <div style={{ ...dialogStyle, pointerEvents: 'auto' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                     <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--accent)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                        PASO {currentStep + 1} DE {STEPS.length}
+                        {tf('tutoStepOf', { n: currentStep + 1, total: STEPS.length })}
                     </div>
                     <button onClick={handleSkip} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                        Saltar
+                        {t.tutoSkip}
                     </button>
                 </div>
 
@@ -221,7 +228,7 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
                             className="btn btn-ghost"
                             style={{ padding: '10px 16px', fontSize: 14 }}
                         >
-                            Atrás
+                            {t.tutoBack}
                         </button>
                     )}
                     <button
@@ -230,7 +237,7 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
                         style={{ padding: '10px 20px', fontSize: 15, opacity: canProceed ? 1 : 0.5, cursor: canProceed ? 'pointer' : 'not-allowed' }}
                         disabled={!canProceed}
                     >
-                        {currentStep === STEPS.length - 1 ? '¡Vamos Allá!' : (canProceed ? 'Siguiente' : 'Interactúa para seguir')}
+                        {currentStep === STEPS.length - 1 ? t.tutoLetsGo : (canProceed ? t.tutoNext : t.tutoInteract)}
                     </button>
                 </div>
             </div>
