@@ -5,6 +5,10 @@ import { app } from './firebase';
 // Debe coincidir con setGlobalOptions({ region }) en functions/index.js.
 export const REGION_FUNCIONES = 'europe-west1';
 export const PRECIO_MENSUAL_EUR = 4.99;
+// Ponlo a true cuando las funciones de Stripe estén desplegadas y configuradas
+// (STRIPE.md). Mientras sea false, la app no muestra el botón de pago sino un
+// aviso de que todavía no está disponible.
+export const STRIPE_ACTIVO = false;
 
 const funciones = () => getFunctions(app, REGION_FUNCIONES);
 const llamar = async (nombre, datos) => (await httpsCallable(funciones(), nombre)(datos || {})).data;

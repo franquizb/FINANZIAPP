@@ -14,7 +14,7 @@ import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
-import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL_EUR } from './suscripcion';
+import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL_EUR, STRIPE_ACTIVO } from './suscripcion';
 
 const logErrorToFirebase = async (context, err) => {
   try {
@@ -736,6 +736,7 @@ function BotonesSuscripcion({ user }) {
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState(null);
   if (!user || user.isAdmin || user.bloqueado) return null;
+  if (!STRIPE_ACTIVO) return <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{t.susNoDisponible}</div>;
   const tieneStripe = !!user.stripeSubscriptionId && ESTADOS_STRIPE_VIVOS.includes(user.stripeStatus);
   const ir = async (fn) => {
     setOcupado(true); setError(null);

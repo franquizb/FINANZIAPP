@@ -80,8 +80,13 @@ una cuenta de Stripe.
 6. **Portal de cliente**: en Stripe → Configuración → Portal de cliente, activa
    «cancelar suscripción» y «actualizar método de pago» y guarda.
 
-7. **Reglas y hosting**: `firebase deploy --only firestore:rules,hosting`
-   (las reglas ya incluyen los campos de Stripe y `eventos_stripe`).
+7. **Activar el botón en la app**: en `src/suscripcion.js` pon
+   `STRIPE_ACTIVO = true` (mientras está en `false` la app muestra «el pago con
+   tarjeta todavía no está disponible» en lugar del botón).
+
+8. **Reglas y hosting**: `npm run build` y
+   `firebase deploy --only firestore:rules,hosting` (las reglas ya incluyen
+   los campos de Stripe y `eventos_stripe`).
 
 ## Probar
 
