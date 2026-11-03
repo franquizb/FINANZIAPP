@@ -37,7 +37,9 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
     trialEndsAt: perfil.trialEndsAt || 0,
     paidUntil: perfil.paidUntil || 0,
     plan: perfil.plan || 'trial',
-    bloqueado: perfil.bloqueado === true
+    bloqueado: perfil.bloqueado === true,
+    // El perfil viene del servidor: la app ya puede mostrar el estado de la suscripción.
+    perfilListo: true
   };
 };
 

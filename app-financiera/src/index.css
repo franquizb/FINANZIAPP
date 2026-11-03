@@ -1130,3 +1130,20 @@ label {
         opacity: 0;
     }
 }
+/* ─── Seguimiento mensual: tarjetas por sección ────────────────────────────
+   El número de columnas depende del ancho DISPONIBLE (container query), que
+   cambia al plegar la barra lateral: cinco por fila solo cuando cada tarjeta
+   tiene sitio de sobra; si no, tres arriba y dos abajo centradas, todas del
+   mismo tamaño. */
+.sm-grid-wrap { container-type: inline-size; }
+.sm-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
+.sm-grid > .sm-card { flex: 0 0 calc(33.333% - 16px); max-width: calc(33.333% - 16px); display: flex; flex-direction: column; min-width: 0; }
+@container (max-width: 1000px) {
+    .sm-grid > .sm-card { flex-basis: calc(50% - 12px); max-width: calc(50% - 12px); }
+}
+@container (max-width: 640px) {
+    .sm-grid > .sm-card { flex-basis: 100%; max-width: 100%; }
+}
+@container (min-width: 1750px) {
+    .sm-grid > .sm-card { flex-basis: calc(20% - 19.2px); max-width: calc(20% - 19.2px); }
+}

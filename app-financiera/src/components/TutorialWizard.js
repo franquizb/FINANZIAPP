@@ -24,18 +24,20 @@ const pasos = (t) => [
         content: t.tutoStep3Content
     },
     {
-        target: '.settings-toggle',
-        view: 'dashboard',
-        title: t.tutoStep4Title,
-        content: t.tutoStep4Content,
-        requireAction: 'dashboardMode'
-    },
-    {
-        target: '.monthly-view-container, .page-content',
+        target: '.sm-grid-wrap',
         fallback: '.page-content',
         view: 'monthly',
         title: t.tutoStep5Title,
         content: t.tutoStep5Content
+    },
+    {
+        // El conmutador Seguimiento / Presupuesto está en la barra superior de
+        // Seguimiento Mensual; para continuar hay que pulsar "Presupuesto".
+        target: '.settings-toggle',
+        view: 'monthly',
+        title: t.tutoStep4Title,
+        content: t.tutoStep4Content,
+        requireAction: 'monthlyMode'
     },
     {
         target: '.networth-view-container, .page-content',
@@ -59,20 +61,20 @@ const pasos = (t) => [
     }
 ];
 
-export default function TutorialWizard({ onClose, onComplete, activeView, setActiveView, dashboardMode }) {
+export default function TutorialWizard({ onClose, onComplete, activeView, setActiveView, monthlyMode }) {
     const { t, tf } = useApp();
     // Memorizado por idioma: `step` va en las dependencias del efecto de abajo y
     // debe mantener su identidad entre renders.
     const STEPS = useMemo(() => pasos(t), [t]);
     const [currentStep, setCurrentStep] = useState(0);
     const [rect, setRect] = useState(null);
-    const [initialMode, setInitialMode] = useState(dashboardMode);
+    const [initialMode, setInitialMode] = useState(monthlyMode);
     const [actionCompleted, setActionCompleted] = useState(false);
     // El modo del dashboard se lee por referencia: el efecto de abajo solo debe
     // ejecutarse al cambiar de paso, no cada vez que el usuario alterna el modo
     // (eso reiniciaría la acción pedida en el paso del tutorial).
-    const modoActual = useRef(dashboardMode);
-    useEffect(() => { modoActual.current = dashboardMode; }, [dashboardMode]);
+    const modoActual = useRef(monthlyMode);
+    useEffect(() => { modoActual.current = monthlyMode; }, [monthlyMode]);
 
     const step = STEPS[currentStep];
 
@@ -117,10 +119,10 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
     }, [currentStep, step, activeView, setActiveView]);
 
     useEffect(() => {
-        if (step.requireAction === 'dashboardMode' && dashboardMode !== initialMode) {
+        if (step.requireAction === 'monthlyMode' && monthlyMode !== initialMode) {
             setActionCompleted(true);
         }
-    }, [dashboardMode, initialMode, step.requireAction]);
+    }, [monthlyMode, initialMode, step.requireAction]);
 
     const canProceed = !step.requireAction || actionCompleted;
 

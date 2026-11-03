@@ -199,8 +199,25 @@ const normalizarConfig = (savedConfig) => ({
   categories: savedConfig?.categories || JSON.parse(JSON.stringify(initialCategories)),
   visibleViews: savedConfig?.visibleViews || [...VISTAS_POR_DEFECTO],
   visibleBudgetSections: savedConfig?.visibleBudgetSections || [...SECCIONES_PRESUPUESTO],
-  dashboard: normalizarDashboard(savedConfig?.dashboard)
+  dashboard: normalizarDashboard(savedConfig?.dashboard),
+  // Último año cuyo presupuesto se dio por revisado en la "revisión de inicio de año".
+  revisionAnio: parseInt(savedConfig?.revisionAnio) || 0
 });
+
+// ¿Toca revisar las expectativas del año? Solo al empezar un año (enero a
+// marzo) o al preparar uno futuro, si existe el año anterior para comparar y
+// el usuario no lo ha dado ya por revisado.
+// Meses de un año con algún movimiento real registrado.
+const mesesConDatosReales = (anio) => months.filter(m => Object.values(anio?.monthly?.[m] || {}).some(c => (c?.actual || []).length > 0)).length;
+
+// Hay revisión pendiente si estamos a principios de año (o el año es futuro),
+// el año anterior tiene datos reales con los que comparar y no se ha marcado
+// ya como revisado.
+const revisionDeAnioPendiente = (fullData, year, config) => {
+  const hoy = new Date();
+  const inicioDeAnio = (year === hoy.getFullYear() && hoy.getMonth() <= 2) || year > hoy.getFullYear();
+  return inicioDeAnio && mesesConDatosReales(fullData?.[year - 1]) > 0 && (parseInt(config?.revisionAnio) || 0) !== year;
+};
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 const calcTotal = (txs) => Array.isArray(txs) ? txs.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0) : 0;
@@ -763,6 +780,9 @@ function BotonesSuscripcion({ user }) {
 function AvisoSuscripcion({ user }) {
   const { t, tf } = useApp();
   const estado = estadoSuscripcion(user);
+  // Hasta que el perfil se haya leído del servidor no se sabe el estado real:
+  // mostrar el aviso antes producía un destello de "prueba terminada" al entrar.
+  if (user && !user.perfilListo) return null;
   if (estado.motivo === 'admin' || estado.motivo === 'pagado' || estado.motivo === 'sin-sesion') return null;
   if (estado.activa && estado.diasRestantes > 5) return null;
 
@@ -834,12 +854,19 @@ function AppInner({ isHome }) {
     navigate(`/${v}`);
   }, [navigate]);
 
+  // Sincroniza la vista con la URL solo cuando cambia la URL (atrás/adelante
+  // del navegador, enlaces directos). React Router 7 aplica la navegación como
+  // transición, así que durante unos ms la vista ya es la nueva y la URL aún la
+  // vieja: si este efecto también dependiera de activeView, devolvería la vista
+  // a la URL antigua y, con el tutorial pidiendo la nueva, entraba en bucle.
+  const vistaActualRef = useRef(activeView);
+  vistaActualRef.current = activeView;
   useEffect(() => {
     const pv = location.pathname.substring(1);
-    if (pv && VISTAS_POR_DEFECTO.includes(pv) && pv !== activeView) {
+    if (pv && VISTAS_POR_DEFECTO.includes(pv) && pv !== vistaActualRef.current) {
       _setActiveView(pv);
     }
-  }, [location.pathname, activeView]);
+  }, [location.pathname]);
 
   const [selectedYear, setSelectedYear] = useState(defaultStartYear);
   const [selectedMonth, setSelectedMonth] = useState(months[new Date().getMonth()]);
@@ -867,7 +894,15 @@ function AppInner({ isHome }) {
     if (y && y > 1900) setSelectedYear(y);
   }, [config]);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [dashboardMode, setDashboardMode] = useState('charts');
+  // Pestaña de Seguimiento Mensual: 'seguimiento' (lo real, mes a mes) o
+  // 'presupuesto' (el plan del año). El Dashboard solo muestra gráficos.
+  const [monthlyMode, setMonthlyMode] = useState('seguimiento');
+  // Para el tutorial: al llevar al usuario a Seguimiento Mensual se abre la
+  // pestaña Seguimiento. Memorizada: es dependencia de un efecto del tutorial.
+  const setActiveViewTutorial = useCallback((v) => {
+    if (v === 'monthly') setMonthlyMode('seguimiento');
+    setActiveView(v);
+  }, [setActiveView]);
   const [budgetLocked, setBudgetLocked] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -888,9 +923,11 @@ function AppInner({ isHome }) {
         // Restaurar sesión desde Firebase. El rol de administrador sale SOLO del
         // documento de Firestore, que el cliente no puede modificar.
         let userData = {};
+        let perfilLeido = false;
         try {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           userData = userDoc.exists() ? userDoc.data() : {};
+          perfilLeido = userDoc.exists();
         } catch (e) {
           console.error('No se pudo leer el perfil del usuario:', e);
         }
@@ -910,7 +947,9 @@ function AppInner({ isHome }) {
           bloqueado: userData.bloqueado === true,
           stripeStatus: userData.stripeStatus || null,
           stripeSubscriptionId: userData.stripeSubscriptionId || null,
-          cancelAtPeriodEnd: userData.cancelAtPeriodEnd === true
+          cancelAtPeriodEnd: userData.cancelAtPeriodEnd === true,
+          // El perfil se ha leído del servidor: los avisos de suscripción ya pueden mostrarse.
+          perfilListo: perfilLeido
         };
         setUser(sessionUser);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
@@ -1030,22 +1069,30 @@ function AppInner({ isHome }) {
     const unsubPerfil = onSnapshot(doc(db, 'users', userId), (snap) => {
       if (!snap.exists()) return;
       const d = snap.data();
+      // Justo después de iniciar sesión, Firestore puede emitir primero la copia
+      // LOCAL del perfil con solo los campos que acaba de escribir el login
+      // (uid, email, nombre, lastLogin). Si en ese instante se tomara isAdmin o
+      // trialEndsAt como ausentes, durante una fracción de segundo el usuario
+      // parecía sin rol y con la prueba caducada (el aviso rojo "fugaz"). Por
+      // eso solo se sobrescribe cada campo cuando viene en el documento.
+      const tiene = (k) => d[k] !== undefined;
       setUser(prev => {
         if (!prev || prev.uid !== userId) return prev;
-        const isAdmin = d.isAdmin === true;
+        const isAdmin = tiene('isAdmin') ? d.isAdmin === true : !!prev.isAdmin;
         const nu = {
           ...prev,
           displayName: d.displayName || prev.displayName,
           avatar: d.avatar || prev.avatar,
           isAdmin,
           permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (d.permissions || prev.permissions),
-          trialEndsAt: d.trialEndsAt || 0,
-          paidUntil: d.paidUntil || 0,
-          plan: d.plan || 'trial',
-          bloqueado: d.bloqueado === true,
-          stripeStatus: d.stripeStatus || null,
-          stripeSubscriptionId: d.stripeSubscriptionId || null,
-          cancelAtPeriodEnd: d.cancelAtPeriodEnd === true
+          trialEndsAt: tiene('trialEndsAt') ? (d.trialEndsAt || 0) : (prev.trialEndsAt || 0),
+          paidUntil: tiene('paidUntil') ? (d.paidUntil || 0) : (prev.paidUntil || 0),
+          plan: d.plan || prev.plan || 'trial',
+          bloqueado: tiene('bloqueado') ? d.bloqueado === true : !!prev.bloqueado,
+          stripeStatus: tiene('stripeStatus') ? (d.stripeStatus || null) : (prev.stripeStatus || null),
+          stripeSubscriptionId: tiene('stripeSubscriptionId') ? (d.stripeSubscriptionId || null) : (prev.stripeSubscriptionId || null),
+          cancelAtPeriodEnd: tiene('cancelAtPeriodEnd') ? d.cancelAtPeriodEnd === true : !!prev.cancelAtPeriodEnd,
+          perfilListo: prev.perfilListo || (!snap.metadata.hasPendingWrites && !snap.metadata.fromCache)
         };
         localStorage.setItem('currentUser', JSON.stringify(nu));
         return nu;
@@ -1245,10 +1292,14 @@ function AppInner({ isHome }) {
     switch (activeView) {
       case 'dashboard':
         if (!hasPermission(user, 'dashboard')) return <AccessDenied />;
-        return <DashboardView {...commonProps} mode={dashboardMode} setMode={setDashboardMode} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
+        return <DashboardView {...commonProps} mode="charts" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
       case 'monthly':
         if (!hasPermission(user, 'monthly')) return <AccessDenied />;
-        return <MonthlyView {...commonProps} month={selectedMonth} currentMonthData={financialData[selectedYear]?.monthly?.[selectedMonth]} onIrAPresupuesto={() => { setDashboardMode('budget'); setActiveView('dashboard'); }} />;
+        // El presupuesto del año vive dentro de Seguimiento Mensual (pestaña "Presupuesto").
+        if (monthlyMode === 'presupuesto') {
+          return <DashboardView {...commonProps} mode="budget" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
+        }
+        return <MonthlyView {...commonProps} month={selectedMonth} currentMonthData={financialData[selectedYear]?.monthly?.[selectedMonth]} onIrAPresupuesto={() => setMonthlyMode('presupuesto')} />;
       case 'networth':
         if (!hasPermission(user, 'networth')) return <AccessDenied />;
         return <NetWorthView {...commonProps} data={financialData[selectedYear]?.netWorth} />;
@@ -1304,8 +1355,8 @@ function AppInner({ isHome }) {
           setSelectedMonth={setSelectedMonth}
           appName='FinanziApp'
           financialData={financialData}
-          dashboardMode={dashboardMode}
-          setDashboardMode={setDashboardMode}
+          monthlyMode={monthlyMode}
+          setMonthlyMode={setMonthlyMode}
         />
         <AvisoSuscripcion user={user} />
         {errorGuardado && (
@@ -1324,9 +1375,9 @@ function AppInner({ isHome }) {
       {showTutorial && (
         <TutorialWizard
           activeView={activeView}
-          setActiveView={setActiveView}
-          dashboardMode={dashboardMode}
-          onClose={() => setShowTutorial(false)}
+          monthlyMode={monthlyMode}
+          setActiveView={setActiveViewTutorial}
+          onClose={() => { setMonthlyMode('seguimiento'); setShowTutorial(false); }}
           onComplete={() => { const nc = { ...config, tutorialCompleted: true }; updateCfg(nc); setShowTutorial(false); }}
         />
       )}
@@ -1421,7 +1472,7 @@ const TOPBAR_STYLES = `
 `;
 
 // ─── TOPBAR ──────────────────────────────────────────────────────────────────
-function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSidebar, selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, financialData, dashboardMode, setDashboardMode }) {
+function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSidebar, selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, financialData, monthlyMode, setMonthlyMode }) {
   const { t, mes } = useApp();
   return (
     <div className="topbar">
@@ -1432,10 +1483,10 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
         <span className="topbar-title">{t[activeView] || activeView}</span>
       </div>
       <div className="topbar-right" style={{ gap: 16 }}>
-        {activeView === 'dashboard' && (
+        {activeView === 'monthly' && (
           <div className="settings-toggle">
-            <button className={`settings-toggle-btn ${dashboardMode === 'charts' ? 'active' : ''}`} onClick={() => setDashboardMode('charts')}>{t.charts}</button>
-            <button className={`settings-toggle-btn ${dashboardMode === 'budget' ? 'active' : ''}`} onClick={() => setDashboardMode('budget')}>{t.budgetMode}</button>
+            <button className={`settings-toggle-btn ${monthlyMode === 'seguimiento' ? 'active' : ''}`} onClick={() => setMonthlyMode('seguimiento')}>{t.modoSeguimiento}</button>
+            <button className={`settings-toggle-btn ${monthlyMode === 'presupuesto' ? 'active' : ''}`} onClick={() => setMonthlyMode('presupuesto')}>{t.budgetMode}</button>
           </div>
         )}
         <select className="select-input" style={{ width: 'auto' }} value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))}>
@@ -1465,7 +1516,7 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
             return valid.map(y => <option key={y} value={y}>{y}</option>);
           })()}
         </select>
-        {activeView === 'monthly' && (
+        {activeView === 'monthly' && monthlyMode !== 'presupuesto' && (
           <select className="select-input" style={{ width: 'auto', textTransform: 'capitalize' }} value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
             {months.map(m => <option key={m} value={m} style={{ textTransform: 'capitalize' }}>{mes(m)}</option>)}
           </select>
@@ -1828,8 +1879,82 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
       onUpdate(nd);
     };
 
+    // ─── Revisión de inicio de año: presupuesto frente a la media real del año anterior ──
+    const anterior = fullData[year - 1];
+    const revision = (() => {
+      if (!revisionDeAnioPendiente(fullData, year, config)) return null;
+      const mesesConDatos = mesesConDatosReales(anterior);
+      const divisor = Math.max(1, mesesConDatos);
+      const filas = [];
+      (visibleBudgetSections || ALL_MAIN_KEYS).forEach(mk => {
+        (categories[mk] || []).forEach(sub => {
+          if (mk === 'Pago de Deudas' && prestamosDe(fullData, sub).length) return; // las cuotas salen del préstamo
+          const clave = claveSub(mk, sub);
+          const total = months.reduce((s, m) => s + calcTotal(anterior.monthly?.[m]?.[clave]?.actual || []), 0);
+          const media = Math.round((total / divisor) * 100) / 100;
+          const presupuesto = parseFloat(data.budget?.[clave]) || 0;
+          if (media > 0 || presupuesto > 0) filas.push({ mk, sub, clave, presupuesto, media });
+        });
+      });
+      return { filas, meses: mesesConDatos };
+    })();
+    const fijarPresupuesto = (nd, clave, v) => {
+      if (!nd[year].budget) nd[year].budget = {};
+      nd[year].budget[clave] = v;
+      if (!nd[year].monthly) nd[year].monthly = {};
+      months.forEach(m => {
+        if (!nd[year].monthly[m]) nd[year].monthly[m] = {};
+        if (!nd[year].monthly[m][clave]) nd[year].monthly[m][clave] = { budgeted: 0, actual: [] };
+        nd[year].monthly[m][clave].budgeted = v;
+      });
+    };
+    const marcarRevisado = () => onUpdateCfg({ ...config, revisionAnio: year });
+    const aplicarMedia = (f) => { const nd = clonar(fullData); fijarPresupuesto(nd, f.clave, f.media); onUpdate(nd); };
+    const aplicarMediasReales = () => {
+      if (!revision || !window.confirm(tf('revConfirmar', { year, anterior: year - 1 }))) return;
+      const nd = clonar(fullData);
+      revision.filas.filter(f => f.media > 0).forEach(f => fijarPresupuesto(nd, f.clave, f.media));
+      onUpdate(nd);
+      marcarRevisado();
+    };
+
     return (
       <div className="section-gap" style={{ marginTop: 20 }}>
+        {revision && (
+          <div className="card" style={{ marginBottom: 8, border: '1px solid var(--accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div className="chart-card-title" style={{ marginBottom: 4 }}>🎯 {tf('revTitulo', { year })}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tf('revDesc', { year, anterior: year - 1, meses: revision.meses })}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" disabled={!revision.filas.some(f => f.media > 0)} onClick={aplicarMediasReales}>{t.revAplicarTodo}</button>
+                <button className="btn btn-ghost" onClick={marcarRevisado}>{t.revRevisado}</button>
+              </div>
+            </div>
+            <div className="table-wrap" style={{ marginTop: 12, maxHeight: 320, overflowY: 'auto' }}>
+              <table style={{ margin: 0, fontSize: 12 }}>
+                <thead><tr><th>{t.category}</th><th className="text-right">{tf('revPresupuesto', { year })}</th><th className="text-right">{tf('revMediaReal', { anterior: year - 1 })}</th><th className="text-right">{t.difference}</th><th></th></tr></thead>
+                <tbody>
+                  {revision.filas.map(f => {
+                    const diff = f.media - f.presupuesto;
+                    const peor = f.mk === 'Ingresos' ? diff < 0 : diff > 0;
+                    return (
+                      <tr key={f.clave}>
+                        <td>{f.sub} <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>· {t[f.mk] || f.mk}</span></td>
+                        <td className="text-right">{fmt(f.presupuesto)}</td>
+                        <td className="text-right" style={{ fontWeight: 600 }}>{fmt(f.media)}</td>
+                        <td className="text-right" style={{ color: Math.abs(diff) < 0.005 ? 'var(--text-muted)' : (peor ? 'var(--red)' : 'var(--green)') }}>{diff > 0 ? '+' : ''}{fmt(diff)}</td>
+                        <td className="text-right"><button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11 }} disabled={Math.abs(diff) < 0.005 || f.media <= 0} onClick={() => aplicarMedia(f)}>{t.revUsar}</button></td>
+                      </tr>
+                    );
+                  })}
+                  {revision.filas.length === 0 && <tr><td colSpan={5} style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 12 }}>{tf('revSinDatos', { anterior: year - 1 })}</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 24, marginBottom: 32 }}>
           <div>
             <h2 style={{ fontSize: 32, fontWeight: 900, margin: 0, letterSpacing: '-0.04em' }}>{t.presupuestoAnual}</h2>
@@ -2523,44 +2648,48 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 // en un campo del MISMO tamaño (la tabla no se mueve) que guarda al salir o con
 // Enter; Esc cancela. Campo de texto con teclado decimal, sin flechas, y admite
 // coma o punto como separador.
-const CeldaCifra = ({ value, onSave, title, color, bold, disabled, ancho = '7.5em' }) => {
+const CeldaCifra = ({ value, onSave, title, color, bold, disabled }) => {
   const [editando, setEditando] = useState(false);
   const [val, setVal] = useState('');
+  const [anchoEdicion, setAnchoEdicion] = useState(72);
   const cancelado = useRef(false);
-  const abrir = () => { if (disabled) return; cancelado.current = false; setVal(String(Math.round((parseFloat(value) || 0) * 100) / 100)); setEditando(true); };
+  const spanRef = useRef(null);
+  const abrir = () => {
+    if (disabled) return;
+    cancelado.current = false;
+    // El campo mide lo mismo que ocupaba la cifra: la tabla no se mueve.
+    setAnchoEdicion(Math.max(64, Math.ceil((spanRef.current?.getBoundingClientRect().width || 0) + 10)));
+    setVal(String(Math.round((parseFloat(value) || 0) * 100) / 100));
+    setEditando(true);
+  };
   const confirmar = () => {
     setEditando(false);
     if (cancelado.current) return;
     const num = parseFloat(String(val).trim().replace(/\s/g, '').replace(',', '.'));
     if (!isNaN(num) && Math.abs(num - (parseFloat(value) || 0)) > 0.004) onSave(Math.round(num * 100) / 100);
   };
-  const caja = { display: 'inline-block', minWidth: ancho, maxWidth: '100%', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' };
   if (!editando) {
     return (
-      <span style={caja}>
-        <span onClick={abrir} title={disabled ? '' : title}
-          style={{ cursor: disabled ? 'default' : 'pointer', fontWeight: bold ? 700 : 500, color: color || 'inherit', borderBottom: disabled ? 'none' : '1px dashed var(--border)', paddingBottom: 1 }}>
-          {fmt(value)}
-        </span>
+      <span ref={spanRef} onClick={abrir} title={disabled ? '' : title}
+        style={{ display: 'inline-block', whiteSpace: 'nowrap', cursor: disabled ? 'default' : 'pointer', fontWeight: bold ? 700 : 500, color: color || 'inherit', borderBottom: disabled ? 'none' : '1px dashed var(--border)', paddingBottom: 1 }}>
+        {fmt(value)}
       </span>
     );
   }
   return (
-    <span style={caja}>
-      <input type="text" inputMode="decimal" autoFocus value={val}
-        style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 24, padding: '0 4px', margin: 0, textAlign: 'right', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: bold ? 700 : 500, color: color || 'inherit', background: 'var(--bg-input)', border: '1px solid var(--accent)', borderRadius: 6, outline: 'none' }}
-        onFocus={e => e.target.select()}
-        onChange={e => setVal(e.target.value)}
-        onBlur={confirmar}
-        onKeyDown={e => {
-          if (e.key === 'Enter') e.target.blur();
-          if (e.key === 'Escape') { cancelado.current = true; e.target.blur(); }
-        }} />
-    </span>
+    <input type="text" inputMode="decimal" autoFocus value={val}
+      style={{ width: anchoEdicion, maxWidth: '100%', boxSizing: 'border-box', height: 22, padding: '0 3px', margin: '-2px 0', verticalAlign: 'middle', textAlign: 'right', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: bold ? 700 : 500, color: color || 'inherit', background: 'var(--bg-input)', border: '1px solid var(--accent)', borderRadius: 6, outline: 'none' }}
+      onFocus={e => e.target.select()}
+      onChange={e => setVal(e.target.value)}
+      onBlur={confirmar}
+      onKeyDown={e => {
+        if (e.key === 'Enter') e.target.blur();
+        if (e.key === 'Escape') { cancelado.current = true; e.target.blur(); }
+      }} />
   );
 };
 
-function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData, onIrAPresupuesto }) {
+function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData, onIrAPresupuesto, config, onUpdateCfg }) {
   const { t, tf, mes } = useApp();
 
   const [notaEstimado, setNotaEstimado] = useState(false);
@@ -2796,7 +2925,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
     const isIncome = mk === 'Ingresos';
     return (
-      <div className="card" key={mk} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="card sm-card" key={mk} style={{ padding: 0, overflow: 'hidden' }}>
         <div className="budget-header-card" style={{ backgroundColor: getCategoryColor(mk) }}>
           <span>{(t[mk] || mk).toUpperCase()}</span>
         </div>
@@ -2841,6 +2970,14 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>{t.smAyudaTabla}</div>
+      {revisionDeAnioPendiente(fullData, year, config) && (
+        <div role="note" style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(16,185,129,.10)', border: '1px solid rgba(16,185,129,.4)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>🎯</span>
+          <span style={{ flex: 1, minWidth: 220 }}>{tf('revBanner', { year, anterior: year - 1 })}</span>
+          {onIrAPresupuesto && <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onIrAPresupuesto}>{t.revBannerBtn}</button>}
+          {onUpdateCfg && <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} title={t.revRevisado} onClick={() => onUpdateCfg({ ...config, revisionAnio: year })}>✕</button>}
+        </div>
+      )}
       {notaEstimado && (
         <div role="status" style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(99,102,241,.10)', border: '1px solid rgba(99,102,241,.4)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
           <span style={{ flex: 1, minWidth: 220 }}>{tf('smEstimadoAyuda', { year })}</span>
@@ -2849,9 +2986,11 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
         </div>
       )}
 
-      {/* Budget Tables: minmax(280px) para que las cinco secciones quepan en una fila a 1920×1080 */}
-      <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginTop: 12, marginBottom: 24 }}>
-        {ALL_MAIN_KEYS.map(renderMonthlyTable)}
+      {/* Tarjetas por sección: cinco por fila si hay sitio de sobra; si no, tres arriba y dos abajo centradas (reglas .sm-grid en index.css) */}
+      <div className="sm-grid-wrap" style={{ marginTop: 12, marginBottom: 24 }}>
+        <div className="sm-grid">
+          {ALL_MAIN_KEYS.map(renderMonthlyTable)}
+        </div>
       </div>
 
       {/* Transactions table */}
