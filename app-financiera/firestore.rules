@@ -73,6 +73,10 @@ service cloud.firestore {
                     && (!request.resource.data.keys().hasAny(['isAdmin'])
                         || request.resource.data.isAdmin == false)
                     && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado'])
+                    // Los permisos iniciales son los basicos: nadie se concede el
+                    // panel de gestion al darse de alta.
+                    && (!request.resource.data.keys().hasAny(['permissions'])
+                        || !request.resource.data.permissions.hasAny(['users']))
                     && (!request.resource.data.keys().hasAny(['trialEndsAt'])
                         || request.resource.data.trialEndsAt <= request.time.toMillis() + duracionPrueba() + toleranciaReloj());
 
@@ -85,7 +89,14 @@ service cloud.firestore {
       allow delete: if isAdmin();
 
       // ─── DATOS FINANCIEROS (data, settings, loans...) ───────────────────────
-      match /{documento=**} {
+      // Solo SUBCOLECCIONES del perfil: se exige al menos un segmento
+      // ({coleccion}). Con `match /{documento=**}` a secas, en rules_version 2
+      // el comodin recursivo tambien casa con cero segmentos, es decir, con el
+      // propio documento /users/{userId}; como Firestore concede el acceso si
+      // CUALQUIER regla lo permite, el `allow write` de abajo (que solo mira la
+      // suscripcion) dejaba al dueño escribir isAdmin, paidUntil o bloqueado en
+      // su perfil saltandose noTocaCamposProtegidos().
+      match /{coleccion}/{documento=**} {
         // LECTURA siempre para el dueño, tambien con la prueba caducada o la
         // cuenta bloqueada: el derecho de acceso del RGPD no se puede
         // condicionar al pago.

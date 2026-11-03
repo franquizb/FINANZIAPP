@@ -224,7 +224,8 @@ const LoanAmortizationMockTable = () => {
 
     // La fecha de inicio del préstamo de ejemplo (hace 5 años desde hoy)
     const today = new Date();
-    const loanStartDate = useMemo(() => new Date(today.getFullYear() - 5, 0, 1), []);
+    const anioActual = today.getFullYear();
+    const loanStartDate = useMemo(() => new Date(anioActual - 5, 0, 1), [anioActual]);
 
     const schedule = useMemo(() => {
         return calculateAmortizationSchedule(principal, annualInterestRate, termInMonths, loanStartDate);

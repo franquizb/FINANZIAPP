@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const STEPS = [
     {
@@ -61,12 +61,17 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
     const [rect, setRect] = useState(null);
     const [initialMode, setInitialMode] = useState(dashboardMode);
     const [actionCompleted, setActionCompleted] = useState(false);
+    // El modo del dashboard se lee por referencia: el efecto de abajo solo debe
+    // ejecutarse al cambiar de paso, no cada vez que el usuario alterna el modo
+    // (eso reiniciaría la acción pedida en el paso del tutorial).
+    const modoActual = useRef(dashboardMode);
+    useEffect(() => { modoActual.current = dashboardMode; }, [dashboardMode]);
 
     const step = STEPS[currentStep];
 
     useEffect(() => {
         setActionCompleted(false);
-        setInitialMode(dashboardMode);
+        setInitialMode(modoActual.current);
         // Prevent unnescessary jumps initially
         if (activeView !== step.view) {
             setActiveView(step.view);

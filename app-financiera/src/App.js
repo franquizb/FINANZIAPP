@@ -80,12 +80,13 @@ const generateInitialYearData = (year, cats = initialCategories) => {
   const d = { budget: {}, monthly: {}, netWorth: { assets: {}, liabilities: {} }, oneTime: {}, categories: JSON.parse(JSON.stringify(cats)) };
   months.forEach(m => { d.oneTime[m] = []; });
   Object.keys(d.categories).forEach(mk => {
-    if (mk === 'Activos' || mk === 'Pasivos') return;
+    if (esSeccionPatrimonio(mk)) return;
     d.categories[mk].forEach(sub => {
-      d.budget[sub] = (year === defaultStartYear && defaultBudget[sub] !== undefined) ? defaultBudget[sub] : 0;
+      const c = claveSub(mk, sub);
+      d.budget[c] = (year === defaultStartYear && defaultBudget[sub] !== undefined) ? defaultBudget[sub] : 0;
       months.forEach(m => {
         if (!d.monthly[m]) d.monthly[m] = {};
-        d.monthly[m][sub] = { budgeted: 0, actual: [] };
+        d.monthly[m][c] = { budgeted: 0, actual: [] };
       });
     });
   });
@@ -112,10 +113,10 @@ const crearAnioHeredado = (fullData, year, config) => {
   const cats = base?.categories || config?.categories || initialCategories;
   const d = generateInitialYearData(year, cats);
   if (base) {
-    Object.keys(d.budget).forEach(sub => {
-      const v = parseFloat(base.budget?.[sub]) || 0;
-      d.budget[sub] = v;
-      months.forEach(m => { d.monthly[m][sub].budgeted = v; });
+    Object.keys(d.budget).forEach(c => {
+      const v = parseFloat(base.budget?.[c]) || 0;
+      d.budget[c] = v;
+      months.forEach(m => { d.monthly[m][c].budgeted = v; });
     });
     if (baseYear < year) {
       ['assets', 'liabilities'].forEach(k => {
@@ -126,6 +127,16 @@ const crearAnioHeredado = (fullData, year, config) => {
       });
     }
   }
+  // Los préstamos vigentes ese año tienen que figurar en Pago de Deudas y en
+  // Pasivos aunque el año base no los tuviera (p. ej. un préstamo dado de alta
+  // para un año futuro cuando ese año todavía no existía). Si no, sus cuotas
+  // salían en la lista de movimientos pero no en los totales.
+  (fullData?.loans || []).forEach(l => {
+    if (prestamoCubreAnio(l, year)) {
+      asegurarSub(d, 'Pago de Deudas', l.name);
+      asegurarSub(d, 'Pasivos', l.name);
+    }
+  });
   return d;
 };
 
@@ -202,20 +213,191 @@ const getCategoryColor = (mk) => {
   }
 };
 
-const getCategoryGroup = (sub, cats) => {
-  if ((cats["Ingresos"] || []).includes(sub)) return { type: 'income', mainCategory: 'Ingresos' };
-  for (const mk of ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"]) {
-    if ((cats[mk] || []).includes(sub)) return { type: 'expense', mainCategory: mk };
-  }
-  if ((cats["Activos"] || []).includes(sub)) return { type: 'asset', mainCategory: 'Activos' };
-  if ((cats["Pasivos"] || []).includes(sub)) return { type: 'liability', mainCategory: 'Pasivos' };
-  return { type: 'unknown', mainCategory: '?' };
-};
-
 const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString('es-ES', { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const EXPENSE_KEYS = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
 const ALL_MAIN_KEYS = ["Ingresos", ...EXPENSE_KEYS];
+
+// ─── CLAVES DE PRESUPUESTO Y SUBCATEGORÍAS ───────────────────────────────────
+// El presupuesto y las transacciones de cada año se guardan por
+// "Sección|Subcategoría". Antes se indexaban solo por el nombre de la
+// subcategoría, así que dos subcategorías con el mismo nombre en secciones
+// distintas (el "Otros" de Ingresos, Gastos Esenciales, Discrecionales, Deudas
+// y Ahorro) compartían el mismo cubo: cada movimiento se contaba cinco veces y
+// borrar o renombrar una arrastraba a las demás. `migrarDatos` convierte los
+// datos antiguos al cargarlos.
+const SEP_CLAVE = '|';
+const VERSION_DATOS = 2;
+const claveSub = (mk, sub) => `${mk}${SEP_CLAVE}${sub}`;
+const esSeccionPatrimonio = (mk) => mk === 'Activos' || mk === 'Pasivos';
+const claveNW = (mk) => mk === 'Activos' ? 'assets' : 'liabilities';
+const clonar = (o) => JSON.parse(JSON.stringify(o));
+
+// Fecha local "YYYY-MM-DD" (toISOString() da la fecha UTC, que a primera hora
+// de la mañana en España todavía es el día anterior).
+const fechaISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const hoyLocal = () => fechaISO(new Date());
+
+// Nombre de subcategoría saneado: sin espacios sobrantes, con mayúscula inicial
+// y sin el separador de clave. Devuelve null (y avisa) si no vale.
+const nombreSubValido = (raw) => {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  if (s.includes(SEP_CLAVE)) { alert(`El nombre no puede contener el carácter "${SEP_CLAVE}".`); return null; }
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+// Añade una subcategoría a los datos de UN año: la lista de categorías y, según
+// la sección, sus entradas de presupuesto y meses o su fila de patrimonio (12
+// meses a 0). Idempotente.
+const asegurarSub = (d, mk, sub) => {
+  if (!d) return;
+  if (!d.categories) d.categories = clonar(initialCategories);
+  if (!d.categories[mk]) d.categories[mk] = [];
+  if (!d.categories[mk].includes(sub)) {
+    d.categories[mk].push(sub);
+    d.categories[mk].sort();
+  }
+  if (esSeccionPatrimonio(mk)) {
+    const k = claveNW(mk);
+    if (!d.netWorth) d.netWorth = { assets: {}, liabilities: {} };
+    if (!d.netWorth[k]) d.netWorth[k] = {};
+    if (!d.netWorth[k][sub]) { d.netWorth[k][sub] = {}; months.forEach(m => { d.netWorth[k][sub][m] = 0; }); }
+  } else {
+    const c = claveSub(mk, sub);
+    if (!d.budget) d.budget = {};
+    if (d.budget[c] === undefined) d.budget[c] = 0;
+    if (!d.monthly) d.monthly = {};
+    months.forEach(m => {
+      if (!d.monthly[m]) d.monthly[m] = {};
+      if (!d.monthly[m][c]) d.monthly[m][c] = { budgeted: 0, actual: [] };
+    });
+  }
+};
+
+// Quita una subcategoría de los datos de UN año junto con sus datos. Solo los de
+// esa sección: una homónima en otra sección no se toca.
+const eliminarSub = (d, mk, sub) => {
+  if (!d) return;
+  if (d.categories?.[mk]) d.categories[mk] = d.categories[mk].filter(s => s !== sub);
+  if (esSeccionPatrimonio(mk)) {
+    if (d.netWorth?.[claveNW(mk)]) delete d.netWorth[claveNW(mk)][sub];
+  } else {
+    const c = claveSub(mk, sub);
+    if (d.budget) delete d.budget[c];
+    months.forEach(m => { if (d.monthly?.[m]) delete d.monthly[m][c]; });
+  }
+};
+
+// Renombra una subcategoría en los datos de UN año moviendo sus datos a la clave nueva.
+const renombrarSub = (d, mk, oldName, newName) => {
+  if (!d) return;
+  if (d.categories?.[mk]) {
+    const i = d.categories[mk].indexOf(oldName);
+    if (i !== -1) { d.categories[mk][i] = newName; d.categories[mk].sort(); }
+  }
+  if (esSeccionPatrimonio(mk)) {
+    const nw = d.netWorth?.[claveNW(mk)];
+    if (nw && nw[oldName] !== undefined) { nw[newName] = nw[oldName]; delete nw[oldName]; }
+  } else {
+    const co = claveSub(mk, oldName), cn = claveSub(mk, newName);
+    if (d.budget && d.budget[co] !== undefined) { d.budget[cn] = d.budget[co]; delete d.budget[co]; }
+    months.forEach(m => {
+      if (d.monthly?.[m]?.[co]) { d.monthly[m][cn] = d.monthly[m][co]; delete d.monthly[m][co]; }
+    });
+  }
+};
+
+// Copia de los datos con `fn` aplicada a cada año >= startY (las operaciones
+// sobre categorías afectan al año seleccionado y a los posteriores, nunca a los
+// anteriores, que conservan su historial).
+const enAniosDesde = (fullData, startY, fn) => {
+  const nd = clonar(fullData);
+  aniosConDatos(nd).filter(y => y >= startY).forEach(y => fn(nd[y], y));
+  return nd;
+};
+
+// ¿Existe ya `name` en la sección mk, en la configuración o en algún año >= startY?
+// Un duplicado en cualquiera de ellos dejaría dos entradas iguales y pisaría sus datos.
+const existeSub = (fullData, config, mk, name, startY) =>
+  (config?.categories?.[mk] || []).includes(name) ||
+  aniosConDatos(fullData).filter(y => y >= startY).some(y => (fullData[y]?.categories?.[mk] || []).includes(name));
+
+// Configuración global con la subcategoría añadida / quitada / renombrada.
+const configConSub = (config, mk, sub) => {
+  const nc = clonar(config);
+  if (!nc.categories) nc.categories = clonar(initialCategories);
+  if (!nc.categories[mk]) nc.categories[mk] = [];
+  if (!nc.categories[mk].includes(sub)) { nc.categories[mk].push(sub); nc.categories[mk].sort(); }
+  return nc;
+};
+const configSinSub = (config, mk, sub) => {
+  const nc = clonar(config);
+  if (nc.categories?.[mk]) nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
+  return nc;
+};
+const configRenombrada = (config, mk, oldName, newName) => {
+  const nc = clonar(config);
+  if (nc.categories?.[mk]) {
+    const i = nc.categories[mk].indexOf(oldName);
+    if (i !== -1) nc.categories[mk][i] = newName;
+    nc.categories[mk].sort();
+  }
+  return nc;
+};
+
+// Migración del modelo antiguo (clave = nombre) al nuevo (clave = sección|nombre).
+// Cuando un nombre estaba en varias secciones no hay forma de saber a cuál
+// pertenecían sus movimientos: se asignan a la primera sección de esta lista que
+// lo contenga (lo más probable es que un "Otros" fuera un gasto; los ingresos van
+// al final) y las demás empiezan vacías. Los datos de subcategorías que ya no
+// están en ninguna sección se conservan tal cual (no se muestran, pero no se pierden).
+const PREFERENCIA_MIGRACION = [...EXPENSE_KEYS, 'Ingresos'];
+const migrarDatos = (fd, cfgCats) => {
+  if (!fd || (parseInt(fd.version) || 1) >= VERSION_DATOS) return fd;
+  const nd = clonar(fd);
+  aniosConDatos(nd).forEach(y => {
+    const d = nd[y];
+    if (!d || typeof d !== 'object') return;
+    if (!d.categories) d.categories = clonar(cfgCats || initialCategories);
+    const budget = {};
+    const monthly = {};
+    months.forEach(m => { monthly[m] = {}; });
+    const asignados = new Set();
+    const secciones = [
+      ...PREFERENCIA_MIGRACION,
+      ...Object.keys(d.categories).filter(mk => !esSeccionPatrimonio(mk) && !PREFERENCIA_MIGRACION.includes(mk))
+    ];
+    secciones.forEach(mk => (d.categories[mk] || []).forEach(sub => {
+      const c = claveSub(mk, sub);
+      const primera = !asignados.has(sub);
+      asignados.add(sub);
+      budget[c] = primera ? (parseFloat(d.budget?.[sub]) || 0) : 0;
+      months.forEach(m => {
+        const v = primera ? d.monthly?.[m]?.[sub] : null;
+        monthly[m][c] = (v && typeof v === 'object')
+          ? { budgeted: parseFloat(v.budgeted) || 0, actual: Array.isArray(v.actual) ? v.actual : [] }
+          : { budgeted: 0, actual: [] };
+      });
+    }));
+    Object.keys(d.budget || {}).forEach(k => { if (!asignados.has(k) && !k.includes(SEP_CLAVE)) budget[k] = d.budget[k]; });
+    months.forEach(m => Object.keys(d.monthly?.[m] || {}).forEach(k => {
+      if (!asignados.has(k) && !k.includes(SEP_CLAVE)) monthly[m][k] = d.monthly[m][k];
+    }));
+    d.budget = budget;
+    d.monthly = monthly;
+  });
+  nd.version = VERSION_DATOS;
+  return nd;
+};
+
+// Datos financieros tal y como los usa la app: modelo actual y arrays garantizados.
+const normalizarFD = (fd, cfgCats) => {
+  const nd = migrarDatos(fd, cfgCats);
+  if (!nd.loans) nd.loans = [];
+  if (!nd.trading) nd.trading = [];
+  return nd;
+};
 
 // ─── PRÉSTAMOS ───────────────────────────────────────────────────────────────
 // Fecha "YYYY-MM-DD" interpretada en hora local (new Date('2026-01-01') la toma
@@ -312,36 +494,47 @@ const isLoanFullYear = (loan, year) => {
   return primerMes <= new Date(year, 0, 1) && end >= new Date(year, 11, 1);
 };
 
+// Préstamos cuyo nombre es la subcategoría `sub` (puede haber más de uno) y suma
+// de sus cuotas en un mes. Antes se usaba `find`, así que con dos préstamos del
+// mismo nombre solo el primero contaba en presupuesto y totales.
+const prestamosDe = (fullData, sub) => (fullData?.loans || []).filter(l => l.name === sub);
+const cuotaPrestamos = (fullData, sub, year, mIdx) => prestamosDe(fullData, sub).reduce((s, l) => {
+  const lv = getLoanValues(l, year, mIdx);
+  return s + (lv.active ? lv.installment : 0);
+}, 0);
+
+// ¿Paga alguna cuota el préstamo durante `year`?
+const prestamoCubreAnio = (loan, year) => {
+  if (!loan || !loan.startDate) return false;
+  return fechaLocal(loan.startDate).getFullYear() <= year && finRealPrestamo(loan).getFullYear() >= year;
+};
+
 const getEffectiveBudget = (sub, mainCategory, year, mIdx, fullData, manualBudget) => {
-  if (mainCategory === 'Pago de Deudas' && fullData?.loans) {
-    const loan = fullData.loans.find(l => l.name === sub);
-    if (loan) {
+  if (mainCategory === 'Pago de Deudas') {
+    const loans = prestamosDe(fullData, sub);
+    if (loans.length) {
       if (mIdx === -1) {
-        // Si no es año completo, no sale en la tabla recurrente (se va a puntuales)
-        if (!isLoanFullYear(loan, year)) return 0;
+        // Media mensual de los préstamos que cubren el año completo. Los que no
+        // lo cubren no salen en la tabla recurrente (se listan en puntuales).
         let total = 0;
-        for (let m = 0; m < 12; m++) {
-          total += getLoanValues(loan, year, m).installment;
-        }
+        loans.filter(l => isLoanFullYear(l, year)).forEach(l => {
+          for (let m = 0; m < 12; m++) total += getLoanValues(l, year, m).installment;
+        });
         return total / 12;
       }
-      const lv = getLoanValues(loan, year, mIdx);
-      return lv.active ? lv.installment : 0;
+      return cuotaPrestamos(fullData, sub, year, mIdx);
     }
   }
-  return manualBudget?.[sub] || 0;
+  return parseFloat(manualBudget?.[claveSub(mainCategory, sub)]) || 0;
 };
 
 // Ingresos y gastos de cada mes de un año (las cuotas de préstamos cuentan como
-// gasto real). Lo usa el dashboard para comparar con el año anterior.
+// gasto real). Lo usan el dashboard (también para comparar con el año anterior).
 const calcularTotalesMensuales = (data, categories, fullData, year) => months.map((m, mIdx) => {
-  const income = (categories["Ingresos"] || []).reduce((s, sub) => s + calcTotal(data?.monthly?.[m]?.[sub]?.actual || []), 0);
+  const income = (categories["Ingresos"] || []).reduce((s, sub) => s + calcTotal(data?.monthly?.[m]?.[claveSub('Ingresos', sub)]?.actual || []), 0);
   const expenses = EXPENSE_KEYS.reduce((s, mk) => s + (categories[mk] || []).reduce((ss, sub) => {
-    let val = calcTotal(data?.monthly?.[m]?.[sub]?.actual || []);
-    if (mk === 'Pago de Deudas' && fullData?.loans) {
-      const loan = fullData.loans.find(l => l.name === sub);
-      if (loan) { const lv = getLoanValues(loan, year, mIdx); if (lv.active) val += lv.installment; }
-    }
+    let val = calcTotal(data?.monthly?.[m]?.[claveSub(mk, sub)]?.actual || []);
+    if (mk === 'Pago de Deudas') val += cuotaPrestamos(fullData, sub, year, mIdx);
     return ss + val;
   }, 0), 0);
   return { name: m.substring(0, 3).toUpperCase(), income, expenses };
@@ -411,6 +604,10 @@ const procesarTrades = (trades) => {
         }
       }
     }
+    // Residuo de coma flotante (0.1 + 0.2 - 0.3 ≠ 0): la posición está cerrada.
+    // Si no se pone a cero exacto, sigue contando como abierta y un Short
+    // posterior sobre el activo se trataría como cierre del Long.
+    if (Math.abs(a.totalQty) < 1e-9) { a.totalQty = 0; a.totalCost = 0; }
 
     if (tGrossPnL > 0) wins++;
     else if (tGrossPnL < 0) losses++;
@@ -570,8 +767,7 @@ function AppInner({ isHome }) {
 
   const location = useLocation();
   const pathView = location.pathname.substring(1);
-  const validViews = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings', 'users'];
-  const initialView = validViews.includes(pathView) ? pathView : 'dashboard';
+  const initialView = VISTAS_POR_DEFECTO.includes(pathView) ? pathView : 'dashboard';
   const [activeView, _setActiveView] = useState(initialView);
 
   const setActiveView = (v) => {
@@ -581,7 +777,7 @@ function AppInner({ isHome }) {
 
   useEffect(() => {
     const pv = location.pathname.substring(1);
-    if (pv && validViews.includes(pv) && pv !== activeView) {
+    if (pv && VISTAS_POR_DEFECTO.includes(pv) && pv !== activeView) {
       _setActiveView(pv);
     }
   }, [location.pathname, activeView]);
@@ -597,6 +793,14 @@ function AppInner({ isHome }) {
   const aniosIntentados = useRef(new Set());
   // "Año por defecto" de Configuración: 0 = automático (año en curso). Se aplica una vez al cargar.
   const anioInicialAplicado = useRef(false);
+  // El tutorial se decide con la PRIMERA configuración recibida. Si se evaluara
+  // en cada snapshot, a quien Firestore le rechaza guardar tutorialCompleted
+  // (prueba caducada, cuenta bloqueada) se le reabría en bucle y le tapaba la app.
+  const tutorialEvaluado = useRef(false);
+  // La migración del modelo de datos se escribe una sola vez por sesión.
+  const migracionEscrita = useRef(false);
+  // Última configuración conocida (el snapshot de datos puede llegar antes que el estado).
+  const configActual = useRef(null);
   useEffect(() => {
     if (!config || anioInicialAplicado.current) return;
     anioInicialAplicado.current = true;
@@ -669,6 +873,17 @@ function AppInner({ isHome }) {
     if (!userId) { setLoading(false); return; }
     setLoading(true);
 
+    // Estado propio de cada usuario. Si en la misma pestaña entra otra persona,
+    // no debe heredar el año que miraba la anterior (se le crearía un año de
+    // datos que no pidió) ni saltarse su "año por defecto".
+    anioInicialAplicado.current = false;
+    aniosIntentados.current = new Set();
+    tutorialEvaluado.current = false;
+    migracionEscrita.current = false;
+    configActual.current = null;
+    setSelectedYear(defaultStartYear);
+    setSelectedMonth(months[new Date().getMonth()]);
+
     const configRef = doc(db, 'users', userId, 'settings', 'config');
     const dataRef = doc(db, 'users', userId, 'data', 'financial');
 
@@ -692,8 +907,12 @@ function AppInner({ isHome }) {
     // Listen for real-time updates for Config
     const unsubConfig = onSnapshot(configRef, (snap) => {
       const currentConfig = normalizarConfig(snap.exists() ? snap.data() : null);
+      configActual.current = currentConfig;
       setConfig(currentConfig);
-      if (!currentConfig.tutorialCompleted) setShowTutorial(true);
+      if (!tutorialEvaluado.current) {
+        tutorialEvaluado.current = true;
+        if (!currentConfig.tutorialCompleted) setShowTutorial(true);
+      }
     }, (err) => {
       console.error("Error syncing config:", err);
     });
@@ -701,12 +920,22 @@ function AppInner({ isHome }) {
     // Listen for real-time updates for Financial Data
     const unsubData = onSnapshot(dataRef, (snap) => {
       if (snap.exists()) {
-        const fd = snap.data();
-        if (!fd.loans) fd.loans = [];
-        if (!fd.trading) fd.trading = [];
+        const bruto = snap.data();
+        const fd = normalizarFD(bruto, configActual.current?.categories);
         setFinancialData(fd);
+        // Datos en el formato antiguo: se guardan ya convertidos (una vez por
+        // sesión; si la escritura falla, la app sigue funcionando con la copia
+        // convertida en memoria y lo reintentará al abrir de nuevo).
+        if ((parseInt(bruto.version) || 1) < VERSION_DATOS && !migracionEscrita.current) {
+          migracionEscrita.current = true;
+          setDoc(dataRef, fd).catch(e => {
+            console.error('No se pudo guardar la migración del modelo de datos:', e);
+            logErrorToFirebase('Migrar modelo de datos', e);
+          });
+        }
       } else {
         const initialData = {
+          version: VERSION_DATOS,
           [defaultStartYear]: generateInitialYearData(defaultStartYear, initialCategories),
           loans: [],
           trading: []
@@ -722,12 +951,15 @@ function AppInner({ isHome }) {
     });
 
     // Registro de actividad: un documento por usuario y día, con latido cada 5 minutos.
+    const INTERVALO_LATIDO = 5 * 60 * 1000;
     let lastTick = Date.now();
     const logSession = async () => {
       if (!userId) return;
       try {
         const now = Date.now();
-        const diff = now - lastTick;
+        // Acotado al intervalo: con el portátil suspendido o la pestaña en
+        // segundo plano, el reloj sigue corriendo y un solo latido sumaba horas.
+        const diff = Math.min(now - lastTick, INTERVALO_LATIDO + 30000);
         lastTick = now;
 
         const d = new Date();
@@ -756,7 +988,7 @@ function AppInner({ isHome }) {
       }
     };
     logSession();
-    const interval = setInterval(logSession, 5 * 60 * 1000); // Latido cada 5 minutos
+    const interval = setInterval(logSession, INTERVALO_LATIDO);
 
     return () => {
       unsubConfig();
@@ -789,13 +1021,12 @@ function AppInner({ isHome }) {
         getDoc(doc(db, 'users', userId, 'data', 'financial')),
         getDoc(doc(db, 'users', userId, 'settings', 'config'))
       ]);
-      if (ds.exists()) {
-        const fd = ds.data();
-        if (!fd.loans) fd.loans = [];
-        if (!fd.trading) fd.trading = [];
-        setFinancialData(fd);
+      if (cs.exists()) {
+        const nc = normalizarConfig(cs.data());
+        configActual.current = nc;
+        setConfig(nc);
       }
-      if (cs.exists()) setConfig(normalizarConfig(cs.data()));
+      if (ds.exists()) setFinancialData(normalizarFD(ds.data(), configActual.current?.categories));
     } catch (e) {
       console.error('No se pudo recargar desde la nube:', e);
     }
@@ -817,6 +1048,7 @@ function AppInner({ isHome }) {
   };
 
   const updateCfg = async (nc) => {
+    configActual.current = nc;
     setConfig(nc);
     localDB.set(`users_${userId}_config`, nc);
     if (!userId) return;
@@ -891,7 +1123,8 @@ function AppInner({ isHome }) {
       console.error('Error al cerrar la sesión de Firebase Auth:', e);
     }
     localStorage.removeItem('currentUser');
-    setUser(null); setConfig(null); setFinancialData(null); setErrorGuardado(null);
+    configActual.current = null;
+    setUser(null); setConfig(null); setFinancialData(null); setErrorGuardado(null); setShowTutorial(false);
     navigate('/');
   };
 
@@ -1109,23 +1342,21 @@ function Topbar({ activeView, setActiveView, user, sidebarCollapsed, toggleSideb
             if (!dataYears.length) dataYears.push(new Date().getFullYear());
             let minYear = Math.min(...dataYears);
             let maxYear = Math.max(...dataYears, new Date().getFullYear() + 4);
+            // Fechas en hora local y fin real del préstamo (con amortizaciones
+            // anticipadas): new Date('2026-01-01') en UTC caía en 2025 y añadía
+            // al selector un año extra que, al elegirlo, se creaba y guardaba.
             (financialData?.loans || []).forEach(l => {
               if (l.startDate) {
-                const sy = new Date(l.startDate).getFullYear();
+                const sy = fechaLocal(l.startDate).getFullYear();
                 if (sy < minYear) minYear = sy;
-                const count = l.installmentsCount || 1;
-                const ey = new Date(new Date(l.startDate).setMonth(new Date(l.startDate).getMonth() + count)).getFullYear();
+                const ey = finRealPrestamo(l).getFullYear();
                 if (ey > maxYear) maxYear = ey;
               }
             });
             const valid = [];
             for (let i = minYear; i <= maxYear; i++) {
               const hasData = financialData?.[i] && (Object.keys(financialData[i]?.oneTime || {}).some(k => financialData[i].oneTime[k].length > 0) || Object.keys(financialData[i]?.monthly?.enero || {}).some(k => financialData[i].monthly.enero[k]?.actual?.length > 0));
-              if (i <= new Date().getFullYear() + 4 || hasData || (financialData?.loans || []).some(l => {
-                const sy = new Date(l.startDate).getFullYear();
-                const ey = new Date(new Date(l.startDate).setMonth(new Date(l.startDate).getMonth() + (l.installmentsCount || 1))).getFullYear();
-                return i >= sy && i <= ey;
-              })) {
+              if (i <= new Date().getFullYear() + 4 || hasData || (financialData?.loans || []).some(l => prestamoCubreAnio(l, i))) {
                 valid.push(i);
               }
             }
@@ -1219,13 +1450,15 @@ const DeleteConfirmButton = ({ onDelete }) => {
 const RenameSpan = ({ sub, onRename, disabled }) => {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(sub);
-  
+  useEffect(() => { setVal(sub); }, [sub]);
+
   if (editing && !disabled) {
     return <input autoFocus value={val} onChange={e => setVal(e.target.value)} onBlur={() => {
       setEditing(false);
       const newName = val.trim();
       if (newName && newName !== sub) onRename(newName);
-      else setVal(sub);
+      // Si el cambio se rechaza (nombre repetido), la próxima edición parte del nombre actual.
+      setVal(sub);
     }} onKeyDown={e => {
       if (e.key === 'Enter') e.target.blur();
       if (e.key === 'Escape') { setVal(sub); setEditing(false); }
@@ -1253,38 +1486,19 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
   const expenseKeys = EXPENSE_KEYS;
 
-  const monthlyTotals = months.map((m, mIdx) => {
-    let income = (categories["Ingresos"] || []).reduce((s, sub) => s + calcTotal(data.monthly?.[m]?.[sub]?.actual || []), 0);
-    let expenses = expenseKeys.reduce((s, mk) => s + (categories[mk] || []).reduce((ss, sub) => {
-      let val = calcTotal(data.monthly?.[m]?.[sub]?.actual || []);
-      // Inject loan payments as actual expenses in charts
-      if (mk === 'Pago de Deudas' && fullData.loans) {
-        const loan = fullData.loans.find(l => l.name === sub);
-        if (loan) {
-          const lv = getLoanValues(loan, year, mIdx);
-          if (lv.active) val += lv.installment;
-        }
-      }
-      return ss + val;
-    }, 0), 0);
-    return { name: m.substring(0, 3).toUpperCase(), income, expenses };
-  });
+  // Mismo cálculo que la comparativa con el año anterior (cuotas de préstamos incluidas).
+  const monthlyTotals = calcularTotalesMensuales(data, categories, fullData, year);
 
   const totalIncome = monthlyTotals.reduce((s, i) => s + i.income, 0);
   const totalExpenses = monthlyTotals.reduce((s, i) => s + i.expenses, 0);
   const totalSavings = totalIncome - totalExpenses;
+  const mesesConIngresoAnio = monthlyTotals.filter(m => m.income > 0).length;
 
   const expenseDist = [];
   expenseKeys.forEach(mk => (categories[mk] || []).forEach(sub => {
     let v = months.reduce((s, m, mIdx) => {
-      let val = calcTotal(data.monthly?.[m]?.[sub]?.actual || []);
-      if (mk === 'Pago de Deudas' && fullData.loans) {
-        const loan = fullData.loans.find(l => l.name === sub);
-        if (loan) {
-          const lv = getLoanValues(loan, year, mIdx);
-          if (lv.active) val += lv.installment;
-        }
-      }
+      let val = calcTotal(data.monthly?.[m]?.[claveSub(mk, sub)]?.actual || []);
+      if (mk === 'Pago de Deudas') val += cuotaPrestamos(fullData, sub, year, mIdx);
       return s + val;
     }, 0);
     if (v > 0) expenseDist.push({ name: sub, value: v });
@@ -1292,52 +1506,48 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
   // Budget calculations
   const monthsPassed = year === new Date().getFullYear() ? new Date().getMonth() + 1 : 12;
+  const idxTodos = months.map((_, i) => i);
+  const idxHasta = idxTodos.slice(0, monthsPassed);
 
   const getSubsWithOneTime = (mk) => Array.from(new Set([
     ...(categories[mk] || []),
     ...months.flatMap(m => (data.oneTime?.[m] || []).filter(ot => ot.cat === mk).map(ot => ot.sub))
   ]));
 
+  // Importes puntuales de una subcategoría en los meses indicados.
+  const puntuales = (mk, sub, idxMeses) => idxMeses.reduce((acc, i) => acc + (data.oneTime?.[months[i]] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((ss, ot) => ss + ot.amount, 0), 0);
+  // Cuotas de los préstamos que NO cubren el año completo. En la tabla recurrente
+  // salen a 0 y se listan como puntuales, así que entran en el presupuesto igual
+  // que los gastos puntuales: antes contaban en el "real" pero no en el plan ni
+  // en el remanente.
+  const cuotasParciales = (mk, sub, idxMeses) => mk !== 'Pago de Deudas' ? 0 :
+    prestamosDe(fullData, sub).filter(l => !isLoanFullYear(l, year)).reduce((s, l) => s + idxMeses.reduce((ss, i) => {
+      const lv = getLoanValues(l, year, i);
+      return ss + (lv.active ? lv.installment : 0);
+    }, 0), 0);
+  const realDe = (mk, sub, idxMeses) => idxMeses.reduce((s, i) => {
+    let val = calcTotal(data.monthly?.[months[i]]?.[claveSub(mk, sub)]?.actual || []);
+    if (mk === 'Pago de Deudas') val += cuotaPrestamos(fullData, sub, year, i);
+    return s + val;
+  }, 0);
+
   const incomeVsActual = getSubsWithOneTime("Ingresos").map(c => {
-    let budgetedTotal = getEffectiveBudget(c, "Ingresos", year, -1, fullData, data.budget) * monthsPassed;
-    budgetedTotal += months.slice(0, monthsPassed).reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === "Ingresos" && ot.sub === c).reduce((ss, ot) => ss + ot.amount, 0), 0);
-    const actual = months.slice(0, monthsPassed).reduce((s, m) => s + calcTotal(data.monthly?.[m]?.[c]?.actual || []), 0);
-    return { name: c, budgeted: budgetedTotal, actual };
+    const budgetedTotal = getEffectiveBudget(c, "Ingresos", year, -1, fullData, data.budget) * monthsPassed + puntuales("Ingresos", c, idxHasta);
+    return { name: c, budgeted: budgetedTotal, actual: realDe("Ingresos", c, idxHasta) };
   }).filter(i => i.budgeted > 0 || i.actual > 0);
 
   const expenseVsActual = expenseKeys.map(mk => {
     const subs = getSubsWithOneTime(mk);
-    const budgetedTotal = subs.reduce((s, sub) => {
-      let b = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget) * monthsPassed;
-      b += months.slice(0, monthsPassed).reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((ss, ot) => ss + ot.amount, 0), 0);
-      return s + b;
-    }, 0);
-
-    const actual = months.slice(0, monthsPassed).reduce((s, m, mIdx) => s + subs.reduce((ss, sub) => {
-      let val = calcTotal(data.monthly?.[m]?.[sub]?.actual || []);
-      if (mk === 'Pago de Deudas' && fullData.loans) {
-        const loan = fullData.loans.find(l => l.name === sub);
-        if (loan) {
-          const lv = getLoanValues(loan, year, mIdx);
-          if (lv.active) val += lv.installment;
-        }
-      }
-      return ss + val;
-    }, 0), 0);
+    const budgetedTotal = subs.reduce((s, sub) => s + getEffectiveBudget(sub, mk, year, -1, fullData, data.budget) * monthsPassed + puntuales(mk, sub, idxHasta) + cuotasParciales(mk, sub, idxHasta), 0);
+    const actual = subs.reduce((s, sub) => s + realDe(mk, sub, idxHasta), 0);
     return { name: mk.replace('Gastos ', '').replace('Ahorro e Inversión', 'Ahorro'), budgeted: budgetedTotal, actual };
   }).filter(i => i.budgeted > 0 || i.actual > 0);
 
-  const totalIncomeBudgeted = getSubsWithOneTime("Ingresos").reduce((s, sub) => {
-    let b = getEffectiveBudget(sub, "Ingresos", year, -1, fullData, data.budget);
-    b += months.reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === "Ingresos" && ot.sub === sub).reduce((ss, ot) => ss + ot.amount, 0), 0) / 12;
-    return s + b;
-  }, 0);
-  
-  const totalExpensesBudgeted = expenseKeys.reduce((s, mk) => s + getSubsWithOneTime(mk).reduce((ss, sub) => {
-    let b = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget);
-    b += months.reduce((acc, m) => acc + (data.oneTime?.[m] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((sss, ot) => sss + ot.amount, 0), 0) / 12;
-    return ss + b;
-  }, 0), 0);
+  const totalIncomeBudgeted = getSubsWithOneTime("Ingresos").reduce((s, sub) =>
+    s + getEffectiveBudget(sub, "Ingresos", year, -1, fullData, data.budget) + puntuales("Ingresos", sub, idxTodos) / 12, 0);
+
+  const totalExpensesBudgeted = expenseKeys.reduce((s, mk) => s + getSubsWithOneTime(mk).reduce((ss, sub) =>
+    ss + getEffectiveBudget(sub, mk, year, -1, fullData, data.budget) + (puntuales(mk, sub, idxTodos) + cuotasParciales(mk, sub, idxTodos)) / 12, 0), 0);
   const remanente = totalIncomeBudgeted - totalExpensesBudgeted;
 
   // Mismo cálculo que la pestaña Trading (las operaciones no llevan un campo
@@ -1367,8 +1577,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
             <thead><tr><th>{t.category}</th><th className="text-right">{t.monthlyAmount}</th></tr></thead>
             <tbody>
               {subs.map(sub => {
-                const loan = mk === 'Pago de Deudas' && fullData.loans?.find(l => l.name === sub);
-                const isLoan = !!loan;
+                const isLoan = mk === 'Pago de Deudas' && prestamosDe(fullData, sub).length > 0;
                 const val = getEffectiveBudget(sub, mk, year, -1, fullData, data.budget);
                 return (
                   <tr key={sub} className={isLoan ? 'loan-row' : ''}>
@@ -1381,61 +1590,22 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                           {!budgetLocked && (
                             <DeleteConfirmButton onDelete={() => {
-                              const nc = JSON.parse(JSON.stringify(config));
-                              nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
-                              onUpdateCfg(nc);
-
-                              const nd = JSON.parse(JSON.stringify(fullData));
                               // Solo el año seleccionado y los posteriores: los años anteriores conservan su historial.
-                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
-                              yKeys.forEach(y => {
-                                if (nd[y].categories?.[mk]) {
-                                  nd[y].categories[mk] = nd[y].categories[mk].filter(s => s !== sub);
-                                }
-                                if (nd[y].budget) delete nd[y].budget[sub];
-                                months.forEach(m => { if (nd[y].monthly?.[m]) delete nd[y].monthly[m][sub]; });
-                                if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) delete nd[y].netWorth.assets[sub];
-                                if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) delete nd[y].netWorth.liabilities[sub];
-                              });
-                              onUpdate(nd);
+                              onUpdateCfg(configSinSub(config, mk, sub));
+                              onUpdate(enAniosDesde(fullData, year, d => eliminarSub(d, mk, sub)));
                             }} />
                           )}
-                          <RenameSpan 
-                            sub={sub} 
-                            disabled={budgetLocked} 
-                            onRename={newName => {
-                              const nc = JSON.parse(JSON.stringify(config));
-                              nc.categories[mk] = nc.categories[mk].map(s => s === sub ? newName : s);
-                              onUpdateCfg(nc);
-
-                              const nd = JSON.parse(JSON.stringify(fullData));
-                              // Solo el año seleccionado y los posteriores.
-                              const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
-                              yKeys.forEach(y => {
-                                if (nd[y].categories?.[mk]) {
-                                  nd[y].categories[mk] = nd[y].categories[mk].map(s => s === sub ? newName : s);
-                                }
-                                if (nd[y].budget && nd[y].budget[sub] !== undefined) {
-                                  nd[y].budget[newName] = nd[y].budget[sub];
-                                  delete nd[y].budget[sub];
-                                }
-                                months.forEach(m => {
-                                  if (nd[y].monthly?.[m]?.[sub]) {
-                                    nd[y].monthly[m][newName] = nd[y].monthly[m][sub];
-                                    delete nd[y].monthly[m][sub];
-                                  }
-                                });
-                                if (mk === 'Activos' && nd[y].netWorth?.assets?.[sub]) {
-                                  nd[y].netWorth.assets[newName] = nd[y].netWorth.assets[sub];
-                                  delete nd[y].netWorth.assets[sub];
-                                }
-                                if (mk === 'Pasivos' && nd[y].netWorth?.liabilities?.[sub]) {
-                                  nd[y].netWorth.liabilities[newName] = nd[y].netWorth.liabilities[sub];
-                                  delete nd[y].netWorth.liabilities[sub];
-                                }
-                              });
-                              onUpdate(nd);
-                            }} 
+                          <RenameSpan
+                            sub={sub}
+                            disabled={budgetLocked}
+                            onRename={raw => {
+                              const newName = nombreSubValido(raw);
+                              if (!newName || newName === sub) return;
+                              // Renombrar a un nombre que ya existe pisaría sus datos y dejaría dos filas iguales.
+                              if (existeSub(fullData, config, mk, newName, year)) { alert(`"${newName}" ya existe en ${mk}.`); return; }
+                              onUpdateCfg(configRenombrada(config, mk, sub, newName));
+                              onUpdate(enAniosDesde(fullData, year, d => renombrarSub(d, mk, sub, newName)));
+                            }}
                           />
                         </div>
                       )}
@@ -1444,29 +1614,21 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                       {isLoan ? (
                         <span style={{ fontWeight: 600, paddingRight: 4, color: 'var(--text-muted)' }}>{fmt(val)}</span>
                       ) : (
-                        <BudgetInput 
-                          value={data.budget?.[sub] || 0}
+                        <BudgetInput
+                          value={data.budget?.[claveSub(mk, sub)] || 0}
                           disabled={budgetLocked}
                           onSave={v => {
-                            const nd = JSON.parse(JSON.stringify(fullData));
                             // El importe del presupuesto es propio de cada año: no se copia a los años siguientes
                             // (al crear un año nuevo ya se hereda el presupuesto del anterior).
-                            const yKeys = Object.keys(nd).filter(k => parseInt(k) === year);
-                            yKeys.forEach(k => {
-                              if (!nd[k].budget) nd[k].budget = {};
-                              nd[k].budget[sub] = v;
-                              if (!nd[k].monthly) {
-                                nd[k].monthly = {};
-                                months.forEach(mo => nd[k].monthly[mo] = {});
-                              }
-                              months.forEach(mo => {
-                                if (!nd[k].monthly[mo]) nd[k].monthly[mo] = {};
-                                if (!nd[k].monthly[mo][sub]) nd[k].monthly[mo][sub] = { budgeted: 0, actual: [] };
-                                nd[k].monthly[mo][sub].budgeted = v;
-                              });
-                            });
+                            const nd = clonar(fullData);
+                            const d = nd[String(year)];
+                            if (!d) return;
+                            const c = claveSub(mk, sub);
+                            asegurarSub(d, mk, sub);
+                            d.budget[c] = v;
+                            months.forEach(mo => { d.monthly[mo][c].budgeted = v; });
                             onUpdate(nd);
-                          }} 
+                          }}
                         />
                       )}
                     </td>
@@ -1486,34 +1648,12 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                         onChange={e => setNewSub(e.target.value)}
                         onKeyDown={e => {
                           if (e.key === 'Enter' && newSub.trim()) {
-                            const sub = newSub.trim();
-                            const nc = JSON.parse(JSON.stringify(config));
-                            if (!nc.categories[mk]) nc.categories[mk] = [];
-                            if (!nc.categories[mk].includes(sub)) {
-                              nc.categories[mk].push(sub);
-                              nc.categories[mk].sort();
-                            }
-                            onUpdateCfg(nc);
-
-                            const nd = JSON.parse(JSON.stringify(fullData));
+                            const sub = nombreSubValido(newSub);
+                            if (!sub) return;
+                            if ((categories[mk] || []).includes(sub)) { alert('Ya existe en este año'); return; }
+                            onUpdateCfg(configConSub(config, mk, sub));
                             // Solo el año seleccionado y los posteriores.
-                            const yKeys = Object.keys(nd).filter(k => !isNaN(parseInt(k)) && parseInt(k) >= year);
-                            yKeys.forEach(y => {
-                              if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(nc.categories));
-                              if (!nd[y].categories[mk]) nd[y].categories[mk] = [];
-                              if (!nd[y].categories[mk].includes(sub)) {
-                                nd[y].categories[mk].push(sub);
-                                nd[y].categories[mk].sort();
-                              }
-                              if (!nd[y].budget) nd[y].budget = {};
-                              if (nd[y].budget[sub] === undefined) nd[y].budget[sub] = 0;
-                              if (!nd[y].monthly) nd[y].monthly = {};
-                              months.forEach(m => {
-                                if (!nd[y].monthly[m]) nd[y].monthly[m] = {};
-                                if (!nd[y].monthly[m][sub]) nd[y].monthly[m][sub] = { budgeted: 0, actual: [] };
-                              });
-                            });
-                            onUpdate(nd);
+                            onUpdate(enAniosDesde(fullData, year, d => asegurarSub(d, mk, sub)));
                             setAddingTo(null);
                             setNewSub('');
                           } else if (e.key === 'Escape') {
@@ -1564,18 +1704,25 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
       }
 
       const nd = JSON.parse(JSON.stringify(fullData));
+      // Un mismo `grupo` para todos los meses del alta: así la fila agrupada se
+      // borra entera (antes cada mes tenía su id y la papelera solo quitaba el primero).
+      const grupo = crypto.randomUUID();
       activeMonths.forEach(m => {
         if (!nd[year].oneTime) nd[year].oneTime = {};
         if (!nd[year].oneTime[m]) nd[year].oneTime[m] = [];
-        nd[year].oneTime[m].push({ id: crypto.randomUUID(), cat, sub, amount });
+        nd[year].oneTime[m].push({ id: crypto.randomUUID(), grupo, cat, sub: sub.trim(), amount });
       });
       onUpdate(nd);
       e.target.reset();
     };
 
-    const handleDeleteOneTime = (month, id) => {
+    // Los puntuales antiguos no tienen `grupo`: se agrupan (y se borran) por categoría, nombre e importe.
+    const claveGrupoPuntual = (x) => x.grupo || `${x.cat}-${x.sub}-${x.amount}`;
+    const handleDeleteOneTimeGroup = (x) => {
       const nd = JSON.parse(JSON.stringify(fullData));
-      nd[year].oneTime[month] = nd[year].oneTime[month].filter(x => x.id !== id);
+      months.forEach(m => {
+        if (nd[year].oneTime?.[m]) nd[year].oneTime[m] = nd[year].oneTime[m].filter(ot => claveGrupoPuntual(ot) !== claveGrupoPuntual(x));
+      });
       onUpdate(nd);
     };
 
@@ -1654,20 +1801,24 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                     const manualMap = new Map();
                     months.forEach(m => {
                       (data.oneTime?.[m] || []).forEach(x => {
-                        const key = `${x.cat}-${x.sub}-${x.amount}`;
-                        if (!manualMap.has(key)) manualMap.set(key, { ...x, months: [m] });
+                        const key = claveGrupoPuntual(x);
+                        if (!manualMap.has(key)) manualMap.set(key, { ...x, key, months: [m] });
                         else manualMap.get(key).months.push(m);
                       });
                     });
 
+                    // Una fila por préstamo. La cuota varía en los últimos decimales
+                    // entre meses (y la última puede ser menor): agrupar por importe
+                    // partía el préstamo en varias filas con la misma key.
                     const loanMap = new Map();
                     fullData.loans?.filter(l => !isLoanFullYear(l, year)).forEach(loan => {
                       months.forEach((m, mIdx) => {
                         const lv = getLoanValues(loan, year, mIdx);
                         if (lv.active) {
-                          const k = `${loan.id}-${lv.installment}`;
-                          if (!loanMap.has(k)) loanMap.set(k, { id: loan.id, name: loan.name, amount: lv.installment, months: [m] });
-                          else loanMap.get(k).months.push(m);
+                          if (!loanMap.has(loan.id)) loanMap.set(loan.id, { id: loan.id, name: loan.name, amount: lv.installment, total: 0, months: [] });
+                          const fila = loanMap.get(loan.id);
+                          fila.months.push(m);
+                          fila.total += lv.installment;
                         }
                       });
                     });
@@ -1675,18 +1826,14 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
                     const rows = [];
                     manualMap.forEach(x => {
                       rows.push(
-                        <tr key={x.id}>
+                        <tr key={x.key}>
                           <td style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600 }}>
                             {x.months.map(m => m.slice(0, 3)).join(', ')}
                           </td>
                           <td style={{ fontSize: 11 }}>{x.sub}</td>
                           <td className="text-right" style={{ fontWeight: 600 }}>{fmt(x.amount)}</td>
                           <td className="text-right">
-                            <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} onClick={() => {
-                              const nd = JSON.parse(JSON.stringify(fullData));
-                              x.months.forEach(m => { if (nd[year].oneTime?.[m]) nd[year].oneTime[m] = nd[year].oneTime[m].filter(ot => ot.id !== x.id); });
-                              onUpdate(nd);
-                            }}>
+                            <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} title="Eliminar en todos los meses" onClick={() => handleDeleteOneTimeGroup(x)}>
                               <Ic d={PATHS.trash} size={11} />
                             </button>
                           </td>
@@ -1696,7 +1843,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
                     loanMap.forEach(x => {
                       rows.push(
-                        <tr key={`auto-${x.id}`} className="loan-row-puntual">
+                        <tr key={`auto-${x.id}`} className="loan-row-puntual" title={`Total en ${year}: ${fmt(x.total)}`}>
                           <td style={{ fontSize: 10, color: 'var(--blue)', fontWeight: 600 }}>
                             {x.months.map(m => m.slice(0, 3)).join(', ')}
                           </td>
@@ -1726,7 +1873,9 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const showNetWorth = (visibleViews || []).includes('networth');
   const netWorthChartData = showNetWorth ? months.map((m, mIdx) => {
     let totalAssets = (categories["Activos"] || []).reduce((s, c) => s + (data?.netWorth?.assets?.[c]?.[m] || 0), 0);
-    let totalLiab = (categories["Pasivos"] || []).reduce((s, c) => s + (data?.netWorth?.liabilities?.[c]?.[m] || 0), 0);
+    // Un Pasivo que coincide con un préstamo vale lo que diga el préstamo (como en
+    // la tabla de Patrimonio); no se suma además el importe anotado a mano.
+    let totalLiab = (categories["Pasivos"] || []).filter(c => !prestamosDe(fullData, c).length).reduce((s, c) => s + (data?.netWorth?.liabilities?.[c]?.[m] || 0), 0);
     if (fullData.loans) {
       fullData.loans.forEach(loan => {
         const lv = getLoanValues(loan, year, mIdx);
@@ -1747,9 +1896,6 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
     const progress = (passed / totalCuotas) * 100;
     return { name: loan.name, progress, passed, total: totalCuotas, amount: loan.totalAmount };
   }) : [];
-
-  // Trading data (only if trading view is visible)
-  const showTrading = (visibleViews || []).includes('trading');
 
   // Monthly savings data
   const monthlySavingsData = monthlyTotals.map(m => ({
@@ -1848,11 +1994,8 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   })();
   const [mkElegida, subElegida] = claveCategoria.split('|');
   const evolucionCategoria = subElegida ? months.map((m, i) => {
-    let real = calcTotal(data.monthly?.[m]?.[subElegida]?.actual || []);
-    if (mkElegida === 'Pago de Deudas') {
-      const loan = (fullData.loans || []).find(l => l.name === subElegida);
-      if (loan) { const lv = getLoanValues(loan, year, i); if (lv.active) real += lv.installment; }
-    }
+    let real = calcTotal(data.monthly?.[m]?.[claveSub(mkElegida, subElegida)]?.actual || []);
+    if (mkElegida === 'Pago de Deudas') real += cuotaPrestamos(fullData, subElegida, year, i);
     const presupuesto = getEffectiveBudget(subElegida, mkElegida, year, i, fullData, data.budget);
     return { name: m.substring(0, 3).toUpperCase(), real, presupuesto };
   }) : [];
@@ -1879,17 +2022,18 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
           <div className="card" style={{ borderLeft: '4px solid var(--accent)', background: 'linear-gradient(135deg, var(--bg-card), rgba(45, 212, 191, 0.05))' }}>
             <div className="card-title">{t.totalIncome} ({year})</div>
             <div className="card-value green">{fmt(totalIncome)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{fmt(totalIncome / 12)} / {t.monthlyAvg}</div>
+            {/* Media sobre los meses con ingresos (en marzo, 3 nóminas no son 3/12 de nómina al mes). */}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{fmt(mesesConIngresoAnio > 0 ? totalIncome / mesesConIngresoAnio : 0)} / {t.monthlyAvg}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid var(--red)', background: 'linear-gradient(135deg, var(--bg-card), rgba(244, 63, 94, 0.05))' }}>
             <div className="card-title">{t.totalExpenses}</div>
             <div className="card-value red">{fmt(totalExpenses)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalExpenses / (totalIncome || 1)) * 100).toFixed(1)}% {t.ofIncome}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalExpenses / totalIncome) * 100).toFixed(1)}% ${t.ofIncome}` : 'Sin ingresos registrados'}</div>
           </div>
           <div className="card" style={{ borderLeft: '4px solid var(--blue)', background: 'linear-gradient(135deg, var(--bg-card), rgba(56, 189, 248, 0.05))' }}>
             <div className="card-title">{t.savings}</div>
             <div className="card-value blue">{fmt(totalSavings)}</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{((totalSavings / (totalIncome || 1)) * 100).toFixed(1)}% {t.savingsRate}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{totalIncome > 0 ? `${((totalSavings / totalIncome) * 100).toFixed(1)}% ${t.savingsRate}` : 'Sin ingresos registrados'}</div>
           </div>
         </div>
       );
@@ -2274,32 +2418,43 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
 // ─── MONTHLY VIEW ─────────────────────────────────────────────────────────────
 function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData }) {
-  const { t, theme } = useApp();
-  const isDark = theme === 'dark';
-  const tooltipStyle = { backgroundColor: isDark ? '#1e2130' : '#fff', border: `1px solid ${isDark ? '#2d3148' : '#e2e5f0'}`, borderRadius: 8, fontSize: 12 };
-  const axisColor = isDark ? '#565d80' : '#9098b8';
-  const gridColor = isDark ? '#2d3148' : '#e2e5f0';
+  const { t } = useApp();
 
-  const today = new Date().toISOString().split('T')[0];
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [txDate, setTxDate] = useState(today);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [txDate, setTxDate] = useState(hoyLocal);
   const [txAmount, setTxAmount] = useState('');
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [txMainCat, setTxMainCat] = useState(() => Object.keys(categories).find(k => k !== 'Activos' && k !== 'Pasivos') || '');
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [txSubCat, setTxSubCat] = useState(() => { const mk = Object.keys(categories).find(k => k !== 'Activos' && k !== 'Pasivos') || ''; return (categories[mk] || [])[0] || ''; });
+  const [txMainCat, setTxMainCat] = useState(() => Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || '');
+  const [txSubCat, setTxSubCat] = useState(() => { const mk = Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || ''; return (categories[mk] || [])[0] || ''; });
+
+  // Al cambiar de mes o de año en la barra superior, la fecha propuesta pasa a
+  // ese mes (hoy, si es el mes en curso). Antes se proponía siempre la fecha de
+  // hoy en UTC, así que un gasto anotado en octubre se guardaba con fecha de
+  // noviembre y a primera hora de la mañana con el día anterior.
+  useEffect(() => {
+    const mIdx = months.indexOf(month);
+    const hoy = new Date();
+    setTxDate(hoy.getFullYear() === year && hoy.getMonth() === mIdx ? hoyLocal() : `${year}-${String(mIdx + 1).padStart(2, '0')}-01`);
+  }, [year, month]);
+
+  // La subcategoría elegida tiene que existir en el año que se está viendo. Al
+  // cambiar de año el formulario conservaba la anterior y el movimiento se
+  // guardaba en una clave que no se mostraba en ningún sitio.
+  useEffect(() => {
+    const subs = categories?.[txMainCat] || [];
+    if (!subs.includes(txSubCat)) setTxSubCat(subs[0] || '');
+  }, [categories, txMainCat, txSubCat]);
 
   if (!currentMonthData) return <div className="loading-state">{t.noData} {month} {year}</div>;
 
   const expenseKeys = EXPENSE_KEYS;
+  // Cada subcategoría se lee con su clave "Sección|Nombre": las homónimas de
+  // secciones distintas ("Otros") ya no comparten movimientos.
   const allTxs = [];
   Object.keys(categories).forEach(mk => {
-    if (mk === 'Activos' || mk === 'Pasivos') return;
+    if (esSeccionPatrimonio(mk)) return;
     (categories[mk] || []).forEach(sub => {
-      (currentMonthData[sub]?.actual || []).forEach(tx => {
-        const { type, mainCategory } = getCategoryGroup(sub, categories);
-        allTxs.push({ ...tx, type, category: sub, mainCategory });
+      const clave = claveSub(mk, sub);
+      (currentMonthData[clave]?.actual || []).forEach(tx => {
+        allTxs.push({ ...tx, type: mk === 'Ingresos' ? 'income' : 'expense', category: sub, mainCategory: mk, clave });
       });
     });
   });
@@ -2342,15 +2497,8 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
       let est = getEffectiveBudget(sub, mk, year, mIdx, fullData, budgetData);
       est += (fullData[year]?.oneTime?.[month] || []).filter(ot => ot.cat === mk && ot.sub === sub).reduce((acc, ot) => acc + ot.amount, 0);
       
-      let act = calcTotal(currentMonthData?.[sub]?.actual || []);
-
-      if (mk === 'Pago de Deudas' && fullData.loans) {
-        const loan = fullData.loans.find(l => l.name === sub);
-        if (loan) {
-          const lv = getLoanValues(loan, year, mIdx);
-          if (lv.active) act += lv.installment;
-        }
-      }
+      let act = calcTotal(currentMonthData?.[claveSub(mk, sub)]?.actual || []);
+      if (mk === 'Pago de Deudas') act += cuotaPrestamos(fullData, sub, year, mIdx);
 
       totalEstimated += est;
       totalReal += act;
@@ -2395,36 +2543,30 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   const totalExpenses = expenseKeys.reduce((acc, mk) => {
     const subs = categories[mk] || [];
     return acc + subs.reduce((s, sub) => {
-      let act = calcTotal(currentMonthData?.[sub]?.actual || []);
-      if (mk === 'Pago de Deudas' && fullData.loans) {
-        const loan = fullData.loans.find(l => l.name === sub);
-        if (loan) {
-          const lv = getLoanValues(loan, year, mIdx);
-          if (lv.active) act += lv.installment;
-        }
-      }
+      let act = calcTotal(currentMonthData?.[claveSub(mk, sub)]?.actual || []);
+      if (mk === 'Pago de Deudas') act += cuotaPrestamos(fullData, sub, year, mIdx);
       return s + act;
     }, 0);
   }, 0);
 
   const handleAdd = () => {
     if (!txAmount || parseFloat(txAmount) <= 0 || !txSubCat || !txDate) { alert('Completa todos los campos'); return; }
+    if (!(categories[txMainCat] || []).includes(txSubCat)) { alert(`"${txSubCat}" no existe en ${txMainCat} en ${year}. Elige otra subcategoría.`); return; }
     const nd = JSON.parse(JSON.stringify(fullData));
-    if (!nd[year].monthly[month][txSubCat]) nd[year].monthly[month][txSubCat] = { budgeted: 0, actual: [] };
-    nd[year].monthly[month][txSubCat].actual.push({ id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate });
+    asegurarSub(nd[year], txMainCat, txSubCat);
+    nd[year].monthly[month][claveSub(txMainCat, txSubCat)].actual.push({ id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate });
     onUpdate(nd);
     setTxAmount('');
   };
 
-  const handleDelete = (sub, id) => {
+  const handleDelete = (clave, id) => {
     if (String(id).startsWith('loan-')) {
       alert('Las cuotas de préstamos se generan automáticamente. Para eliminarlas o modificarlas, ve a la pestaña de Préstamos.');
       return;
     }
     const nd = JSON.parse(JSON.stringify(fullData));
-    if (nd[year].monthly[month][sub]) {
-      nd[year].monthly[month][sub].actual = nd[year].monthly[month][sub].actual.filter(tx => tx.id !== id);
-    }
+    const cubo = nd[year]?.monthly?.[month]?.[clave];
+    if (cubo) cubo.actual = (cubo.actual || []).filter(tx => tx.id !== id);
     onUpdate(nd);
   };
 
@@ -2502,7 +2644,7 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
                     <td>{tx.category}</td>
                     <td className="text-right" style={{ fontWeight: 700, color: tx.type === 'income' ? 'var(--green)' : 'var(--red)' }}>{fmt(tx.amount)}</td>
                     <td className="text-center">
-                      <button className="btn btn-icon btn-danger" onClick={() => handleDelete(tx.category, tx.id)} title="Eliminar">
+                      <button className="btn btn-icon btn-danger" onClick={() => handleDelete(tx.clave, tx.id)} title="Eliminar">
                         <Ic d={PATHS.trash} size={14} />
                       </button>
                     </td>
@@ -2551,7 +2693,9 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
 
   const chartData = months.map((m, mIdx) => {
     let totalAssets = (categories["Activos"] || []).reduce((s, c) => s + (data?.assets?.[c]?.[m] || 0), 0);
-    let totalLiab = (categories["Pasivos"] || []).reduce((s, c) => s + (data?.liabilities?.[c]?.[m] || 0), 0);
+    // Un Pasivo que coincide con un préstamo muestra en la tabla el saldo del
+    // préstamo, no el valor anotado a mano: en el gráfico tampoco se suman los dos.
+    let totalLiab = (categories["Pasivos"] || []).filter(c => !prestamosDe(fullData, c).length).reduce((s, c) => s + (data?.liabilities?.[c]?.[m] || 0), 0);
     // Inject loan balance as liability
     if (fullData.loans) {
       fullData.loans.forEach(loan => {
@@ -2581,20 +2725,19 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
             </thead>
             <tbody>
               {cats.map(cat => {
-                const loan = type === 'Pasivos' && fullData.loans?.find(l => l.name === cat);
+                const prestamos = type === 'Pasivos' ? prestamosDe(fullData, cat) : [];
                 return (
                   <tr key={cat}>
                     <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{cat}</td>
                     {displayMonths.map((m) => {
                       const mIdx = months.indexOf(m);
                       let val = data?.[nwk]?.[cat]?.[m] || 0;
-                      if (loan) {
-                        const lv = getLoanValues(loan, year, mIdx);
-                        val = lv.active ? lv.balance : 0;
+                      if (prestamos.length) {
+                        val = prestamos.reduce((s, l) => { const lv = getLoanValues(l, year, mIdx); return s + (lv.active ? lv.balance : 0); }, 0);
                       }
                       return (
                         <td key={m} className="text-right">
-                          {loan ? (
+                          {prestamos.length ? (
                             <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{fmt(val).replace(' €', '')}</span>
                           ) : (
                             <input type="number" className="nw-input" value={val || 0}
@@ -2667,10 +2810,16 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
   const handleAdd = (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
+    const name = nombreSubValido(fd.get('name'));
+    if (!name) return;
+    // Todas las vistas buscan el préstamo por su nombre: con dos iguales solo
+    // uno entraba en presupuesto y totales aunque los dos salieran en la lista.
+    if (loans.some(l => l.name === name)) { alert(`Ya hay un préstamo llamado "${name}". Usa otro nombre.`); return; }
     const loanTotal = parseFloat(fd.get('loanTotal'));
     const count = parseInt(fd.get('installments'));
     const rateYear = parseFloat(fd.get('rate')) || 0;
     const startStr = fd.get('start');
+    if (!(loanTotal > 0) || !(count > 0) || !startStr) { alert('Revisa el importe, el número de cuotas y la fecha de inicio.'); return; }
 
     // Formula: Cuota = (P * i) / (1 - (1 + i)^-n)
     const i = (rateYear / 100) / 12;
@@ -2678,46 +2827,31 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
       ? (loanTotal * i) / (1 - Math.pow(1 + i, -count))
       : loanTotal / count;
 
-    const start = new Date(startStr);
-    const end = new Date(start);
-    end.setMonth(start.getMonth() + count - 1);
-
     const newLoan = {
       id: crypto.randomUUID(),
-      name: fd.get('name'),
+      name,
       amount: amount, // monthly installment
       totalAmount: loanTotal,
       installmentsCount: count,
       interestRate: rateYear,
-      startDate: startStr,
-      endDate: end.toISOString().split('T')[0],
+      startDate: startStr
     };
+    // Fin según el cuadro de amortización, en hora local (new Date('YYYY-MM-DD')
+    // es UTC y setMonth con día 29-31 se desbordaba al mes siguiente).
+    newLoan.endDate = fechaISO(finRealPrestamo(newLoan));
 
-    const nd = JSON.parse(JSON.stringify(fullData));
+    const nd = clonar(fullData);
     nd.loans.push(newLoan);
 
-    // Update global config
-    const newConfig = JSON.parse(JSON.stringify(config));
-    if (!newConfig.categories["Pago de Deudas"].includes(newLoan.name)) {
-      newConfig.categories["Pago de Deudas"].push(newLoan.name);
-    }
-    if (!newConfig.categories["Pasivos"].includes(newLoan.name)) {
-      newConfig.categories["Pasivos"].push(newLoan.name);
-    }
-    onUpdateCfg(newConfig);
+    onUpdateCfg(configConSub(configConSub(config, 'Pago de Deudas', name), 'Pasivos', name));
 
-    // Propagate to yearly categories to ensure it shows in Budget/Monthly views
-    const loanStartYear = start.getFullYear();
-    Object.keys(nd).forEach(y => {
-      const yr = parseInt(y);
-      if (!isNaN(yr) && yr >= loanStartYear) {
-        if (!nd[y].categories) nd[y].categories = JSON.parse(JSON.stringify(newConfig.categories));
-        if (!nd[y].categories["Pago de Deudas"].includes(newLoan.name)) nd[y].categories["Pago de Deudas"].push(newLoan.name);
-        if (!nd[y].categories["Pasivos"].includes(newLoan.name)) nd[y].categories["Pasivos"].push(newLoan.name);
-
-        // Ensure budget for this loan exists
-        if (nd[y].budget && nd[y].budget[newLoan.name] === undefined) nd[y].budget[newLoan.name] = 0;
-      }
+    // El préstamo tiene que figurar como subcategoría desde su año de inicio, para
+    // que sus cuotas salgan en Presupuesto, Seguimiento y Patrimonio. Los años
+    // que aún no existan lo recibirán al crearse (crearAnioHeredado).
+    const loanStartYear = fechaLocal(startStr).getFullYear();
+    aniosConDatos(nd).filter(y => y >= loanStartYear).forEach(y => {
+      asegurarSub(nd[y], 'Pago de Deudas', name);
+      asegurarSub(nd[y], 'Pasivos', name);
     });
 
     onUpdate(nd);
@@ -2731,16 +2865,26 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
     onUpdate(nd);
   };
 
+  // Devuelve true si la amortización se ha añadido (el formulario se cierra solo entonces).
   const handleExtraAmort = (e, loanId) => {
     e.preventDefault();
-    if (!extraAmount || parseFloat(extraAmount) <= 0 || !extraMonth) return;
+    if (!extraAmount || parseFloat(extraAmount) <= 0 || !extraMonth) return false;
     const nd = JSON.parse(JSON.stringify(fullData));
     const loan = nd.loans.find(l => l.id === loanId);
-    if (!loan) return;
+    if (!loan) return false;
+    // Las amortizaciones anticipadas acortan el préstamo: una extra en una cuota
+    // posterior a la última real no se aplicaría nunca ni se vería en el cuadro.
+    const numero = parseInt(extraMonth);
+    const cuotasReales = simularPrestamo(loan).length || loan.installmentsCount;
+    if (!(numero >= 1) || numero > cuotasReales) {
+      alert(`El préstamo termina en la cuota ${cuotasReales} (las amortizaciones anticipadas lo acortan). Elige una cuota entre 1 y ${cuotasReales}.`);
+      return false;
+    }
     if (!loan.extraAmortizations) loan.extraAmortizations = [];
-    loan.extraAmortizations.push({ paymentNo: parseInt(extraMonth), amount: parseFloat(extraAmount), id: crypto.randomUUID() });
+    loan.extraAmortizations.push({ paymentNo: numero, amount: parseFloat(extraAmount), id: crypto.randomUUID() });
     onUpdate(nd);
     setExtraAmount(''); setExtraMonth('');
+    return true;
   };
 
   const handleDeleteExtraAmort = (loanId, extraId) => {
@@ -2895,6 +3039,24 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                       </tbody>
                     </table>
                   </div>
+                  {(() => {
+                    // Extras registradas en cuotas que ya no existen (el préstamo se
+                    // acortó después): no se aplican y antes no había forma de borrarlas.
+                    const filas = getAmortizationTable(l).length;
+                    const huerfanas = (l.extraAmortizations || []).filter(ex => ex.paymentNo > filas);
+                    if (!huerfanas.length) return null;
+                    return (
+                      <div style={{ padding: '12px 20px 4px', fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div style={{ marginBottom: 6 }}>Amortizaciones anticipadas fuera del cuadro (el préstamo termina en la cuota {filas}, así que no se aplican):</div>
+                        {huerfanas.map(ex => (
+                          <div key={ex.id} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                            <span>Cuota {ex.paymentNo}: +{fmt(ex.amount)}</span>
+                            <button type="button" className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, color: 'var(--red)' }} onClick={() => handleDeleteExtraAmort(l.id, ex.id)}>Eliminar</button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
               {extraAmortLoan === l.id && (
@@ -2902,10 +3064,10 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
                   <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)' }}>
                     Nueva Amortización Anticipada
                   </div>
-                  <form onSubmit={(e) => { handleExtraAmort(e, l.id); setExtraAmortLoan(null); }} className="fade-in" style={{ display: 'flex', gap: 12, alignItems: 'end' }}>
+                  <form onSubmit={(e) => { if (handleExtraAmort(e, l.id)) setExtraAmortLoan(null); }} className="fade-in" style={{ display: 'flex', gap: 12, alignItems: 'end' }}>
                     <div>
                       <label style={{ fontSize: 11 }}>Nº Mes (Cuota)</label>
-                      <input className="number-input" type="number" min="1" max={l.installmentsCount} value={extraMonth} onChange={e => setExtraMonth(e.target.value)} required placeholder="Ej: 12" style={{ height: 36, padding: '0 12px', width: 120 }} />
+                      <input className="number-input" type="number" min="1" max={simularPrestamo(l).length || l.installmentsCount} value={extraMonth} onChange={e => setExtraMonth(e.target.value)} required placeholder="Ej: 12" style={{ height: 36, padding: '0 12px', width: 120 }} />
                     </div>
                     <div>
                       <label style={{ fontSize: 11 }}>Importe extra (€)</label>
@@ -2947,137 +3109,42 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
     alert('Perfil actualizado con éxito');
   };
 
+  // Las tres operaciones afectan al año seleccionado y a los posteriores (los
+  // anteriores conservan su historial) y solo a la sección indicada: un Activo o
+  // Pasivo con el mismo nombre que una subcategoría de presupuesto (el Pasivo
+  // "Hipoteca" frente al gasto "Hipoteca") ya no comparte datos con ella.
   const handleAddCat = () => {
-    if (!newCatName.trim()) return;
-    const name = newCatName.trim().charAt(0).toUpperCase() + newCatName.trim().slice(1);
-
-    // Check if exists in current year
+    const name = nombreSubValido(newCatName);
+    if (!name) return;
     const currentYearCats = financialData?.[selectedYear]?.categories || config.categories;
     if ((currentYearCats[modalMainCat] || []).includes(name)) { alert('Ya existe en este año'); return; }
-
-    const nfd = JSON.parse(JSON.stringify(financialData));
-    const nc = JSON.parse(JSON.stringify(config));
-    const startY = selectedYear;
-
-    // update current config globally to make it persistent for new years
-    if (!nc.categories[modalMainCat]) nc.categories[modalMainCat] = [];
-    if (!nc.categories[modalMainCat].includes(name)) {
-      nc.categories[modalMainCat].push(name);
-      nc.categories[modalMainCat].sort();
-    }
-
-    Object.keys(nfd).forEach(y => {
-      if (parseInt(y) >= startY) {
-        if (!nfd[y].categories) nfd[y].categories = JSON.parse(JSON.stringify(currentYearCats));
-        if (!nfd[y].categories[modalMainCat]) nfd[y].categories[modalMainCat] = [];
-        if (!nfd[y].categories[modalMainCat].includes(name)) {
-          nfd[y].categories[modalMainCat].push(name);
-          nfd[y].categories[modalMainCat].sort();
-        }
-
-        if (nfd[y].budget && nfd[y].budget[name] === undefined) nfd[y].budget[name] = 0;
-        if (nfd[y].monthly) {
-          months.forEach(m => {
-            if (!nfd[y].monthly[m]) nfd[y].monthly[m] = {};
-            if (!nfd[y].monthly[m][name]) nfd[y].monthly[m][name] = { budgeted: 0, actual: [] };
-          });
-        }
-        if (modalMainCat === 'Activos' || modalMainCat === 'Pasivos') {
-          const nwk = modalMainCat === 'Activos' ? 'assets' : 'liabilities';
-          if (!nfd[y].netWorth) nfd[y].netWorth = { assets: {}, liabilities: {} };
-          if (!nfd[y].netWorth[nwk]) nfd[y].netWorth[nwk] = {};
-          if (!nfd[y].netWorth[nwk][name]) nfd[y].netWorth[nwk][name] = {};
-        }
-      }
-    });
-
-    onUpdate(nc);
-    onUpdateFD(nfd);
+    onUpdate(configConSub(config, modalMainCat, name));
+    onUpdateFD(enAniosDesde(financialData, selectedYear, d => asegurarSub(d, modalMainCat, name)));
     setShowModal(false); setNewCatName('');
   };
 
   const handleDelete = () => {
     if (!deleteTarget) return;
     const { mk, sub } = deleteTarget;
-
-    const nfd = JSON.parse(JSON.stringify(financialData));
-    const startY = selectedYear;
-
-    Object.keys(nfd).forEach(y => {
-      if (parseInt(y) >= startY) {
-        if (nfd[y].categories && nfd[y].categories[mk]) {
-          nfd[y].categories[mk] = nfd[y].categories[mk].filter(s => s !== sub);
-        }
-        if (nfd[y].budget) delete nfd[y].budget[sub];
-        months.forEach(m => { if (nfd[y].monthly?.[m]) delete nfd[y].monthly[m][sub]; });
-        if (nfd[y].netWorth) {
-          if (nfd[y].netWorth.assets?.[sub]) delete nfd[y].netWorth.assets[sub];
-          if (nfd[y].netWorth.liabilities?.[sub]) delete nfd[y].netWorth.liabilities[sub];
-        }
-      }
-    });
-
-    // Update global config as well
-    const nc = JSON.parse(JSON.stringify(config));
-    if (nc.categories[mk]) {
-      nc.categories[mk] = nc.categories[mk].filter(s => s !== sub);
-    }
-    onUpdate(nc);
-    onUpdateFD(nfd);
+    onUpdate(configSinSub(config, mk, sub));
+    onUpdateFD(enAniosDesde(financialData, selectedYear, d => eliminarSub(d, mk, sub)));
     setShowDeleteModal(false); setDeleteTarget(null);
   };
 
   const handleRename = () => {
-    if (!renameTarget || !renameValue.trim()) return;
-    const newName = renameValue.trim().charAt(0).toUpperCase() + renameValue.trim().slice(1);
+    if (!renameTarget) return;
+    const newName = nombreSubValido(renameValue);
+    if (!newName) return;
     const { mk, oldName } = renameTarget;
     if (oldName === newName) { setRenameTarget(null); return; }
-
-    const currentYearCats = financialData?.[selectedYear]?.categories || config.categories;
-    if ((currentYearCats[mk] || []).includes(newName)) { alert('Ya existe en este año'); return; }
-
-    const nfd = JSON.parse(JSON.stringify(financialData));
-    const startY = selectedYear;
-
-    const nc = JSON.parse(JSON.stringify(config));
-    if (nc.categories[mk]) {
-      const idx = nc.categories[mk].indexOf(oldName);
-      if (idx !== -1) nc.categories[mk][idx] = newName;
-      nc.categories[mk].sort();
+    // Si el nombre nuevo ya existe en este año, en uno posterior o en la
+    // configuración, renombrar duplicaría la entrada y pisaría sus datos.
+    if (existeSub(financialData, config, mk, newName, selectedYear)) {
+      alert(`"${newName}" ya existe en ${mk} (en este año, en uno posterior o en la configuración).`);
+      return;
     }
-
-    Object.keys(nfd).forEach(y => {
-      const yr = parseInt(y);
-      if (!isNaN(yr) && yr >= startY) {
-        if (nfd[y].categories && nfd[y].categories[mk]) {
-          const idx = nfd[y].categories[mk].indexOf(oldName);
-          if (idx !== -1) nfd[y].categories[mk][idx] = newName;
-          nfd[y].categories[mk].sort();
-        }
-        if (nfd[y].budget && nfd[y].budget[oldName] !== undefined) {
-          nfd[y].budget[newName] = nfd[y].budget[oldName];
-          delete nfd[y].budget[oldName];
-        }
-        if (nfd[y].monthly) {
-          months.forEach(m => {
-            if (nfd[y].monthly[m] && nfd[y].monthly[m][oldName]) {
-              nfd[y].monthly[m][newName] = nfd[y].monthly[m][oldName];
-              delete nfd[y].monthly[m][oldName];
-            }
-          });
-        }
-        if (nfd[y].netWorth) {
-          const nwk = mk === 'Activos' ? 'assets' : 'liabilities';
-          if ((mk === 'Activos' || mk === 'Pasivos') && nfd[y].netWorth[nwk] && nfd[y].netWorth[nwk][oldName] !== undefined) {
-            nfd[y].netWorth[nwk][newName] = nfd[y].netWorth[nwk][oldName];
-            delete nfd[y].netWorth[nwk][oldName];
-          }
-        }
-      }
-    });
-
-    onUpdate(nc);
-    onUpdateFD(nfd);
+    onUpdate(configRenombrada(config, mk, oldName, newName));
+    onUpdateFD(enAniosDesde(financialData, selectedYear, d => renombrarSub(d, mk, oldName, newName)));
     setRenameTarget(null);
   };
 
@@ -3455,17 +3522,19 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
 
 // ─── TRADING VIEW ──────────────────────────────────────────────────────────────
 function TradingView({ trades, onUpdate, fullData }) {
-  const { t, theme } = useApp();
+  const { theme } = useApp();
   const isDark = theme === 'dark';
   const tooltipStyle = { backgroundColor: isDark ? '#1e2130' : '#fff', border: `1px solid ${isDark ? '#2d3148' : '#e2e5f0'}`, borderRadius: 8, fontSize: 12 };
   const axisColor = isDark ? '#565d80' : '#9098b8';
   const gridColor = isDark ? '#2d3148' : '#e2e5f0';
 
-  const [form, setForm] = useState({ date: new Date().toISOString().split('T')[0], asset: '', action: 'COMPRA', type: 'Long', price: '', amount: '', fees: '' });
+  const [form, setForm] = useState({ date: hoyLocal(), asset: '', action: 'COMPRA', type: 'Long', price: '', amount: '', fees: '' });
 
   const handleAdd = (e) => {
     e.preventDefault();
-    if (!form.asset || !form.price || !form.amount) return;
+    // Sin fecha, el orden cronológico (del que dependen precio medio y PnL) se rompía.
+    if (!form.date || isNaN(new Date(form.date).getTime())) { alert('Indica la fecha de la operación.'); return; }
+    if (!form.asset.trim() || !form.price || !form.amount) { alert('Indica activo, precio y cantidad.'); return; }
     const nt = { ...form, asset: form.asset.trim(), id: crypto.randomUUID(), ts: Date.now(), price: parseFloat(form.price), amount: parseFloat(form.amount), fees: parseFloat(form.fees || 0) };
     const nd = JSON.parse(JSON.stringify(fullData));
     nd.trading = [nt, ...(nd.trading || [])];
@@ -3629,7 +3698,6 @@ function AnalysisView() {
 
 // ─── VPN / TIR SUB-VIEW ───────────────────────────────────────────────────────
 function VPNView() {
-  const { theme } = useApp();
   const [initialInvestment, setInitialInvestment] = useState(10000);
   const [discountRate, setDiscountRate] = useState(10);
   const [periods, setPeriods] = useState(5);
@@ -3774,12 +3842,17 @@ function CompoundInterestView() {
     return results;
   }, [initial, monthly, rate, years]);
 
+  // Al cambiar el horizonte o el modo, la paginación vuelve al principio: con 20
+  // años y la página 11 abierta, bajar a 1 año dejaba la tabla vacía y sin botones.
+  useEffect(() => { setTablePage(0); }, [years, tableMode]);
+
+  const etiquetaInicio = t.initialStart;
   const monthlyData = useMemo(() => {
     let current = initial;
     let totalInvested = initial;
     const r = rate / 100 / 12;
     const mLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const results = [{ month: 0, yearLabel: '-', monthLabel: t.initialStart, total: initial, invested: initial, interest: 0, monthInterest: 0, monthContrib: initial }];
+    const results = [{ month: 0, yearLabel: '-', monthLabel: etiquetaInicio, total: initial, invested: initial, interest: 0, monthInterest: 0, monthContrib: initial }];
     for (let y = 1; y <= years; y++) {
       for (let m = 0; m < 12; m++) {
         const interestThisMonth = (current + monthly) * r;
@@ -3798,7 +3871,7 @@ function CompoundInterestView() {
       }
     }
     return results;
-  }, [initial, monthly, rate, years]);
+  }, [initial, monthly, rate, years, etiquetaInicio]);
 
   const finalTotal = yearlyData[yearlyData.length - 1].total;
   const finalInvested = yearlyData[yearlyData.length - 1].invested;
@@ -3982,16 +4055,13 @@ function UserManagementView() {
   const [logs, setLogs] = useState([]);
   const [systemErrors, setSystemErrors] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     // Usuarios en tiempo real (solo Firestore: la lista antigua de localStorage ya no existe).
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
       setUsers(snap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
-      setLoading(false);
     }, (err) => {
       console.error(err);
-      setLoading(false);
     });
 
     // Real-time logs
@@ -4061,7 +4131,10 @@ function UserManagementView() {
       l.end ? new Date(l.end).toLocaleString() : 'Sesión Activa',
       Math.round((l.totalTime || 0) / 60000)
     ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    // Cada campo entrecomillado: las fechas ("3/11/2026, 10:15:30") y algunos
+    // nombres llevan coma y desalineaban las columnas.
+    const campo = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csvContent = [headers.map(campo).join(','), ...rows.map(r => r.map(campo).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -4114,7 +4187,11 @@ function UserManagementView() {
     }
   };
 
-  const UserForm = ({ u, onCancel }) => (
+  // Se renderiza como función (no como componente): un componente definido dentro
+  // del render es un tipo nuevo en cada render y React desmontaba el formulario
+  // con cada snapshot (cada latido de otro usuario), perdiendo lo que el admin
+  // estaba escribiendo.
+  const renderUserForm = (u, onCancel) => (
     <div className="card fade-in" style={{ marginBottom: 20, border: '1px solid var(--accent)' }}>
       <form onSubmit={handleSave}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
@@ -4130,7 +4207,7 @@ function UserManagementView() {
                 name="paidUntil"
                 type="date"
                 className="text-input"
-                defaultValue={u?.paidUntil ? new Date(u.paidUntil).toISOString().slice(0, 10) : ''}
+                defaultValue={u?.paidUntil ? fechaISO(new Date(u.paidUntil)) : ''}
               />
               <div style={{ fontSize: 11, opacity: .65, marginTop: 4 }}>
                 {u?.trialEndsAt
@@ -4265,9 +4342,7 @@ function UserManagementView() {
         </div>
       </div>
 
-      {editingUser && (
-        <UserForm u={editingUser} onCancel={() => setEditingUser(null)} />
-      )}
+      {editingUser && renderUserForm(editingUser, () => setEditingUser(null))}
 
       <div className="card">
         <div className="table-wrap">
