@@ -1147,3 +1147,14 @@ label {
 @container (min-width: 1750px) {
     .sm-grid > .sm-card { flex-basis: calc(20% - 19.2px); max-width: calc(20% - 19.2px); }
 }
+
+/* ─── Secciones con candado (disponibles con la suscripción) y panel de Gestión ─── */
+.nav-item.locked { opacity: .55; }
+.nav-item.locked:hover { opacity: .85; }
+.nav-item .nav-lock { margin-left: auto; display: inline-flex; opacity: .8; }
+.sidebar.collapsed .nav-item .nav-lock { display: none; }
+.adm-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+.adm-matriz th, .adm-matriz td { text-align: center; }
+.adm-matriz th:first-child, .adm-matriz td:first-child { text-align: left; }
+.adm-matriz input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; }
+.adm-matriz tr.adm-fila-escribir td { border-top: 2px solid var(--border); font-weight: 600; }

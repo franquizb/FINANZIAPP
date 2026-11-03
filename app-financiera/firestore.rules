@@ -36,11 +36,13 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
     }
 
-    // Campos de privilegio, de suscripcion, de Stripe y de bloqueo: el cliente
-    // NUNCA los modifica (los escriben el admin o las Cloud Functions de Stripe).
+    // Campos de privilegio, de suscripcion, de Stripe, de bloqueo y de rol
+    // (invitado, excepciones de secciones): el cliente NUNCA los modifica (los
+    // escriben el admin o las Cloud Functions de Stripe).
     function camposProtegidos() {
       return ['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil', 'bloqueado',
-              'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd'];
+              'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd',
+              'invitado', 'invitadoHasta', 'vistasExtra', 'vistasQuitadas'];
     }
     function noTocaCamposProtegidos() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposProtegidos());
@@ -55,9 +57,50 @@ service cloud.firestore {
       return !request.resource.data.keys().hasAny(['password']);
     }
 
-    // 15 dias en milisegundos.
+    // Ajustes de acceso que edita el administrador (Gestion > Roles y permisos):
+    // dias de prueba y, por rol, si puede escribir. Si el documento no existe
+    // valen los valores por defecto (15 dias; escriben todos menos 'caducado').
+    function hayAjustesAcceso() {
+      return exists(/databases/$(database)/documents/ajustes/acceso);
+    }
+    function ajustesAcceso() {
+      return get(/databases/$(database)/documents/ajustes/acceso).data;
+    }
+    function diasPrueba() {
+      return hayAjustesAcceso() ? ajustesAcceso().get('diasPrueba', 15) : 15;
+    }
+    // Duracion de la prueba en milisegundos.
     function duracionPrueba() {
-      return 1296000000;
+      return diasPrueba() * 86400000;
+    }
+
+    // Rol efectivo de un perfil. Mismo orden que rolEfectivo() en src/acceso.js.
+    function rolDe(perfil) {
+      return perfil.get('bloqueado', false) == true ? 'bloqueado'
+        : (perfil.get('paidUntil', 0) > request.time.toMillis() ? 'pago'
+        : ((perfil.get('invitado', false) == true
+            && (perfil.get('invitadoHasta', 0) == 0 || perfil.get('invitadoHasta', 0) > request.time.toMillis())) ? 'invitado'
+        : (perfil.get('trialEndsAt', 0) > request.time.toMillis() ? 'prueba' : 'caducado')));
+    }
+    // Si ese rol puede editar sus datos segun los ajustes del administrador.
+    function rolPuedeEscribir(rol) {
+      return rol != 'bloqueado'
+        && (hayAjustesAcceso()
+            ? ajustesAcceso().get(['roles', rol, 'escribir'], rol != 'caducado') == true
+            : rol != 'caducado');
+    }
+
+    // Correo de la cuenta autenticada, en minusculas ('' si no lo hay).
+    function emailSesion() {
+      return request.auth.token.get('email', '').lower();
+    }
+    // Una invitacion del administrador (invitaciones/{correo}) permite darse de
+    // alta ya como invitado, con la misma fecha limite que fijo el admin.
+    function invitacionValida() {
+      return emailSesion() != ''
+        && exists(/databases/$(database)/documents/invitaciones/$(emailSesion()))
+        && request.resource.data.get('invitadoHasta', 0)
+           == get(/databases/$(database)/documents/invitaciones/$(emailSesion())).data.get('hasta', 0);
     }
 
     // El cliente calcula trialEndsAt con SU reloj, que puede ir adelantado
@@ -69,14 +112,12 @@ service cloud.firestore {
       return 86400000;
     }
 
-    // Prueba vigente o suscripcion pagada, y cuenta no bloqueada por el admin.
-    // Las fechas se guardan en milisegundos (Date.now()), igual que el resto
-    // de marcas de tiempo de la app.
+    // Puede escribir sus datos: segun su rol (prueba vigente, pagado, invitado
+    // o prueba terminada) y lo que el administrador haya configurado para ese
+    // rol; nunca si esta bloqueado. Las fechas se guardan en milisegundos
+    // (Date.now()), igual que el resto de marcas de tiempo de la app.
     function suscripcionActiva(userId) {
-      let perfil = get(/databases/$(database)/documents/users/$(userId)).data;
-      return perfil.get('bloqueado', false) != true
-          && (perfil.get('paidUntil', 0) > request.time.toMillis()
-              || perfil.get('trialEndsAt', 0) > request.time.toMillis());
+      return rolPuedeEscribir(rolDe(get(/databases/$(database)/documents/users/$(userId)).data));
     }
 
     // Los documentos de actividad se llaman session_<uid>_<fecha>.
@@ -90,14 +131,17 @@ service cloud.firestore {
       allow read: if isOwner(userId) || isAdmin();
 
       // Alta: solo tu propio perfil, sin password, sin autoconcederte admin,
-      // sin fijarte tu el estado de pago ni el bloqueo, y con la prueba
-      // acotada a 15 dias.
+      // sin fijarte tu el estado de pago ni el bloqueo, con la prueba acotada
+      // a los dias configurados y como invitado solo si el admin te invito.
       allow create: if isOwner(userId)
                     && sinPassword()
                     && (!request.resource.data.keys().hasAny(['isAdmin'])
                         || request.resource.data.isAdmin == false)
                     && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado',
-                                                             'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd'])
+                                                             'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd',
+                                                             'vistasExtra', 'vistasQuitadas'])
+                    && (!request.resource.data.keys().hasAny(['invitado', 'invitadoHasta'])
+                        || (request.resource.data.get('invitado', false) == true && invitacionValida()))
                     // Los permisos iniciales son los basicos: nadie se concede el
                     // panel de gestion al darse de alta.
                     && (!request.resource.data.keys().hasAny(['permissions'])
@@ -167,6 +211,28 @@ service cloud.firestore {
     match /eventos_stripe/{eventoId} {
       allow read: if isAdmin();
       allow write: if false;
+    }
+
+    // ─── AJUSTES DE ACCESO (Gestion > Roles y permisos) ───────────────────────
+    // Cualquier usuario identificado los lee (la app decide que secciones
+    // mostrar y cuantos dias de prueba dar al registrarse); solo el admin los
+    // escribe, y con forma valida.
+    match /ajustes/{ajusteId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin()
+                            && request.resource.data.diasPrueba is int
+                            && request.resource.data.diasPrueba >= 1
+                            && request.resource.data.diasPrueba <= 365
+                            && request.resource.data.roles is map;
+      allow delete: if isAdmin();
+    }
+
+    // ─── INVITACIONES (cuentas gratuitas) ─────────────────────────────────────
+    // El documento se llama como el correo invitado, en minusculas. Solo lo
+    // leen el admin y la propia persona invitada (al registrarse).
+    match /invitaciones/{email} {
+      allow read: if isAdmin() || (isSignedIn() && emailSesion() == email);
+      allow write: if isAdmin();
     }
 
     // ─── TODO LO DEMAS: DENEGADO ──────────────────────────────────────────────

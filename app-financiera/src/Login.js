@@ -3,10 +3,12 @@ import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, create
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useApp } from './context/AppContext';
+import { AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso } from './acceso';
 
-// Duracion de la prueba gratuita, en dias. Debe coincidir con duracionPrueba()
-// de firestore.rules, que es quien realmente lo hace cumplir.
-const DIAS_PRUEBA = 15;
+// Duracion de la prueba gratuita, en dias, si el administrador no ha fijado
+// otra en ajustes/acceso (Gestion > Roles y permisos). Las reglas de Firestore
+// leen el mismo documento y acotan el valor: el cliente no puede alargarla.
+const DIAS_PRUEBA = AJUSTES_ACCESO_POR_DEFECTO.diasPrueba;
 
 // Las reglas comparan el trialEndsAt que envia el cliente contra la hora del
 // SERVIDOR. Si el reloj del usuario va adelantado, el valor se pasaria del
@@ -14,11 +16,37 @@ const DIAS_PRUEBA = 15;
 // (las reglas ademas toleran un dia).
 const MARGEN_RELOJ_MS = 60 * 60 * 1000;
 
-const nuevaPrueba = () =>
-  Date.now() + DIAS_PRUEBA * 24 * 60 * 60 * 1000 - MARGEN_RELOJ_MS;
+const nuevaPrueba = (dias) =>
+  Date.now() + (dias || DIAS_PRUEBA) * 24 * 60 * 60 * 1000 - MARGEN_RELOJ_MS;
 
-const PERMISOS_BASICOS = ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings'];
-const PERMISOS_ADMIN = [...PERMISOS_BASICOS, 'users'];
+// Dias de prueba configurados por el administrador (requiere sesion iniciada).
+const diasPruebaConfigurados = async () => {
+  try {
+    const snap = await getDoc(doc(db, 'ajustes', 'acceso'));
+    return normalizarAjustesAcceso(snap.exists() ? snap.data() : null).diasPrueba;
+  } catch (e) {
+    return DIAS_PRUEBA;
+  }
+};
+
+// Si el administrador invito a este correo (invitaciones/{correo}), la cuenta
+// nace ya como invitada (gratuita), con la fecha limite que fijo el admin.
+// Las reglas comprueban que la invitacion existe y que la fecha coincide.
+const invitacionDe = async (email) => {
+  try {
+    const snap = await getDoc(doc(db, 'invitaciones', email));
+    return snap.exists() ? { invitado: true, invitadoHasta: snap.data().hasta || 0 } : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+// Campos de un perfil nuevo: prueba gratuita y, si procede, invitacion.
+const perfilNuevo = async (email) => ({
+  isAdmin: false,
+  trialEndsAt: nuevaPrueba(await diasPruebaConfigurados()),
+  ...(await invitacionDe(email))
+});
 
 // Construye el usuario de sesión a partir del perfil de Firestore. El rol de
 // administrador sale SOLO de ese documento (el cliente no puede modificarlo):
@@ -31,13 +59,17 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
     displayName: perfil.displayName || displayNameAuth || email.split('@')[0],
     avatar: perfil.avatar || '👤',
     isAdmin,
-    permissions: isAdmin ? PERMISOS_ADMIN : (perfil.permissions || PERMISOS_BASICOS),
     // Sin estos campos, AvisoSuscripcion leeria 0 y le mostraria el cartel de
     // "prueba terminada" incluso a quien acaba de pagar.
     trialEndsAt: perfil.trialEndsAt || 0,
     paidUntil: perfil.paidUntil || 0,
     plan: perfil.plan || 'trial',
     bloqueado: perfil.bloqueado === true,
+    // Rol de invitado y excepciones de secciones (solo las escribe el admin).
+    invitado: perfil.invitado === true,
+    invitadoHasta: perfil.invitadoHasta || 0,
+    vistasExtra: Array.isArray(perfil.vistasExtra) ? perfil.vistasExtra : [],
+    vistasQuitadas: Array.isArray(perfil.vistasQuitadas) ? perfil.vistasQuitadas : [],
     // El perfil viene del servidor: la app ya puede mostrar el estado de la suscripción.
     perfilListo: true
   };
@@ -82,14 +114,13 @@ export default function Login({ onLogin }) {
         const perfilExistia = profileSnap.exists();
         const userDoc = perfilExistia ? (profileSnap.data() || {}) : {};
 
-        const sessionUser = sesionDesdePerfil(finalUid, emailQuery, userDoc, null);
-
-        // Solo campos no privilegiados. isAdmin y permissions se gestionan desde
-        // el panel de admin; si el cliente los enviara, las reglas lo rechazarian.
+        // Solo campos no privilegiados. isAdmin, el rol y las excepciones se
+        // gestionan desde el panel de admin; si el cliente los enviara, las
+        // reglas lo rechazarian.
         const perfil = {
           uid: finalUid,
           email: emailQuery,
-          displayName: sessionUser.displayName,
+          displayName: userDoc.displayName || emailQuery.split('@')[0],
           lastLogin: Date.now()
         };
 
@@ -98,14 +129,12 @@ export default function Login({ onLogin }) {
           // se estampa aqui la prueba, las reglas le denegarian toda escritura
           // para siempre, y ya no hay forma de arreglarlo desde el cliente
           // porque trialEndsAt es inmutable en las actualizaciones.
-          perfil.isAdmin = false;
-          perfil.permissions = PERMISOS_BASICOS;
-          perfil.trialEndsAt = nuevaPrueba();
-          sessionUser.trialEndsAt = perfil.trialEndsAt;
+          Object.assign(perfil, await perfilNuevo(emailQuery));
         }
 
         await setDoc(doc(db, 'users', finalUid), perfil, { merge: true });
 
+        const sessionUser = sesionDesdePerfil(finalUid, emailQuery, { ...userDoc, ...perfil }, null);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
         onLogin(sessionUser);
 
@@ -130,16 +159,15 @@ export default function Login({ onLogin }) {
           // La contraseña la custodia Firebase Auth. Nunca se guarda en Firestore
           // ni en localStorage: las reglas rechazan cualquier campo `password`.
           // isAdmin se concede solo desde el panel de admin, jamas desde el cliente.
+          // Prueba gratuita (y, si el admin invito a este correo, cuenta
+          // invitada). Las reglas acotan trialEndsAt a los dias configurados y
+          // despues lo vuelven inmutable: el cliente no se la puede prolongar.
+          // El pago lo marca Stripe (o el admin) escribiendo paidUntil.
           const newUser = {
             uid: newUid,
             email: emailQuery,
             displayName: name.trim() || emailQuery.split('@')[0],
-            isAdmin: false,
-            permissions: PERMISOS_BASICOS,
-            // Prueba gratuita. Las reglas acotan este valor a 15 dias como
-            // maximo y despues lo vuelven inmutable: el cliente no se la puede
-            // prolongar. El pago lo marca el admin escribiendo paidUntil.
-            trialEndsAt: nuevaPrueba(),
+            ...(await perfilNuevo(emailQuery)),
             lastLogin: Date.now()
           };
 
@@ -201,9 +229,7 @@ export default function Login({ onLogin }) {
       };
 
       if (esAltaNueva) {
-        profile.isAdmin = false;
-        profile.permissions = PERMISOS_BASICOS;
-        profile.trialEndsAt = nuevaPrueba();
+        Object.assign(profile, await perfilNuevo(String(user.email || '').toLowerCase()));
         profile.isGoogle = true;
       }
 

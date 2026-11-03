@@ -1,6 +1,7 @@
 // App.js — App Financiera (localStorage, sin Firebase, sin IA)
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { VISTAS_ASIGNABLES, ROLES, AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso, rolEfectivo, vistasPermitidas, puedeVer, puedeEscribir, vistasConCandado, excepcionesDesdeMarcadas } from './acceso';
 import Login from './Login';
 import LandingPage from './LandingPage';
 import { AppProvider, useApp, getLocale, nombreMesCorto, tx } from './context/AppContext';
@@ -13,7 +14,7 @@ import TutorialWizard from './components/TutorialWizard';
 import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
 
 const logErrorToFirebase = async (context, err) => {
@@ -697,11 +698,10 @@ const AVATARS = [
   '🌈', '👑', '⚡', '🤖', '👻', '🍀', '🦋', '🐳', '🍎', '🌙'
 ];
 
-const hasPermission = (user, permId) => {
-  if (!user) return false;
-  if (user.isAdmin) return true;
-  return user.permissions?.includes(permId);
-};
+// Secciones que puede abrir el usuario segun su rol (prueba, de pago, invitado,
+// prueba terminada, admin), los ajustes del administrador y sus excepciones
+// (src/acceso.js). Las reglas de Firestore aplican el mismo calculo para escribir.
+const hasPermission = (user, permId, ajustes) => puedeVer(user, ajustes, permId);
 
 // ─── SUSCRIPCION ──────────────────────────────────────────────────────────────
 // El cobro lo hace Stripe (functions/index.js): el webhook escribe paidUntil,
@@ -723,6 +723,10 @@ const estadoSuscripcion = (user) => {
   if ((user.paidUntil || 0) > ahora) {
     return { activa: true, motivo: 'pagado', hasta: user.paidUntil };
   }
+  // Invitado por el administrador: gratis, indefinidamente o hasta una fecha.
+  if (user.invitado === true && (!(user.invitadoHasta || 0) || user.invitadoHasta > ahora)) {
+    return { activa: true, motivo: 'invitado', hasta: user.invitadoHasta || 0 };
+  }
   if ((user.trialEndsAt || 0) > ahora) {
     const dias = Math.ceil((user.trialEndsAt - ahora) / (24 * 60 * 60 * 1000));
     return { activa: true, motivo: 'prueba', diasRestantes: dias };
@@ -736,6 +740,7 @@ const describirSuscripcion = (user, t, tf, locale) => {
   const fecha = (ms) => new Date(ms).toLocaleDateString(locale);
   if (user?.bloqueado) return { clave: 'bloqueada', texto: t.susEstadoBloqueada, color: 'var(--red)' };
   if (estado.motivo === 'admin') return { clave: 'admin', texto: t.susEstadoAdmin, color: 'var(--accent)' };
+  if (estado.motivo === 'invitado') return { clave: 'invitado', texto: estado.hasta ? tf('susEstadoInvitadoHasta', { fecha: fecha(estado.hasta) }) : t.susEstadoInvitado, color: 'var(--accent)' };
   if (estado.motivo === 'pagado') {
     if (user.stripeStatus === 'past_due') return { clave: 'impago', texto: tf('susEstadoImpago', { fecha: fecha(user.paidUntil) }), color: 'var(--yellow)' };
     if (user.cancelAtPeriodEnd) return { clave: 'cancelando', texto: tf('susEstadoCancelando', { fecha: fecha(user.paidUntil - GRACIA_MS) }), color: 'var(--yellow)' };
@@ -752,7 +757,7 @@ function BotonesSuscripcion({ user }) {
   const { t, tf, language } = useApp();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState(null);
-  if (!user || user.isAdmin || user.bloqueado) return null;
+  if (!user || user.isAdmin || user.bloqueado || estadoSuscripcion(user).motivo === 'invitado') return null;
   if (!STRIPE_ACTIVO) return <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{t.susNoDisponible}</div>;
   const tieneStripe = !!user.stripeSubscriptionId && ESTADOS_STRIPE_VIVOS.includes(user.stripeStatus);
   const ir = async (fn) => {
@@ -783,7 +788,7 @@ function AvisoSuscripcion({ user }) {
   // Hasta que el perfil se haya leído del servidor no se sabe el estado real:
   // mostrar el aviso antes producía un destello de "prueba terminada" al entrar.
   if (user && !user.perfilListo) return null;
-  if (estado.motivo === 'admin' || estado.motivo === 'pagado' || estado.motivo === 'sin-sesion') return null;
+  if (['admin', 'pagado', 'invitado', 'sin-sesion'].includes(estado.motivo)) return null;
   if (estado.activa && estado.diasRestantes > 5) return null;
 
   const caducada = !estado.activa;
@@ -807,6 +812,28 @@ function AvisoSuscripcion({ user }) {
         </div>
       </div>
       <BotonesSuscripcion user={user} />
+    </div>
+  );
+}
+
+// Seccion que el usuario no tiene con su cuenta actual (prueba terminada, o
+// seccion reservada a la suscripcion). Los datos siguen a salvo: lo que falta
+// es activar la suscripcion, o que el administrador habilite la seccion.
+function PantallaBloqueada({ vista, user }) {
+  const { t, tf } = useApp();
+  const rol = rolEfectivo(user);
+  const seccion = t[vista] || vista;
+  const caducada = rol === 'caducado';
+  return (
+    <div className="card fade-in pantalla-bloqueada" style={{ maxWidth: 560, margin: '40px auto', textAlign: 'center', padding: '36px 28px' }}>
+      <div style={{ opacity: .6, marginBottom: 14 }}><Ic d={PATHS.lock} size={44} /></div>
+      <div style={{ fontWeight: 800, fontSize: 20 }}>{caducada ? t.bloqCaducadaTitulo : tf('bloqTituloSeccion', { seccion })}</div>
+      <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 10, lineHeight: 1.6 }}>
+        {caducada
+          ? tf('bloqCaducadaTexto', { seccion, precio: t.precioMes })
+          : (rol === 'invitado' ? tf('bloqRolInvitadoTexto', { seccion }) : tf('bloqRolTexto', { seccion, precio: t.precioMes }))}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', marginTop: 22 }}><BotonesSuscripcion user={user} /></div>
     </div>
   );
 }
@@ -903,6 +930,20 @@ function AppInner({ isHome }) {
     if (v === 'monthly') setMonthlyMode('seguimiento');
     setActiveView(v);
   }, [setActiveView]);
+
+  // Ajustes de acceso del administrador (dias de prueba, secciones y edicion
+  // por rol), en tiempo real: al cambiarlos en Gestion se aplican al instante.
+  const [ajustesAcceso, setAjustesAcceso] = useState(AJUSTES_ACCESO_POR_DEFECTO);
+  useEffect(() => {
+    if (!userId) { setAjustesAcceso(AJUSTES_ACCESO_POR_DEFECTO); return undefined; }
+    const unsub = onSnapshot(doc(db, 'ajustes', 'acceso'),
+      (snap) => setAjustesAcceso(normalizarAjustesAcceso(snap.exists() ? snap.data() : null)),
+      (err) => console.warn('Ajustes de acceso no disponibles:', err?.message));
+    return () => unsub();
+  }, [userId]);
+  // Sin permiso de escritura (prueba terminada, bloqueado...): la interfaz
+  // oculta lo que acabaria en "no guardado"; las reglas lo deniegan igualmente.
+  const soloLectura = !puedeEscribir(user, ajustesAcceso);
   const [budgetLocked, setBudgetLocked] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -938,7 +979,11 @@ function AppInner({ isHome }) {
           displayName: userData.displayName || firebaseUser.displayName || (firebaseUser.email || '').split('@')[0],
           avatar: userData.avatar || '👤',
           isAdmin: isAdmin,
-          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (userData.permissions || ['dashboard', 'monthly', 'networth', 'loans', 'trading', 'analysis', 'settings']),
+          // Rol de invitado y excepciones de secciones: solo las escribe el admin.
+          invitado: userData.invitado === true,
+          invitadoHasta: userData.invitadoHasta || 0,
+          vistasExtra: Array.isArray(userData.vistasExtra) ? userData.vistasExtra : [],
+          vistasQuitadas: Array.isArray(userData.vistasQuitadas) ? userData.vistasQuitadas : [],
           // Estado de suscripcion. Solo informativo para la interfaz: quien
           // realmente corta la escritura son las reglas de Firestore.
           trialEndsAt: userData.trialEndsAt || 0,
@@ -1084,7 +1129,10 @@ function AppInner({ isHome }) {
           displayName: d.displayName || prev.displayName,
           avatar: d.avatar || prev.avatar,
           isAdmin,
-          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (d.permissions || prev.permissions),
+          invitado: tiene('invitado') ? d.invitado === true : !!prev.invitado,
+          invitadoHasta: tiene('invitadoHasta') ? (d.invitadoHasta || 0) : (prev.invitadoHasta || 0),
+          vistasExtra: tiene('vistasExtra') ? (Array.isArray(d.vistasExtra) ? d.vistasExtra : []) : (prev.vistasExtra || []),
+          vistasQuitadas: tiene('vistasQuitadas') ? (Array.isArray(d.vistasQuitadas) ? d.vistasQuitadas : []) : (prev.vistasQuitadas || []),
           trialEndsAt: tiene('trialEndsAt') ? (d.trialEndsAt || 0) : (prev.trialEndsAt || 0),
           paidUntil: tiene('paidUntil') ? (d.paidUntil || 0) : (prev.paidUntil || 0),
           plan: d.plan || prev.plan || 'trial',
@@ -1285,39 +1333,38 @@ function AppInner({ isHome }) {
     if (error) return <div className="loading-state" style={{ color: 'var(--red)' }}>{error}</div>;
     if (!financialData || !config) return <div className="loading-state"><div className="spinner" /></div>;
 
+    // Secciones segun el rol y los ajustes del admin. Las que tendria con la
+    // suscripcion muestran la pantalla de pago en lugar de "acceso restringido".
+    if (!hasPermission(user, activeView, ajustesAcceso)) {
+      return vistasConCandado(user, ajustesAcceso).includes(activeView)
+        ? <PantallaBloqueada vista={activeView} user={user} />
+        : <AccessDenied />;
+    }
     // Check user visibility preference (Settings is always allowed if permission exists)
     const isVisible = config?.visibleViews?.includes(activeView) || activeView === 'settings';
     if (!isVisible && activeView !== 'users') return <AccessDenied />;
 
     switch (activeView) {
       case 'dashboard':
-        if (!hasPermission(user, 'dashboard')) return <AccessDenied />;
-        return <DashboardView {...commonProps} mode="charts" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
+        return <DashboardView {...commonProps} mode="charts" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} soloLectura={soloLectura} />;
       case 'monthly':
-        if (!hasPermission(user, 'monthly')) return <AccessDenied />;
         // El presupuesto del año vive dentro de Seguimiento Mensual (pestaña "Presupuesto").
         if (monthlyMode === 'presupuesto') {
-          return <DashboardView {...commonProps} mode="budget" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
+          return <DashboardView {...commonProps} mode="budget" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} soloLectura={soloLectura} />;
         }
         return <MonthlyView {...commonProps} month={selectedMonth} currentMonthData={financialData[selectedYear]?.monthly?.[selectedMonth]} onIrAPresupuesto={() => setMonthlyMode('presupuesto')} />;
       case 'networth':
-        if (!hasPermission(user, 'networth')) return <AccessDenied />;
         return <NetWorthView {...commonProps} data={financialData[selectedYear]?.netWorth} />;
       case 'loans':
-        if (!hasPermission(user, 'loans')) return <AccessDenied />;
         return <LoansView loans={financialData?.loans || []} onUpdate={updateFD} fullData={financialData} userId={userId} onUpdateCfg={updateCfg} config={config} />;
       case 'trading':
-        if (!hasPermission(user, 'trading')) return <AccessDenied />;
         return <TradingView trades={financialData?.trading || []} onUpdate={updateFD} fullData={financialData} />;
       case 'analysis':
-        if (!hasPermission(user, 'analysis')) return <AccessDenied />;
         return <Calculadoras />;
       case 'settings':
-        if (!hasPermission(user, 'settings')) return <AccessDenied />;
-        return <SettingsView config={config} selectedYear={selectedYear} onUpdate={updateCfg} financialData={financialData} onUpdateFD={updateFD} user={user} onUpdateProfile={updateProfile} onUpdateVisibility={updateVisibleViews} onStartTutorial={() => setShowTutorial(true)} />;
+        return <SettingsView config={config} selectedYear={selectedYear} onUpdate={updateCfg} financialData={financialData} onUpdateFD={updateFD} user={user} onUpdateProfile={updateProfile} onUpdateVisibility={updateVisibleViews} onStartTutorial={() => setShowTutorial(true)} soloLectura={soloLectura} />;
       case 'users':
-        if (!hasPermission(user, 'users')) return <AccessDenied />;
-        return <UserManagementView />;
+        return <UserManagementView ajustesAcceso={ajustesAcceso} />;
       default: return null;
     }
   };
@@ -1330,7 +1377,7 @@ function AppInner({ isHome }) {
         {t.elUsuario} <b>{user.displayName}</b> {t.sinPermisoPara} <b>{t[activeView] || activeView}</b>.
       </div>
       <button className="btn btn-primary" style={{ marginTop: 24 }} onClick={() => {
-        const primera = PERMISSIONS.find(p => hasPermission(user, p.id) && (config?.visibleViews?.includes(p.id) || p.id === 'settings'));
+        const primera = PERMISSIONS.find(p => hasPermission(user, p.id, ajustesAcceso) && (config?.visibleViews?.includes(p.id) || p.id === 'settings'));
         setActiveView(primera ? primera.id : 'settings');
       }}>
         {t.volverInicio}
@@ -1341,7 +1388,7 @@ function AppInner({ isHome }) {
   return (
     <div className={`app-shell ${theme === 'light' ? 'light' : ''}`}>
       {!sidebarCollapsed && <div className="sidebar-overlay" onClick={() => setSidebarCollapsed(true)} />}
-      <Sidebar activeView={activeView} setActiveView={(v) => { setActiveView(v); setSidebarCollapsed(true); }} onSignOut={signOut} user={user} collapsed={sidebarCollapsed} config={config} />
+      <Sidebar activeView={activeView} setActiveView={(v) => { setActiveView(v); setSidebarCollapsed(true); }} onSignOut={signOut} user={user} collapsed={sidebarCollapsed} config={config} ajustesAcceso={ajustesAcceso} />
       <div className="main-content">
         <Topbar
           activeView={activeView}
@@ -1386,13 +1433,18 @@ function AppInner({ isHome }) {
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
-function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config }) {
+function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config, ajustesAcceso }) {
   const { t } = useApp();
+  // Secciones que tendria con la suscripcion: se muestran con candado.
+  const candados = vistasConCandado(user, ajustesAcceso);
   const navItems = PERMISSIONS.filter(p => {
-    const isPermitted = hasPermission(user, p.id);
+    const isPermitted = hasPermission(user, p.id, ajustesAcceso) || candados.includes(p.id);
     const isVisible = config?.visibleViews?.includes(p.id) || p.id === 'settings'; // Settings always visible for user
     return isPermitted && isVisible;
   });
+  const rol = rolEfectivo(user);
+  const claseRol = { admin: 'badge-accent', pago: 'badge-green', invitado: 'badge-blue', prueba: 'badge-ghost', caducado: 'badge-red', bloqueado: 'badge-red' }[rol] || 'badge-ghost';
+  const etiquetaRol = t['rolEt_' + rol] || t.rolUsuario;
   return (
     <nav className={`sidebar ${collapsed ? 'collapsed' : 'mobile-open'}`}>
       <div className="sidebar-logo">
@@ -1405,12 +1457,16 @@ function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config
         {!collapsed && <span className="sidebar-logo-text" style={{ letterSpacing: '0.5px', fontWeight: 800, color: 'var(--text-primary)' }}>Finanzi<span style={{ color: 'var(--accent)' }}>App</span></span>}
       </div>
       <div className="sidebar-nav">
-        {navItems.map(item => (
-          <button key={item.id} className={`nav-item ${activeView === item.id ? 'active' : ''}`} onClick={() => setActiveView(item.id)} title={collapsed ? t[item.id] : ''}>
-            <Ic d={item.icon} size={18} />
-            {!collapsed && <span className="nav-label">{t[item.id]}</span>}
-          </button>
-        ))}
+        {navItems.map(item => {
+          const conCandado = candados.includes(item.id);
+          return (
+            <button key={item.id} data-vista={item.id} className={`nav-item ${activeView === item.id ? 'active' : ''} ${conCandado ? 'locked' : ''}`} onClick={() => setActiveView(item.id)} title={collapsed ? t[item.id] : (conCandado ? t.bloqMenuAyuda : '')}>
+              <Ic d={item.icon} size={18} />
+              {!collapsed && <span className="nav-label">{t[item.id]}</span>}
+              {conCandado && <span className="nav-lock"><Ic d={PATHS.lock} size={12} /></span>}
+            </button>
+          );
+        })}
       </div>
       <div className="sidebar-footer">
         <div className="user-info" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -1420,8 +1476,8 @@ function Sidebar({ activeView, setActiveView, onSignOut, user, collapsed, config
           {!collapsed && (
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.displayName}</div>
-              <div className={`badge ${user?.isAdmin ? 'badge-accent' : 'badge-ghost'}`} style={{ fontSize: 9, marginTop: 2 }}>
-                {user?.isAdmin ? t.rolAdmin : t.rolUsuario}
+              <div className={`badge ${claseRol}`} style={{ fontSize: 9, marginTop: 2 }}>
+                {etiquetaRol}
               </div>
             </div>
           )}
@@ -1624,7 +1680,7 @@ const RenameSpan = ({ sub, onRename, disabled }) => {
   );
 };
 
-function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg, config, mode, setMode, budgetLocked, setBudgetLocked, visibleBudgetSections, visibleViews }) {
+function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg, config, mode, setMode, budgetLocked, setBudgetLocked, visibleBudgetSections, visibleViews, soloLectura }) {
   const { t, tf, theme, locale, mes, mesCorto } = useApp();
   const [addingTo, setAddingTo] = useState(null);
   const [newSub, setNewSub] = useState('');
@@ -2361,7 +2417,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
             <div className="chart-card-title">{t.wObjetivo}</div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
               <label style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>{tf('objetivoPara', { year })}</label>
-              <BudgetInput value={objetivoAhorro} disabled={false} onSave={v => setOpcionesWidget('objetivo', { objetivo: v })} />
+              <BudgetInput value={objetivoAhorro} disabled={!!soloLectura} onSave={v => setOpcionesWidget('objetivo', { objetivo: v })} />
             </div>
             {objetivoAhorro > 0 ? (
               <>
@@ -2613,9 +2669,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
             </select>
           )}
           {editandoDashboard && <button className="btn btn-ghost" onClick={restablecerDashboard}>{t.restablecer}</button>}
-          <button className={`btn ${editandoDashboard ? 'btn-primary' : 'btn-ghost'} dashboard-personalizar-btn`} onClick={() => setEditandoDashboard(!editandoDashboard)}>
-            <Ic d={PATHS.settings} size={14} /> {editandoDashboard ? t.listo : t.personalizar}
-          </button>
+          {!soloLectura && (
+            <button className={`btn ${editandoDashboard ? 'btn-primary' : 'btn-ghost'} dashboard-personalizar-btn`} onClick={() => setEditandoDashboard(!editandoDashboard)}>
+              <Ic d={PATHS.settings} size={14} /> {editandoDashboard ? t.listo : t.personalizar}
+            </button>
+          )}
         </div>
       </div>
 
@@ -3466,7 +3524,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
 
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
-function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial }) {
+function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial, soloLectura }) {
   const { t, tf, theme, toggleTheme, language, setLanguageTo, locale } = useApp();
   // Vuelta de Stripe Checkout (?pago=ok | cancelado): se muestra una vez y se limpia la URL.
   const [avisoPago] = useState(() => {
@@ -3681,6 +3739,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div style={{ fontSize: 15, fontWeight: 800, color: sus.color }}>{sus.texto}</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>{t.susIncluye}</div>
               {sus.clave === 'prueba' && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>{t.susPruebaNota}</div>}
+              {soloLectura && !user?.bloqueado && <div style={{ fontSize: 12, color: 'var(--yellow)', marginTop: 6 }}>{t.susSoloLecturaAjustes}</div>}
               {['activa', 'cancelando', 'impago'].includes(sus.clave) && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>{t.susGestionarAyuda}</div>}
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -3691,8 +3750,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
           {!user?.isAdmin && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
         </div>
 
-        {/* Gestión de Secciones */}
-        <div className="card">
+        {/* Gestión de Secciones (oculto en solo lectura: no se podria guardar) */}
+        {!soloLectura && <div className="card">
           <div className="chart-card-title">{t.visibilidadSecciones}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{t.visibilidadSeccionesDesc}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
@@ -3772,7 +3831,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               );
             })}
           </div>
-        </div>
+        </div>}
 
         {/* Appearance */}
         <div className="card">
@@ -3824,8 +3883,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
           </div>
         </div>
 
-        {/* Category manager */}
-        <div className="card">
+        {/* Category manager (oculto en solo lectura: no se podria guardar) */}
+        {!soloLectura && <div className="card">
           <div className="chart-card-title">{t.categoryManager} <span style={{ color: 'var(--accent)', fontWeight: 800 }}>({selectedYear} ➝)</span></div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
             <Negrita texto={tf('modificaCategoriasPara', { year: selectedYear })} /> {t.usaSelectorAnio}
@@ -3861,7 +3920,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               </div>
             ))}
           </div>
-        </div>
+        </div>}
       </div>
 
       {/* Add subcategory modal */}
@@ -4093,12 +4152,13 @@ const estadoUsuarioAdmin = (u, ahora) => {
   if (u.isAdmin) return 'admin';
   if (u.bloqueado) return 'bloqueado';
   if ((u.paidUntil || 0) > ahora) return u.stripeStatus === 'past_due' ? 'impago' : (u.cancelAtPeriodEnd ? 'cancelando' : 'pago');
+  if (u.invitado === true && (!(u.invitadoHasta || 0) || u.invitadoHasta > ahora)) return 'invitado';
   if ((u.trialEndsAt || 0) > ahora) return 'prueba';
   return 'caducado';
 };
-const COLOR_ESTADO_ADMIN = { admin: 'var(--accent)', pago: 'var(--green)', cancelando: 'var(--yellow)', impago: 'var(--red)', prueba: 'var(--blue)', caducado: 'var(--text-muted)', bloqueado: 'var(--red)' };
+const COLOR_ESTADO_ADMIN = { admin: 'var(--accent)', pago: 'var(--green)', cancelando: 'var(--yellow)', impago: 'var(--red)', invitado: 'var(--accent)', prueba: 'var(--blue)', caducado: 'var(--text-muted)', bloqueado: 'var(--red)' };
 
-function UserManagementView() {
+function UserManagementView({ ajustesAcceso }) {
   const { t, tf, locale } = useApp();
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -4109,6 +4169,24 @@ function UserManagementView() {
   const [busqueda, setBusqueda] = useState('');
   const [stripe, setStripe] = useState({ datos: null, cargando: false, error: null });
   const [uidCopiado, setUidCopiado] = useState(false);
+  const [pestana, setPestana] = useState('usuarios');
+  const [invitaciones, setInvitaciones] = useState([]);
+  const [invEmail, setInvEmail] = useState('');
+  const [invHasta, setInvHasta] = useState('');
+  const [invAviso, setInvAviso] = useState(null);
+  // Roles y permisos: copia local de los ajustes; se guarda con el botón.
+  const [rolesForm, setRolesForm] = useState(() => normalizarAjustesAcceso(ajustesAcceso));
+  const [rolesSucio, setRolesSucio] = useState(false);
+  const [rolesAviso, setRolesAviso] = useState(null);
+  useEffect(() => { if (!rolesSucio) setRolesForm(normalizarAjustesAcceso(ajustesAcceso)); }, [ajustesAcceso, rolesSucio]);
+
+  useEffect(() => {
+    // Invitaciones pendientes de registro (invitaciones/{correo}).
+    const unsub = onSnapshot(collection(db, 'invitaciones'),
+      (snap) => setInvitaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.creada || 0) - (a.creada || 0))),
+      (err) => console.warn('Invitaciones no disponibles:', err?.message));
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     // Eventos del webhook de Stripe (solo lectura; los escribe la Cloud Function).
@@ -4189,7 +4267,7 @@ function UserManagementView() {
   const etiquetaEstado = (u) => {
     const e = estadoDe(u);
     if (e === 'cancelando') return tf('admEstadoCancelando', { fecha: fechaCorta((u.paidUntil || 0) - GRACIA_MS) });
-    return { admin: t.admEstadoAdmin, pago: t.admEstadoPago, impago: t.admEstadoImpago, prueba: t.admEstadoPrueba, caducado: t.admEstadoCaducado, bloqueado: t.admEstadoBloqueado }[e] || e;
+    return { admin: t.admEstadoAdmin, pago: t.admEstadoPago, impago: t.admEstadoImpago, invitado: t.admEstadoInvitado, prueba: t.admEstadoPrueba, caducado: t.admEstadoCaducado, bloqueado: t.admEstadoBloqueado }[e] || e;
   };
   const ultimoAcceso = (u) => { const l = logs.filter(x => x.uid === u.uid).sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))[0]; return l?.lastSeen ? new Date(l.lastSeen).toLocaleDateString(locale) : t.admNunca; };
   const cuenta = (estado) => users.filter(u => estadoDe(u) === estado).length;
@@ -4198,6 +4276,7 @@ function UserManagementView() {
     { id: 'todos', label: t.admUsuarios, valor: users.length, color: 'var(--text-primary)' },
     { id: 'prueba', label: t.admEnPrueba, valor: cuenta('prueba'), color: 'var(--blue)' },
     { id: 'pago', label: t.admDePago, valor: dePago, color: 'var(--green)' },
+    { id: 'invitado', label: t.admInvitados, valor: cuenta('invitado'), color: 'var(--accent)' },
     { id: 'caducado', label: t.admCaducados, valor: cuenta('caducado'), color: 'var(--text-muted)' },
     { id: 'bloqueado', label: t.admBloqueados, valor: cuenta('bloqueado'), color: 'var(--red)' },
     { id: 'admin', label: t.admFiltroAdmin, valor: cuenta('admin'), color: 'var(--accent)' }
@@ -4207,6 +4286,43 @@ function UserManagementView() {
   const usuariosFiltrados = users.filter(u => coincideFiltro(u) && coincideBusqueda(u));
   const miUid = auth?.currentUser?.uid || '';
   const copiarUid = async () => { try { await navigator.clipboard.writeText(miUid); setUidCopiado(true); setTimeout(() => setUidCopiado(false), 2000); } catch { /* sin portapapeles */ } };
+
+  // ─── Roles y permisos (ajustes/acceso) ───
+  const etiquetaRol = (rol) => ({ prueba: t.admRolPrueba, pago: t.admRolPago, invitado: t.admRolInvitado, caducado: t.admRolCaducado }[rol] || rol);
+  const alternarVista = (rol, vista) => { setRolesSucio(true); setRolesForm(f => { const v = f.roles[rol].vistas; return { ...f, roles: { ...f.roles, [rol]: { ...f.roles[rol], vistas: v.includes(vista) ? v.filter(x => x !== vista) : [...v, vista] } } }; }); };
+  const alternarEscribir = (rol) => { setRolesSucio(true); setRolesForm(f => ({ ...f, roles: { ...f.roles, [rol]: { ...f.roles[rol], escribir: !f.roles[rol].escribir } } })); };
+  const fijarDiasPrueba = (v) => { setRolesSucio(true); setRolesForm(f => ({ ...f, diasPrueba: v })); };
+  const restaurarRoles = () => { setRolesSucio(true); setRolesAviso(null); setRolesForm(normalizarAjustesAcceso(null)); };
+  const guardarRoles = async () => {
+    const limpio = normalizarAjustesAcceso(rolesForm);
+    try {
+      await setDoc(doc(db, 'ajustes', 'acceso'), { ...limpio, actualizado: Date.now(), actualizadoPor: miUid });
+      setRolesForm(limpio); setRolesSucio(false); setRolesAviso({ tipo: 'ok', texto: t.admRolesGuardado });
+    } catch (err) { setRolesAviso({ tipo: 'error', texto: tf('admRolesError', { msg: err.message }) }); }
+  };
+
+  // ─── Invitaciones (cuentas gratuitas) ───
+  const invitar = async (e) => {
+    e.preventDefault();
+    const email = invEmail.trim().toLowerCase();
+    if (!email) return;
+    const hasta = invHasta ? new Date(`${invHasta}T23:59:59`).getTime() : 0;
+    try {
+      const existente = users.find(u => String(u.email || '').toLowerCase() === email);
+      if (existente) {
+        await setDoc(doc(db, 'users', existente.uid), { invitado: true, invitadoHasta: hasta, lastUpdated: Date.now() }, { merge: true });
+        setInvAviso({ tipo: 'ok', texto: tf('admInvConvertida', { email }) });
+      } else {
+        await setDoc(doc(db, 'invitaciones', email), { email, hasta, creada: Date.now(), creadaPor: miUid });
+        setInvAviso({ tipo: 'ok', texto: tf('admInvCreada', { email }) });
+      }
+      setInvEmail(''); setInvHasta('');
+    } catch (err) { setInvAviso({ tipo: 'error', texto: tf('admInvError', { msg: err.message }) }); }
+  };
+  const quitarInvitacion = async (inv) => {
+    try { await deleteDoc(doc(db, 'invitaciones', inv.id)); }
+    catch (err) { setInvAviso({ tipo: 'error', texto: tf('admInvError', { msg: err.message }) }); }
+  };
 
   const cargarStripe = async () => {
     setStripe({ datos: null, cargando: true, error: null });
@@ -4245,21 +4361,26 @@ function UserManagementView() {
     e.preventDefault();
     if (!editingUser) return;
     const fd = new FormData(e.target);
-    const perms = PERMISSIONS.map(p => p.id).filter(id => fd.get(`perm_${id}`) === 'on');
+    const marcadas = VISTAS_ASIGNABLES.filter(id => fd.get(`perm_${id}`) === 'on');
+    const fin = (campo) => { const v = fd.get(campo); return v ? new Date(`${v}T23:59:59`).getTime() : 0; };
 
     // Las cuentas se crean registrándose en la web (Firebase Auth); aquí solo se
     // editan. El email no se toca: cambiarlo solo en Firestore lo desacoplaría de
-    // Auth. Pago recibido: se apunta la fecha hasta la que queda cubierto; las
-    // reglas solo dejan escribir ese campo al admin.
-    const fechaPago = fd.get('paidUntil');
+    // Auth. Fechas de prueba, pago e invitación: las reglas solo dejan
+    // escribirlas al admin.
     const esUnoMismo = editingUser.uid === auth?.currentUser?.uid;
+    const invitado = fd.get('invitado') === 'on';
     const userData = {
       displayName: fd.get('name'),
       isAdmin: esUnoMismo ? true : fd.get('role') === 'admin', // un admin no puede quitarse el rol a sí mismo
-      permissions: perms,
-      paidUntil: fechaPago ? new Date(`${fechaPago}T23:59:59`).getTime() : 0,
+      paidUntil: fin('paidUntil'),
+      trialEndsAt: fin('trialEndsAt'),
+      invitado,
+      invitadoHasta: invitado ? fin('invitadoHasta') : 0,
       lastUpdated: Date.now()
     };
+    // Excepciones de secciones respecto a lo que su tipo de cuenta ya incluye.
+    Object.assign(userData, excepcionesDesdeMarcadas(rolEfectivo({ ...editingUser, ...userData }), ajustesAcceso, marcadas));
 
     try {
       await setDoc(doc(db, 'users', editingUser.uid), userData, { merge: true });
@@ -4289,31 +4410,21 @@ function UserManagementView() {
   // del render es un tipo nuevo en cada render y React desmontaba el formulario
   // con cada snapshot (cada latido de otro usuario), perdiendo lo que el admin
   // estaba escribiendo.
-  const renderUserForm = (u, onCancel) => (
-    <div className="card fade-in" style={{ marginBottom: 20, border: '1px solid var(--accent)' }}>
+  const renderUserForm = (u, onCancel) => {
+    const rolActual = u ? estadoDe(u) : 'prueba';
+    const rolBase = ['pago', 'cancelando', 'impago'].includes(rolActual) ? 'pago' : (rolActual === 'bloqueado' ? 'caducado' : rolActual);
+    const permitidas = u ? vistasPermitidas(u, ajustesAcceso) : [];
+    const base = rolBase === 'admin' ? VISTAS_ASIGNABLES : (ajustesAcceso?.roles?.[rolBase]?.vistas || []);
+    return (
+    <div className="card fade-in adm-ficha" style={{ marginBottom: 20, border: '1px solid var(--accent)' }}>
       <form onSubmit={handleSave}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.datosCuenta}</h3>
             <div><label className="login-label">{t.nombre}</label><input name="name" className="text-input" defaultValue={u?.displayName} required /></div>
             <div><label className="login-label">{t.email}</label><input type="email" className="text-input" value={u?.email || ''} readOnly disabled title={t.emailGestionadoAuth} /></div>
             {/* Campo de contraseña eliminado: mostraba en claro la contraseña
                 almacenada. Firebase Auth custodia las credenciales. */}
-            <div>
-              <label className="login-label">{t.pagadoHasta}</label>
-              <input
-                name="paidUntil"
-                type="date"
-                className="text-input"
-                defaultValue={u?.paidUntil ? fechaISO(new Date(u.paidUntil)) : ''}
-              />
-              <div style={{ fontSize: 11, opacity: .65, marginTop: 4 }}>
-                {u?.trialEndsAt
-                  ? tf('pruebaHasta', { fecha: new Date(u.trialEndsAt).toLocaleDateString(locale) })
-                  : t.sinPrueba}
-                {t.dejaloVacio}
-              </div>
-            </div>
             <div><label className="login-label">{t.rolGlobal}</label>
               <select name="role" className="select-input" defaultValue={u?.isAdmin ? 'admin' : 'user'}>
                 <option value="user">{t.rolUsuarioPermisos}</option>
@@ -4323,15 +4434,39 @@ function UserManagementView() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.permisosEspecificos}</h3>
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.admTipoCuenta}</h3>
+            <div style={{ fontSize: 12 }}>{t.admEstadoActual}: <span className="badge badge-ghost" style={{ color: COLOR_ESTADO_ADMIN[rolActual], borderColor: COLOR_ESTADO_ADMIN[rolActual], fontSize: 10 }}>{u ? etiquetaEstado(u) : ''}</span></div>
+            <div>
+              <label className="login-label">{t.admPruebaHastaCampo}</label>
+              <input name="trialEndsAt" type="date" className="text-input" defaultValue={u?.trialEndsAt ? fechaISO(new Date(u.trialEndsAt)) : ''} />
+            </div>
+            <div>
+              <label className="login-label">{t.pagadoHasta}</label>
+              <input name="paidUntil" type="date" className="text-input" defaultValue={u?.paidUntil ? fechaISO(new Date(u.paidUntil)) : ''} />
+              <div style={{ fontSize: 11, opacity: .65, marginTop: 4 }}>{t.dejaloVacio}</div>
+            </div>
+            <label className="permission-toggle">
+              <input type="checkbox" name="invitado" defaultChecked={u?.invitado === true} />
+              <span>{t.admInvitadoCheck}</span>
+            </label>
+            <div>
+              <label className="login-label">{t.admInvitadoHasta}</label>
+              <input name="invitadoHasta" type="date" className="text-input" defaultValue={u?.invitadoHasta ? fechaISO(new Date(u.invitadoHasta)) : ''} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <h3 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 10px 0' }}>{t.admSeccionesUsuario}</h3>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{tf('admSeccionesUsuarioAyuda', { rol: u ? etiquetaEstado(u) : '' })}</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              {PERMISSIONS.map(p => (
-                <label key={p.id} className="permission-toggle">
-                  <input type="checkbox" name={`perm_${p.id}`} defaultChecked={u ? u.permissions?.includes(p.id) : true} />
-                  <span>{t[p.id]}</span>
+              {VISTAS_ASIGNABLES.map(id => (
+                <label key={id} className="permission-toggle">
+                  <input type="checkbox" name={`perm_${id}`} defaultChecked={permitidas.includes(id)} />
+                  <span>{t[id]}{base.includes(id) ? '' : ' *'}</span>
                 </label>
               ))}
             </div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.admSiempreVisible}</div>
           </div>
         </div>
 
@@ -4342,7 +4477,7 @@ function UserManagementView() {
       </form>
       <style>{`
         .permission-toggle {
-          display: flex; align-items: center; gap: 8; padding: 10px;
+          display: flex; align-items: center; gap: 8px; padding: 10px;
           background: rgba(255,255,255,0.03); border-radius: 8px;
           cursor: pointer; font-size: 11px; font-weight: 500;
           transition: background 0.2s;
@@ -4351,10 +4486,100 @@ function UserManagementView() {
         .permission-toggle input { width: 16px; height: 16px; cursor: pointer; }
       `}</style>
     </div>
+    );
+  };
+
+  // ─── Pestaña Roles y permisos ───
+  const renderRoles = () => (
+    <div className="card fade-in adm-roles">
+      <div className="chart-card-title">🧩 {t.admRolesTitulo}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: 16 }}>{t.admRolesDesc}</div>
+      <div className="table-wrap">
+        <table className="adm-matriz" style={{ fontSize: 13 }}>
+          <thead><tr><th>{t.admSeccion}</th>{ROLES.map(r => <th key={r}>{etiquetaRol(r)}</th>)}</tr></thead>
+          <tbody>
+            {VISTAS_ASIGNABLES.map(v => (
+              <tr key={v}>
+                <td>{t[v]}</td>
+                {ROLES.map(r => <td key={r}><input type="checkbox" aria-label={`${etiquetaRol(r)} · ${t[v]}`} checked={rolesForm.roles[r].vistas.includes(v)} onChange={() => alternarVista(r, v)} /></td>)}
+              </tr>
+            ))}
+            <tr className="adm-fila-escribir">
+              <td>{t.admRolEscribir}</td>
+              {ROLES.map(r => <td key={r}><input type="checkbox" aria-label={`${etiquetaRol(r)} · ${t.admRolEscribir}`} checked={rolesForm.roles[r].escribir} onChange={() => alternarEscribir(r)} /></td>)}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t.admSiempreVisible}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginTop: 18 }}>
+        <label className="login-label" htmlFor="adm-dias-prueba" style={{ margin: 0 }}>{t.admDiasPrueba}</label>
+        <input id="adm-dias-prueba" type="number" min="1" max="365" className="text-input" style={{ width: 90 }} value={rolesForm.diasPrueba} onChange={e => fijarDiasPrueba(e.target.value)} />
+        <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t.admDiasPruebaAyuda}</span>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, alignItems: 'center', marginTop: 18, flexWrap: 'wrap' }}>
+        {rolesAviso && <span className="adm-roles-aviso" style={{ fontSize: 12, color: rolesAviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{rolesAviso.texto}</span>}
+        <button type="button" className="btn btn-ghost" onClick={restaurarRoles}>{t.admRolesRestaurar}</button>
+        <button type="button" className="btn btn-primary adm-guardar-roles" disabled={!rolesSucio} onClick={guardarRoles}>{t.admGuardarRoles}</button>
+      </div>
+    </div>
+  );
+
+  // ─── Pestaña Invitaciones ───
+  const invitadosActivos = users.filter(u => estadoDe(u) === 'invitado');
+  const renderInvitaciones = () => (
+    <div className="card fade-in adm-invitaciones">
+      <div className="chart-card-title">✉️ {t.admInvTitulo}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: 16 }}>{t.admInvDesc}</div>
+      <form onSubmit={invitar} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ flex: 2, minWidth: 220 }}><label className="login-label">{t.admInvEmail}</label><input type="email" name="invEmail" className="text-input" value={invEmail} onChange={e => setInvEmail(e.target.value)} placeholder="nombre@correo.com" required /></div>
+        <div style={{ flex: 1, minWidth: 160 }}><label className="login-label">{t.admInvHasta}</label><input type="date" name="invHasta" className="text-input" value={invHasta} onChange={e => setInvHasta(e.target.value)} /></div>
+        <button type="submit" className="btn btn-primary">{t.admInvAnadir}</button>
+      </form>
+      {invAviso && <div className="adm-inv-aviso" style={{ fontSize: 12, marginTop: 10, color: invAviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{invAviso.texto}</div>}
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', margin: '20px 0 8px' }}>{t.admInvPendientes}</div>
+      {invitaciones.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admInvSinPendientes}</div> : (
+        <div className="table-wrap">
+          <table style={{ fontSize: 12 }}>
+            <thead><tr><th>{t.email}</th><th>{t.admInvHastaCol}</th><th>{t.admFecha}</th><th className="text-center">{t.actions}</th></tr></thead>
+            <tbody>
+              {invitaciones.map(inv => (
+                <tr key={inv.id}>
+                  <td>{inv.email || inv.id}{users.some(u => String(u.email || '').toLowerCase() === inv.id) && <span className="badge badge-green" style={{ marginLeft: 8, fontSize: 9 }}>{t.admInvRegistrada}</span>}</td>
+                  <td>{inv.hasta ? fechaCorta(inv.hasta) : t.admInvSinFecha}</td>
+                  <td style={{ color: 'var(--text-muted)' }}>{inv.creada ? fechaCorta(inv.creada) : '—'}</td>
+                  <td className="text-center"><button className="btn btn-icon btn-danger" title={t.admInvQuitar} onClick={() => quitarInvitacion(inv)}><Ic d="M6 18L18 6M6 6l12 12" size={14} /></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', margin: '20px 0 8px' }}>{t.admInvActivos}</div>
+      {invitadosActivos.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admInvSinActivos}</div> : invitadosActivos.map(u => (
+        <div key={u.uid} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+          <span><b>{u.displayName}</b> <span style={{ color: 'var(--text-secondary)' }}>{u.email}</span></span>
+          <span style={{ color: 'var(--text-muted)' }}>{u.invitadoHasta ? fechaCorta(u.invitadoHasta) : t.admInvSinFecha}</span>
+        </div>
+      ))}
+    </div>
   );
 
   return (
     <div className="section-gap fade-in" style={{ width: '100%', maxWidth: 1600, margin: '0 auto' }}>
+      {/* Pestañas del panel de gestión */}
+      <div className="settings-toggle adm-tabs">
+        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
+          <button key={id} className={`settings-toggle-btn ${pestana === id ? 'active' : ''}`} onClick={() => setPestana(id)}>
+            {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {pestana === 'roles' && renderRoles()}
+      {pestana === 'invitaciones' && renderInvitaciones()}
+
+      {pestana === 'actividad' && (<>
       {/* Analytics Dashboard - Professional Layout */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20, marginBottom: 32 }}>
         <div className="card" style={{ padding: '24px', borderLeft: '4px solid var(--green)', position: 'relative', overflow: 'hidden' }}>
@@ -4429,7 +4654,9 @@ function UserManagementView() {
           </div>
         </div>
       </div>
+      </>)}
 
+      {pestana === 'usuarios' && (<>
       {/* ─── Suscripciones: KPIs ─── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 24 }}>
         {kpis.map(k => (
@@ -4445,9 +4672,10 @@ function UserManagementView() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24, marginBottom: 32 }}>
-        {/* ─── Acceso de administrador ─── */}
-        <div className="card">
+      </>)}
+
+      {pestana === 'roles' && (
+        <div className="card" style={{ marginTop: 24 }}>
           <div className="chart-card-title">🛡️ {t.admAcceso}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: 14 }}>{t.admAccesoDesc}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border)' }}>
@@ -4463,8 +4691,9 @@ function UserManagementView() {
             </div>
           ))}
         </div>
+      )}
 
-        {/* ─── Resumen de Stripe ─── */}
+      {pestana === 'stripe' && (
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <div className="chart-card-title" style={{ marginBottom: 0 }}>💳 {t.admResumenStripe}</div>
@@ -4515,8 +4744,9 @@ function UserManagementView() {
             </div>
           )}
         </div>
-      </div>
+      )}
 
+      {pestana === 'usuarios' && (<>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{t.usuariosSistema}</h2>
@@ -4567,14 +4797,14 @@ function UserManagementView() {
                       {u.isAdmin ? (
                         <span className="badge badge-accent" style={{ fontSize: 9 }}>{t.adminTotal}</span>
                       ) : (
-                        (u.permissions || []).map(pId => {
-                          const p = PERMISSIONS.find(px => px.id === pId);
-                          return <span key={pId} className="badge badge-ghost" style={{ fontSize: 9, opacity: 0.8 }}>{p ? t[p.id] : pId}</span>;
+                        vistasPermitidas(u, ajustesAcceso).filter(id => id !== 'settings').map(id => {
+                          const extra = (u.vistasExtra || []).includes(id);
+                          return <span key={id} className="badge badge-ghost" style={{ fontSize: 9, opacity: 0.8, color: extra ? 'var(--accent)' : undefined }} title={extra ? t.admVistaExtra : ''}>{extra ? '+ ' : ''}{t[id]}</span>;
                         })
                       )}
-                      {(!u.isAdmin && (!u.permissions || u.permissions.length === 0)) && (
-                        <span style={{ fontSize: 11, color: 'var(--red)', fontStyle: 'italic' }}>{t.sinAccesos}</span>
-                      )}
+                      {!u.isAdmin && (u.vistasQuitadas || []).map(id => (
+                        <span key={'q' + id} className="badge badge-ghost" style={{ fontSize: 9, opacity: 0.55, textDecoration: 'line-through' }} title={t.admVistaQuitada}>{t[id]}</span>
+                      ))}
                       {u.bloqueado && (
                         <span className="badge" style={{ fontSize: 9, background: 'var(--red)', color: 'white' }}>{t.bloqueado}</span>
                       )}
@@ -4598,8 +4828,10 @@ function UserManagementView() {
           </table>
         </div>
       </div>
+      </>)}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 40, marginBottom: 24 }}>
+      {pestana === 'errores' && (<>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, marginBottom: 24 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--red)' }}>{t.auditoriaErrores}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.auditoriaErroresDesc}</p>
@@ -4645,6 +4877,7 @@ function UserManagementView() {
           </div>
         )}
       </div>
+      </>)}
 
     </div>
   );

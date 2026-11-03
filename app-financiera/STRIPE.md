@@ -8,9 +8,11 @@ textos `precioMes` / `susIncluye` de `src/i18n/`.
 
 ## Cómo funciona
 
-1. Al registrarse, la app concede 15 días de prueba (`trialEndsAt` en
-   `users/{uid}`). Las reglas de Firestore permiten escribir mientras
-   `trialEndsAt` o `paidUntil` estén en el futuro y la cuenta no esté bloqueada.
+1. Al registrarse, la app concede la prueba gratuita (`trialEndsAt` en
+   `users/{uid}`; 15 días por defecto, configurables en Gestión → Roles y
+   permisos, ver ACCESO.md). Las reglas de Firestore permiten escribir según
+   el tipo de cuenta (prueba vigente, pagada o invitada) y nunca si la cuenta
+   está bloqueada; con la prueba terminada solo queda el Dashboard en lectura.
 2. En Configuración → Suscripción (o en el aviso de prueba) el usuario pulsa
    **Activar suscripción**. La Cloud Function `crearSesionCheckout` crea una
    sesión de Stripe Checkout y la app redirige a Stripe. Si la prueba sigue
