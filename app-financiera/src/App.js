@@ -1248,7 +1248,7 @@ function AppInner({ isHome }) {
         return <DashboardView {...commonProps} mode={dashboardMode} setMode={setDashboardMode} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} />;
       case 'monthly':
         if (!hasPermission(user, 'monthly')) return <AccessDenied />;
-        return <MonthlyView {...commonProps} month={selectedMonth} currentMonthData={financialData[selectedYear]?.monthly?.[selectedMonth]} />;
+        return <MonthlyView {...commonProps} month={selectedMonth} currentMonthData={financialData[selectedYear]?.monthly?.[selectedMonth]} onIrAPresupuesto={() => { setDashboardMode('budget'); setActiveView('dashboard'); }} />;
       case 'networth':
         if (!hasPermission(user, 'networth')) return <AccessDenied />;
         return <NetWorthView {...commonProps} data={financialData[selectedYear]?.netWorth} />;
@@ -2519,9 +2519,11 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 }
 
 // ─── MONTHLY VIEW ─────────────────────────────────────────────────────────────
-// Cifra editable "en la celda": se muestra formateada; al hacer clic aparece un
-// campo numérico que guarda al salir o con Enter (Esc cancela).
-const CeldaCifra = ({ value, onSave, title, color, bold, disabled }) => {
+// Cifra editable "en la celda": se muestra formateada; al hacer clic se convierte
+// en un campo del MISMO tamaño (la tabla no se mueve) que guarda al salir o con
+// Enter; Esc cancela. Campo de texto con teclado decimal, sin flechas, y admite
+// coma o punto como separador.
+const CeldaCifra = ({ value, onSave, title, color, bold, disabled, ancho = '7.5em' }) => {
   const [editando, setEditando] = useState(false);
   const [val, setVal] = useState('');
   const cancelado = useRef(false);
@@ -2529,39 +2531,41 @@ const CeldaCifra = ({ value, onSave, title, color, bold, disabled }) => {
   const confirmar = () => {
     setEditando(false);
     if (cancelado.current) return;
-    const num = parseFloat(String(val).replace(',', '.'));
+    const num = parseFloat(String(val).trim().replace(/\s/g, '').replace(',', '.'));
     if (!isNaN(num) && Math.abs(num - (parseFloat(value) || 0)) > 0.004) onSave(Math.round(num * 100) / 100);
   };
+  const caja = { display: 'inline-block', minWidth: ancho, maxWidth: '100%', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' };
   if (!editando) {
     return (
-      <span onClick={abrir} title={disabled ? '' : title}
-        style={{ cursor: disabled ? 'default' : 'pointer', fontWeight: bold ? 700 : 500, color: color || 'inherit', borderBottom: disabled ? 'none' : '1px dashed var(--border)', paddingBottom: 1 }}>
-        {fmt(value)}
+      <span style={caja}>
+        <span onClick={abrir} title={disabled ? '' : title}
+          style={{ cursor: disabled ? 'default' : 'pointer', fontWeight: bold ? 700 : 500, color: color || 'inherit', borderBottom: disabled ? 'none' : '1px dashed var(--border)', paddingBottom: 1 }}>
+          {fmt(value)}
+        </span>
       </span>
     );
   }
   return (
-    <input type="number" step="0.01" autoFocus className="budget-input" value={val}
-      style={{ textAlign: 'right', fontWeight: bold ? 700 : 500, color: color || 'inherit', minWidth: 80, maxWidth: 130 }}
-      onFocus={e => e.target.select()}
-      onChange={e => setVal(e.target.value)}
-      onBlur={confirmar}
-      onKeyDown={e => {
-        if (e.key === 'Enter') e.target.blur();
-        if (e.key === 'Escape') { cancelado.current = true; e.target.blur(); }
-      }} />
+    <span style={caja}>
+      <input type="text" inputMode="decimal" autoFocus value={val}
+        style={{ width: '100%', minWidth: 0, boxSizing: 'border-box', height: 24, padding: '0 4px', margin: 0, textAlign: 'right', fontSize: 'inherit', fontFamily: 'inherit', fontWeight: bold ? 700 : 500, color: color || 'inherit', background: 'var(--bg-input)', border: '1px solid var(--accent)', borderRadius: 6, outline: 'none' }}
+        onFocus={e => e.target.select()}
+        onChange={e => setVal(e.target.value)}
+        onBlur={confirmar}
+        onKeyDown={e => {
+          if (e.key === 'Enter') e.target.blur();
+          if (e.key === 'Escape') { cancelado.current = true; e.target.blur(); }
+        }} />
+    </span>
   );
 };
 
-function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData }) {
+function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, month, budgetData, onIrAPresupuesto }) {
   const { t, tf, mes } = useApp();
 
-  const [txDate, setTxDate] = useState(hoyLocal);
-  const [txAmount, setTxAmount] = useState('');
-  const [txNota, setTxNota] = useState('');
-  const [txMainCat, setTxMainCat] = useState(() => Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || '');
-  const [txSubCat, setTxSubCat] = useState(() => { const mk = Object.keys(categories).find(k => !esSeccionPatrimonio(k)) || ''; return (categories[mk] || [])[0] || ''; });
-  // Edición dentro de la tabla: fila desplegada, movimiento nuevo y movimiento en edición.
+  const [notaEstimado, setNotaEstimado] = useState(false);
+  // Todo se edita dentro de la tabla (ya no hay formulario aparte): fila
+  // desplegada, movimiento nuevo y movimiento en edición.
   const [filaAbierta, setFilaAbierta] = useState(null);
   const [nuevoMov, setNuevoMov] = useState({ amount: '', date: '', nota: '' });
   const [editMov, setEditMov] = useState(null);
@@ -2574,19 +2578,10 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
     const mIdx = months.indexOf(month);
     const hoy = new Date();
     const propuesta = hoy.getFullYear() === year && hoy.getMonth() === mIdx ? hoyLocal() : `${year}-${String(mIdx + 1).padStart(2, '0')}-01`;
-    setTxDate(propuesta);
     setFilaAbierta(null);
     setEditMov(null);
     setNuevoMov({ amount: '', date: propuesta, nota: '' });
   }, [year, month]);
-
-  // La subcategoría elegida tiene que existir en el año que se está viendo. Al
-  // cambiar de año el formulario conservaba la anterior y el movimiento se
-  // guardaba en una clave que no se mostraba en ningún sitio.
-  useEffect(() => {
-    const subs = categories?.[txMainCat] || [];
-    if (!subs.includes(txSubCat)) setTxSubCat(subs[0] || '');
-  }, [categories, txMainCat, txSubCat]);
 
   if (!currentMonthData) return <div className="loading-state">{t.noData} {mes(month)} {year}</div>;
 
@@ -2633,20 +2628,6 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
 
   // ─── Guardado desde la tabla ───────────────────────────────────────────────
   const cuboDe = (nd, mk, sub) => { asegurarSub(nd[year], mk, sub); return nd[year].monthly[month][claveSub(mk, sub)]; };
-
-  // Presupuesto mensual del año para esa subcategoría (todos los meses).
-  const guardarEstimado = (mk, sub, v) => {
-    const nd = clonar(fullData);
-    asegurarSub(nd[year], mk, sub);
-    const c = claveSub(mk, sub);
-    nd[year].budget[c] = v;
-    months.forEach(m => {
-      if (!nd[year].monthly[m]) nd[year].monthly[m] = {};
-      if (!nd[year].monthly[m][c]) nd[year].monthly[m][c] = { budgeted: 0, actual: [] };
-      nd[year].monthly[m][c].budgeted = v;
-    });
-    onUpdate(nd);
-  };
 
   // Total real del mes escrito a mano: se crea o ajusta un movimiento para que
   // la suma coincida. Las cuotas automáticas de préstamos no se tocan.
@@ -2792,17 +2773,17 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
       const filas = [
         <tr key={c} style={abierta ? { background: 'var(--bg-secondary)' } : undefined}>
           <td>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button className="btn btn-icon btn-ghost" style={{ width: 22, height: 22, padding: 0, fontSize: 11, flexShrink: 0 }} title={abierta ? t.smOcultar : t.smVer} onClick={() => abrirFila(c)}>{abierta ? '▾' : '▸'}</button>
+            {/* El desplegable va dentro del nombre (sin botón aparte) para que las cinco tarjetas quepan en una fila a 1080p. */}
+            <span onClick={() => abrirFila(c)} title={abierta ? t.smOcultar : t.smVer} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, userSelect: 'none' }}>
+              <span style={{ fontSize: 9, width: 10, display: 'inline-block', color: abierta ? 'var(--accent)' : 'var(--text-muted)' }}>{abierta ? '▾' : '▸'}</span>
               <span>{sub}</span>
               {lista.length > 0 && <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>({lista.length})</span>}
-            </div>
+            </span>
           </td>
           <td className="text-right" style={{ color: 'var(--text-muted)' }}>
-            {esPrestamo
-              ? <span title={t.smCuotaAuto}>{fmt(est)}</span>
-              : <CeldaCifra value={base} onSave={v => guardarEstimado(mk, sub, v)} title={tf('smEstimadoAyuda', { year })} color="var(--text-muted)" />}
-            {puntuales !== 0 && <div style={{ fontSize: 10, color: 'var(--accent)' }}>+ {fmt(puntuales)} {t.smPuntuales}</div>}
+            {/* El estimado solo se edita en Dashboard → Presupuesto; al pulsarlo se explica. */}
+            <span title={esPrestamo ? t.smCuotaAuto : tf('smEstimadoAyuda', { year })} onClick={() => { if (!esPrestamo) setNotaEstimado(true); }} style={{ cursor: esPrestamo ? 'default' : 'help' }}>{fmt(est)}</span>
+            {puntuales !== 0 && <div style={{ fontSize: 10, color: 'var(--accent)' }}>{fmt(puntuales)} {t.smPuntuales}</div>}
           </td>
           <td className="text-right">
             <CeldaCifra value={act} onSave={v => guardarReal(mk, sub, v)} title={t.smRealAyuda} color={colorReal} bold />
@@ -2850,19 +2831,6 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
     }, 0);
   }, 0);
 
-  const handleAdd = () => {
-    if (!txAmount || parseFloat(txAmount) <= 0 || !txSubCat || !txDate) { alert(t.completaCampos); return; }
-    if (!(categories[txMainCat] || []).includes(txSubCat)) { alert(tf('subNoExiste', { sub: txSubCat, seccion: t[txMainCat] || txMainCat, year })); return; }
-    const nd = clonar(fullData);
-    asegurarSub(nd[year], txMainCat, txSubCat);
-    const mov = { id: crypto.randomUUID(), amount: parseFloat(txAmount), date: txDate };
-    if (txNota.trim()) mov.nota = txNota.trim();
-    nd[year].monthly[month][claveSub(txMainCat, txSubCat)].actual.push(mov);
-    onUpdate(nd);
-    setTxAmount('');
-    setTxNota('');
-  };
-
   return (
     <div className="section-gap">
       {/* KPIs */}
@@ -2873,45 +2841,17 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
       </div>
 
       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 16 }}>{t.smAyudaTabla}</div>
-
-      {/* Budget Tables */}
-      <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 24, marginTop: 12, marginBottom: 24 }}>
-        {ALL_MAIN_KEYS.map(renderMonthlyTable)}
-      </div>
-
-      {/* Add transaction */}
-      <div className="card">
-        <div className="chart-card-title">{t.addTransaction}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, alignItems: 'end' }}>
-          <div>
-            <label>{t.mainCategory}</label>
-            <select className="select-input" value={txMainCat} onChange={e => { setTxMainCat(e.target.value); setTxSubCat((categories[e.target.value] || [])[0] || ''); }}>
-              {ALL_MAIN_KEYS.map(mk => <option key={mk} value={mk}>{t[mk] || mk}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>{t.subCategory}</label>
-            <select className="select-input" value={txSubCat} onChange={e => setTxSubCat(e.target.value)}>
-              {(categories[txMainCat] || []).map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-          <div>
-            <label>{t.date}</label>
-            <input type="date" className="date-input" value={txDate} onChange={e => setTxDate(e.target.value)} />
-          </div>
-          <div>
-            <label>{t.smConceptoOpcional}</label>
-            <input type="text" className="text-input" value={txNota} onChange={e => setTxNota(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-          </div>
-          <div>
-            <label>{t.amount}</label>
-            <input type="number" className="number-input" placeholder="0.00" value={txAmount} onChange={e => setTxAmount(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} />
-          </div>
-          <div>
-            <label style={{ visibility: 'hidden' }}>-</label>
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleAdd}>{t.add}</button>
-          </div>
+      {notaEstimado && (
+        <div role="status" style={{ marginTop: 10, padding: '10px 14px', borderRadius: 10, background: 'rgba(99,102,241,.10)', border: '1px solid rgba(99,102,241,.4)', display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', fontSize: 13 }}>
+          <span style={{ flex: 1, minWidth: 220 }}>{tf('smEstimadoAyuda', { year })}</span>
+          {onIrAPresupuesto && <button className="btn btn-primary" style={{ padding: '4px 12px', fontSize: 12 }} onClick={onIrAPresupuesto}>{t.smIrPresupuesto}</button>}
+          <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 12 }} onClick={() => setNotaEstimado(false)}>✕</button>
         </div>
+      )}
+
+      {/* Budget Tables: minmax(280px) para que las cinco secciones quepan en una fila a 1920×1080 */}
+      <div className="grid-1" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, marginTop: 12, marginBottom: 24 }}>
+        {ALL_MAIN_KEYS.map(renderMonthlyTable)}
       </div>
 
       {/* Transactions table */}
