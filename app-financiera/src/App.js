@@ -1451,6 +1451,7 @@ function AppInner({ isHome }) {
         <TutorialWizard
           activeView={activeView}
           monthlyMode={monthlyMode}
+          setMonthlyMode={setMonthlyMode}
           setActiveView={setActiveViewTutorial}
           onClose={() => { setMonthlyMode('seguimiento'); setShowTutorial(false); }}
           onComplete={() => { const nc = { ...config, tutorialCompleted: true }; updateCfg(nc); setShowTutorial(false); }}
@@ -2050,7 +2051,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
               <div style={{ fontSize: 10, fontWeight: 800, opacity: 0.8, marginBottom: 4 }}>{t.remanenteMensual}</div>
               <div style={{ fontSize: 24, fontWeight: 900 }}>{fmt(remanente)}</div>
             </div>
-            <button className={`btn ${budgetLocked ? 'btn-ghost' : 'btn-primary'}`} style={{ height: 60, padding: '0 24px', borderRadius: 16 }} onClick={() => setBudgetLocked(!budgetLocked)}>
+            <button className={`btn ${budgetLocked ? 'btn-ghost' : 'btn-primary'} budget-lock-btn`} style={{ height: 60, padding: '0 24px', borderRadius: 16 }} onClick={() => setBudgetLocked(!budgetLocked)}>
               <Ic d={budgetLocked ? PATHS.lock : PATHS.unlock} size={18} style={{ marginRight: 8 }} />
               {budgetLocked ? t.desbloquearEdicion : t.bloquearEdicion}
             </button>
@@ -4410,6 +4411,13 @@ function UserManagementView({ ajustesAcceso }) {
       setInvEmail(''); setInvHasta('');
     } catch (err) { setInvAviso({ tipo: 'error', texto: tf('admInvError', { msg: err.message }) }); }
   };
+  // Auditoría de errores: borrar uno o vaciar la lista (solo admin, por reglas).
+  const borrarError = async (id) => { try { await deleteDoc(doc(db, 'system_errors', id)); } catch (err) { alert(tf('admErrError', { msg: err.message })); } };
+  const vaciarErrores = async () => {
+    if (!systemErrors.length || !window.confirm(tf('admErrVaciarConfirm', { n: systemErrors.length }))) return;
+    try { await Promise.all(systemErrors.map(e => deleteDoc(doc(db, 'system_errors', e.id)))); }
+    catch (err) { alert(tf('admErrError', { msg: err.message })); }
+  };
   const quitarInvitacion = async (inv) => {
     try { await deleteDoc(doc(db, 'invitaciones', inv.id)); }
     catch (err) { setInvAviso({ tipo: 'error', texto: tf('admInvError', { msg: err.message }) }); }
@@ -4927,6 +4935,7 @@ function UserManagementView({ ajustesAcceso }) {
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--red)' }}>{t.auditoriaErrores}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.auditoriaErroresDesc}</p>
         </div>
+        {systemErrors.length > 0 && <button className="btn btn-ghost" onClick={vaciarErrores}>{tf('admErrVaciar', { n: systemErrors.length })}</button>}
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
@@ -4958,7 +4967,12 @@ function UserManagementView({ ajustesAcceso }) {
                         {err.error}
                       </td>
                       <td style={{ textAlign: 'right', fontSize: 12 }}>
-                        {affectedUser ? affectedUser.displayName : <span style={{ opacity: 0.5 }}>{err.uid}</span>}
+                        {affectedUser
+                          ? <><div style={{ fontWeight: 600 }}>{affectedUser.displayName}</div><div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{affectedUser.email}</div></>
+                          : <span style={{ opacity: 0.5 }} title={t.admErrCuentaBorrada}>{err.uid}</span>}
+                        <button className="btn btn-icon btn-danger" style={{ marginLeft: 8, width: 24, height: 24, verticalAlign: 'middle' }} title={t.admErrBorrar} onClick={() => borrarError(err.id)}>
+                          <Ic d={PATHS.trash} size={11} />
+                        </button>
                       </td>
                     </tr>
                   )

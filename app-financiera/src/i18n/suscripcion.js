@@ -139,6 +139,11 @@ export const suscripcion = {
     admSeccionesUsuarioAyuda: 'Marcadas = puede entrar. Por defecto son las de su tipo de cuenta ({rol}); lo que cambies aquí es una excepción solo para esta persona (* = no viene con su tipo de cuenta).',
     admVistaExtra: 'Sección añadida a este usuario',
     admVistaQuitada: 'Sección quitada a este usuario',
+    admErrBorrar: 'Borrar este error',
+    admErrVaciar: 'Vaciar lista ({n})',
+    admErrVaciarConfirm: '¿Borrar los {n} errores registrados?',
+    admErrError: 'No se pudo borrar: {msg}',
+    admErrCuentaBorrada: 'Cuenta ya eliminada',
   },
   en: {
     susTitulo: 'Subscription',
@@ -277,6 +282,11 @@ export const suscripcion = {
     admSeccionesUsuarioAyuda: 'Ticked = can open it. By default those of their account type ({rol}); whatever you change here is an exception for this person only (* = not part of their account type).',
     admVistaExtra: 'Section added for this user',
     admVistaQuitada: 'Section removed for this user',
+    admErrBorrar: 'Delete this error',
+    admErrVaciar: 'Clear list ({n})',
+    admErrVaciarConfirm: 'Delete the {n} logged errors?',
+    admErrError: 'Could not delete: {msg}',
+    admErrCuentaBorrada: 'Account already deleted',
   },
   de: {
     susTitulo: 'Abonnement',
@@ -415,5 +425,10 @@ export const suscripcion = {
     admSeccionesUsuarioAyuda: 'Markiert = darf öffnen. Standard sind die Bereiche des Kontotyps ({rol}); Änderungen hier gelten nur für diese Person (* = nicht Teil des Kontotyps).',
     admVistaExtra: 'Für diesen Benutzer hinzugefügter Bereich',
     admVistaQuitada: 'Für diesen Benutzer entfernter Bereich',
+    admErrBorrar: 'Diesen Fehler löschen',
+    admErrVaciar: 'Liste leeren ({n})',
+    admErrVaciarConfirm: 'Die {n} protokollierten Fehler löschen?',
+    admErrError: 'Löschen fehlgeschlagen: {msg}',
+    admErrCuentaBorrada: 'Konto bereits gelöscht',
   }
 };

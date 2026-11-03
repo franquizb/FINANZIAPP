@@ -27,6 +27,7 @@ const pasos = (t) => [
         target: '.sm-grid-wrap',
         fallback: '.page-content',
         view: 'monthly',
+        modo: 'seguimiento',
         title: t.tutoStep5Title,
         content: t.tutoStep5Content
     },
@@ -35,9 +36,19 @@ const pasos = (t) => [
         // Seguimiento Mensual; para continuar hay que pulsar "Presupuesto".
         target: '.settings-toggle',
         view: 'monthly',
+        modo: 'seguimiento',
         title: t.tutoStep4Title,
         content: t.tutoStep4Content,
         requireAction: 'monthlyMode'
+    },
+    {
+        // Ya en la pestaña Presupuesto: cómo se edita, añade y quita.
+        target: '.budget-lock-btn',
+        fallback: '.page-content',
+        view: 'monthly',
+        modo: 'presupuesto',
+        title: t.tutoStepPresuTitle,
+        content: t.tutoStepPresuContent
     },
     {
         target: '.networth-view-container, .page-content',
@@ -61,7 +72,7 @@ const pasos = (t) => [
     }
 ];
 
-export default function TutorialWizard({ onClose, onComplete, activeView, setActiveView, monthlyMode }) {
+export default function TutorialWizard({ onClose, onComplete, activeView, setActiveView, monthlyMode, setMonthlyMode }) {
     const { t, tf } = useApp();
     // Memorizado por idioma: `step` va en las dependencias del efecto de abajo y
     // debe mantener su identidad entre renders.
@@ -85,8 +96,19 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
         if (activeView !== step.view) {
             setActiveView(step.view);
         }
+        // Pestaña de Seguimiento Mensual que pide el paso (Seguimiento o Presupuesto).
+        if (step.modo && setMonthlyMode && modoActual.current !== step.modo) {
+            setMonthlyMode(step.modo);
+        }
+    }, [currentStep, step, activeView, setActiveView, setMonthlyMode]);
 
-        const timer = setTimeout(() => {
+    // Medición del elemento a resaltar. Va aparte del efecto anterior para
+    // repetirla cuando cambia la pestaña (la barra superior se reordena al
+    // ocultar el selector de mes) o el tamaño de la ventana, sin reiniciar la
+    // acción pedida al usuario.
+    useEffect(() => {
+        let timer = null;
+        const medir = () => {
             let el = null;
             if (step.target) {
                 // Find elements matching target, take the first visible one
@@ -113,10 +135,12 @@ export default function TutorialWizard({ onClose, onComplete, activeView, setAct
             } else {
                 setRect(null);
             }
-        }, 400); // Wait for animations and React renders
-
-        return () => clearTimeout(timer);
-    }, [currentStep, step, activeView, setActiveView]);
+        };
+        const programar = () => { clearTimeout(timer); timer = setTimeout(medir, 400); }; // Wait for animations and React renders
+        programar();
+        window.addEventListener('resize', programar);
+        return () => { clearTimeout(timer); window.removeEventListener('resize', programar); };
+    }, [currentStep, step, activeView, monthlyMode]);
 
     useEffect(() => {
         if (step.requireAction === 'monthlyMode' && monthlyMode !== initialMode) {
