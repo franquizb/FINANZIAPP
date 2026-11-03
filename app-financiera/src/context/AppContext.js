@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo } from '
 import { app as textosApp } from '../i18n/app';
 import { publico as textosPublico } from '../i18n/publico';
 import { calculadoras as textosCalculadoras } from '../i18n/calculadoras';
+import { suscripcion as textosSuscripcion } from '../i18n/suscripcion';
 
 const AppContext = createContext();
 
@@ -404,7 +405,7 @@ export const translations = {
 
 // Diccionario completo de un idioma: textos base + pantallas de la app +
 // pantallas públicas (landing, login, tutorial).
-const diccionario = (lang) => ({ ...translations[lang], ...(textosApp[lang] || {}), ...(textosPublico[lang] || {}), ...(textosCalculadoras[lang] || {}) });
+const diccionario = (lang) => ({ ...translations[lang], ...(textosApp[lang] || {}), ...(textosPublico[lang] || {}), ...(textosCalculadoras[lang] || {}), ...(textosSuscripcion[lang] || {}) });
 const DICCIONARIOS = Object.fromEntries(IDIOMAS.map(l => [l, diccionario(l)]));
 
 // Cualquier clave que falte en un idioma cae al español (el texto original) y,

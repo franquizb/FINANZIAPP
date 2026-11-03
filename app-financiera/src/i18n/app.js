@@ -24,7 +24,6 @@ export const app = {
     subDaysLeft: 'Te quedan {n} días de prueba',
     subExpiredBody: 'Puedes seguir consultando y exportando tus datos, pero no añadir ni modificar nada. Activa tu cuenta por {precio}.',
     subTrialBody: 'Cuando acabe podrás seguir consultando tus datos, pero no editarlos. {precio}.',
-    subPay: 'Pagar con Revolut',
     // Errores de guardado
     errBloqueado: 'Tu cuenta está bloqueada: no se pueden guardar cambios. Contacta con el administrador.',
     errPruebaTerminada: 'Tu prueba gratuita ha terminado: los cambios no se guardan. Activa tu cuenta para seguir editando.',
@@ -298,7 +297,6 @@ export const app = {
     subDaysLeft: 'You have {n} days of trial left',
     subExpiredBody: 'You can keep viewing and exporting your data, but not add or change anything. Activate your account for {precio}.',
     subTrialBody: 'When it ends you will still be able to view your data, but not edit it. {precio}.',
-    subPay: 'Pay with Revolut',
     errBloqueado: 'Your account is blocked: changes cannot be saved. Contact the administrator.',
     errPruebaTerminada: 'Your free trial has ended: changes are not saved. Activate your account to keep editing.',
     errPermisos: 'Firestore rejected the change due to missing permissions. The last saved version has been restored.',
@@ -560,7 +558,6 @@ export const app = {
     subDaysLeft: 'Ihnen bleiben noch {n} Testtage',
     subExpiredBody: 'Sie können Ihre Daten weiterhin ansehen und exportieren, aber nichts hinzufügen oder ändern. Aktivieren Sie Ihr Konto für {precio}.',
     subTrialBody: 'Danach können Sie Ihre Daten weiterhin ansehen, aber nicht bearbeiten. {precio}.',
-    subPay: 'Mit Revolut bezahlen',
     errBloqueado: 'Ihr Konto ist gesperrt: Änderungen können nicht gespeichert werden. Wenden Sie sich an den Administrator.',
     errPruebaTerminada: 'Ihre Testphase ist abgelaufen: Änderungen werden nicht gespeichert. Aktivieren Sie Ihr Konto, um weiter zu bearbeiten.',
     errPermisos: 'Firestore hat die Änderung wegen fehlender Berechtigungen abgelehnt. Die zuletzt gespeicherte Version wurde wiederhergestellt.',

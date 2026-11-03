@@ -13,7 +13,8 @@ import TutorialWizard from './components/TutorialWizard';
 import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
+import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL_EUR } from './suscripcion';
 
 const logErrorToFirebase = async (context, err) => {
   try {
@@ -686,9 +687,13 @@ const hasPermission = (user, permId) => {
 };
 
 // ─── SUSCRIPCION ──────────────────────────────────────────────────────────────
-// Enlace de cobro de Revolut. Cuando entre el pago, el admin marca `paidUntil`
-// en el panel de Gestion y las reglas devuelven el acceso de escritura.
-const ENLACE_PAGO = 'https://revolut.me/CAMBIAME';
+// El cobro lo hace Stripe (functions/index.js): el webhook escribe paidUntil,
+// plan y el estado de la suscripcion en users/{uid}, y las reglas de Firestore
+// devuelven o quitan el acceso de escritura segun paidUntil / trialEndsAt.
+// Dias de margen que la Cloud Function suma a paidUntil tras cada periodo
+// pagado (debe coincidir con DIAS_GRACIA en functions/index.js).
+const GRACIA_MS = 3 * 86400000;
+const ESTADOS_STRIPE_VIVOS = ['active', 'trialing', 'past_due'];
 
 // OJO: esto es solo para la interfaz. Quien impide escribir de verdad son las
 // reglas de Firestore (suscripcionActiva). Manipular esto en el navegador no
@@ -707,6 +712,49 @@ const estadoSuscripcion = (user) => {
   }
   return { activa: false, motivo: (user.trialEndsAt ? 'prueba-caducada' : 'sin-prueba') };
 };
+
+// Estado de la suscripción tal y como se muestra al usuario.
+const describirSuscripcion = (user, t, tf, locale) => {
+  const estado = estadoSuscripcion(user);
+  const fecha = (ms) => new Date(ms).toLocaleDateString(locale);
+  if (user?.bloqueado) return { clave: 'bloqueada', texto: t.susEstadoBloqueada, color: 'var(--red)' };
+  if (estado.motivo === 'admin') return { clave: 'admin', texto: t.susEstadoAdmin, color: 'var(--accent)' };
+  if (estado.motivo === 'pagado') {
+    if (user.stripeStatus === 'past_due') return { clave: 'impago', texto: tf('susEstadoImpago', { fecha: fecha(user.paidUntil) }), color: 'var(--yellow)' };
+    if (user.cancelAtPeriodEnd) return { clave: 'cancelando', texto: tf('susEstadoCancelando', { fecha: fecha(user.paidUntil - GRACIA_MS) }), color: 'var(--yellow)' };
+    if (['active', 'trialing'].includes(user.stripeStatus)) return { clave: 'activa', texto: tf('susEstadoActiva', { fecha: fecha(user.paidUntil - GRACIA_MS) }), color: 'var(--green)' };
+    return { clave: 'pagada', texto: tf('susEstadoPagada', { fecha: fecha(user.paidUntil) }), color: 'var(--green)' };
+  }
+  if (estado.motivo === 'prueba') return { clave: 'prueba', texto: estado.diasRestantes === 1 ? t.susEstadoPruebaUno : tf('susEstadoPrueba', { n: estado.diasRestantes }), color: 'var(--blue)' };
+  if (user?.stripeSubscriptionId || user?.plan === 'cancelado') return { clave: 'cancelada', texto: t.susEstadoCancelada, color: 'var(--text-muted)' };
+  return { clave: 'caducada', texto: t.susEstadoCaducada, color: 'var(--red)' };
+};
+
+// Botón de activar (Stripe Checkout) o gestionar (portal de Stripe) la suscripción.
+function BotonesSuscripcion({ user }) {
+  const { t, tf, language } = useApp();
+  const [ocupado, setOcupado] = useState(false);
+  const [error, setError] = useState(null);
+  if (!user || user.isAdmin || user.bloqueado) return null;
+  const tieneStripe = !!user.stripeSubscriptionId && ESTADOS_STRIPE_VIVOS.includes(user.stripeStatus);
+  const ir = async (fn) => {
+    setOcupado(true); setError(null);
+    try { await fn(); } // redirige a Stripe; si vuelve, es por error
+    catch (e) {
+      console.error('Stripe:', e);
+      setError(stripeNoConfigurado(e) ? t.susNoDisponible : tf('susError', { msg: e?.message || '' }));
+      setOcupado(false);
+    }
+  };
+  return (
+    <div>
+      {tieneStripe
+        ? <button className="btn btn-ghost" disabled={ocupado} onClick={() => ir(irAlPortal)} style={{ whiteSpace: 'nowrap' }}>{ocupado ? t.susRedirigiendo : t.susGestionar}</button>
+        : <button className="btn btn-primary" disabled={ocupado} onClick={() => ir(() => irAPagar(language))} style={{ whiteSpace: 'nowrap' }}>{ocupado ? t.susRedirigiendo : t.susActivar}</button>}
+      {error && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 6, maxWidth: 320 }}>{error}</div>}
+    </div>
+  );
+}
 
 // Aviso de prueba a punto de acabar o ya caducada. No bloquea la interfaz: el
 // usuario conserva la lectura de sus datos (derecho de acceso del RGPD) y lo
@@ -737,11 +785,7 @@ function AvisoSuscripcion({ user }) {
           {caducada ? tf('subExpiredBody', { precio }) : tf('subTrialBody', { precio })}
         </div>
       </div>
-      <a href={ENLACE_PAGO} target="_blank" rel="noopener noreferrer"
-         className="btn btn-primary"
-         style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}>
-        {t.subPay}
-      </a>
+      <BotonesSuscripcion user={user} />
     </div>
   );
 }
@@ -862,7 +906,10 @@ function AppInner({ isHome }) {
           trialEndsAt: userData.trialEndsAt || 0,
           paidUntil: userData.paidUntil || 0,
           plan: userData.plan || 'trial',
-          bloqueado: userData.bloqueado === true
+          bloqueado: userData.bloqueado === true,
+          stripeStatus: userData.stripeStatus || null,
+          stripeSubscriptionId: userData.stripeSubscriptionId || null,
+          cancelAtPeriodEnd: userData.cancelAtPeriodEnd === true
         };
         setUser(sessionUser);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
@@ -977,6 +1024,33 @@ function AppInner({ isHome }) {
       setLoading(false);
     });
 
+    // Perfil en tiempo real: cuando Stripe (webhook) o el administrador cambian
+    // la suscripción, el bloqueo o el rol, la app lo refleja sin recargar.
+    const unsubPerfil = onSnapshot(doc(db, 'users', userId), (snap) => {
+      if (!snap.exists()) return;
+      const d = snap.data();
+      setUser(prev => {
+        if (!prev || prev.uid !== userId) return prev;
+        const isAdmin = d.isAdmin === true;
+        const nu = {
+          ...prev,
+          displayName: d.displayName || prev.displayName,
+          avatar: d.avatar || prev.avatar,
+          isAdmin,
+          permissions: isAdmin ? PERMISSIONS.map(p => p.id) : (d.permissions || prev.permissions),
+          trialEndsAt: d.trialEndsAt || 0,
+          paidUntil: d.paidUntil || 0,
+          plan: d.plan || 'trial',
+          bloqueado: d.bloqueado === true,
+          stripeStatus: d.stripeStatus || null,
+          stripeSubscriptionId: d.stripeSubscriptionId || null,
+          cancelAtPeriodEnd: d.cancelAtPeriodEnd === true
+        };
+        localStorage.setItem('currentUser', JSON.stringify(nu));
+        return nu;
+      });
+    }, (err) => console.error('Error syncing profile:', err));
+
     // Registro de actividad: un documento por usuario y día, con latido cada 5 minutos.
     const INTERVALO_LATIDO = 5 * 60 * 1000;
     let lastTick = Date.now();
@@ -1020,6 +1094,7 @@ function AppInner({ isHome }) {
     return () => {
       unsubConfig();
       unsubData();
+      unsubPerfil();
       clearInterval(interval);
     };
   }, [userId]);
@@ -3115,7 +3190,14 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
 function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial }) {
-  const { t, tf, theme, toggleTheme, language, setLanguageTo } = useApp();
+  const { t, tf, theme, toggleTheme, language, setLanguageTo, locale } = useApp();
+  // Vuelta de Stripe Checkout (?pago=ok | cancelado): se muestra una vez y se limpia la URL.
+  const [avisoPago] = useState(() => {
+    const p = new URLSearchParams(window.location.search).get('pago');
+    if (p) window.history.replaceState({}, '', window.location.pathname);
+    return p;
+  });
+  const sus = describirSuscripcion(user, t, tf, locale);
   const [showModal, setShowModal] = useState(false);
   const [modalMainCat, setModalMainCat] = useState('Ingresos');
   const [newCatName, setNewCatName] = useState('');
@@ -3308,6 +3390,29 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
           .avatar-grid-custom::-webkit-scrollbar { width: 5px; }
           .avatar-grid-custom::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 10px; }
         `}</style>
+
+        {/* Suscripción */}
+        <div className="card">
+          <div className="chart-card-title">{t.susTitulo}</div>
+          {avisoPago && (
+            <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13, background: avisoPago === 'ok' ? 'rgba(16,185,129,.10)' : 'var(--bg-secondary)', border: `1px solid ${avisoPago === 'ok' ? 'rgba(16,185,129,.45)' : 'var(--border)'}` }}>
+              {avisoPago === 'ok' ? `✅ ${t.susPagoOk}` : t.susPagoCancelado}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: sus.color }}>{sus.texto}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>{t.susIncluye}</div>
+              {sus.clave === 'prueba' && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>{t.susPruebaNota}</div>}
+              {['activa', 'cancelando', 'impago'].includes(sus.clave) && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>{t.susGestionarAyuda}</div>}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              {!user?.isAdmin && <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{t.precioMes}</div>}
+              <BotonesSuscripcion user={user} />
+            </div>
+          </div>
+          {!user?.isAdmin && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
+        </div>
 
         {/* Gestión de Secciones */}
         <div className="card">
@@ -3706,12 +3811,35 @@ function TradingView({ trades, onUpdate, fullData }) {
 }
 
 // ─── MANAGEMENT VIEW (CRUD + ANALYTICS) ─────────────────────────────────────────
+// Estado de un usuario para el panel de gestión.
+const estadoUsuarioAdmin = (u, ahora) => {
+  if (u.isAdmin) return 'admin';
+  if (u.bloqueado) return 'bloqueado';
+  if ((u.paidUntil || 0) > ahora) return u.stripeStatus === 'past_due' ? 'impago' : (u.cancelAtPeriodEnd ? 'cancelando' : 'pago');
+  if ((u.trialEndsAt || 0) > ahora) return 'prueba';
+  return 'caducado';
+};
+const COLOR_ESTADO_ADMIN = { admin: 'var(--accent)', pago: 'var(--green)', cancelando: 'var(--yellow)', impago: 'var(--red)', prueba: 'var(--blue)', caducado: 'var(--text-muted)', bloqueado: 'var(--red)' };
+
 function UserManagementView() {
   const { t, tf, locale } = useApp();
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
   const [systemErrors, setSystemErrors] = useState([]);
+  const [eventosStripe, setEventosStripe] = useState([]);
   const [editingUser, setEditingUser] = useState(null);
+  const [filtro, setFiltro] = useState('todos');
+  const [busqueda, setBusqueda] = useState('');
+  const [stripe, setStripe] = useState({ datos: null, cargando: false, error: null });
+  const [uidCopiado, setUidCopiado] = useState(false);
+
+  useEffect(() => {
+    // Eventos del webhook de Stripe (solo lectura; los escribe la Cloud Function).
+    const unsubEventos = onSnapshot(query(collection(db, 'eventos_stripe'), orderBy('procesado', 'desc'), limit(20)),
+      (snap) => setEventosStripe(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      (err) => console.warn('Eventos de Stripe no disponibles:', err?.message));
+    return () => unsubEventos();
+  }, []);
 
   useEffect(() => {
     // Usuarios en tiempo real (solo Firestore: la lista antigua de localStorage ya no existe).
@@ -3777,6 +3905,42 @@ function UserManagementView() {
     const totalTime = uLogs.reduce((acc, l) => acc + (l.totalTime || 0), 0);
     return { name: u.displayName, sessions: uLogs.length, time: Math.round(totalTime / 60000) };
   }).sort((a, b) => b.time - a.time);
+
+  // ─── Suscripciones: estado de cada usuario, KPIs, filtros ─────────────────
+  const fechaCorta = (ms) => ms ? new Date(ms).toLocaleDateString(locale) : t.admSinFecha;
+  const estadoDe = (u) => estadoUsuarioAdmin(u, now);
+  const etiquetaEstado = (u) => {
+    const e = estadoDe(u);
+    if (e === 'cancelando') return tf('admEstadoCancelando', { fecha: fechaCorta((u.paidUntil || 0) - GRACIA_MS) });
+    return { admin: t.admEstadoAdmin, pago: t.admEstadoPago, impago: t.admEstadoImpago, prueba: t.admEstadoPrueba, caducado: t.admEstadoCaducado, bloqueado: t.admEstadoBloqueado }[e] || e;
+  };
+  const ultimoAcceso = (u) => { const l = logs.filter(x => x.uid === u.uid).sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0))[0]; return l?.lastSeen ? new Date(l.lastSeen).toLocaleDateString(locale) : t.admNunca; };
+  const cuenta = (estado) => users.filter(u => estadoDe(u) === estado).length;
+  const dePago = users.filter(u => ['pago', 'cancelando', 'impago'].includes(estadoDe(u))).length;
+  const kpis = [
+    { id: 'todos', label: t.admUsuarios, valor: users.length, color: 'var(--text-primary)' },
+    { id: 'prueba', label: t.admEnPrueba, valor: cuenta('prueba'), color: 'var(--blue)' },
+    { id: 'pago', label: t.admDePago, valor: dePago, color: 'var(--green)' },
+    { id: 'caducado', label: t.admCaducados, valor: cuenta('caducado'), color: 'var(--text-muted)' },
+    { id: 'bloqueado', label: t.admBloqueados, valor: cuenta('bloqueado'), color: 'var(--red)' },
+    { id: 'admin', label: t.admFiltroAdmin, valor: cuenta('admin'), color: 'var(--accent)' }
+  ];
+  const coincideFiltro = (u) => filtro === 'todos' || (filtro === 'pago' ? ['pago', 'cancelando', 'impago'].includes(estadoDe(u)) : estadoDe(u) === filtro);
+  const coincideBusqueda = (u) => { const q = busqueda.trim().toLowerCase(); return !q || String(u.displayName || '').toLowerCase().includes(q) || String(u.email || '').toLowerCase().includes(q) || String(u.uid || '').toLowerCase().includes(q); };
+  const usuariosFiltrados = users.filter(u => coincideFiltro(u) && coincideBusqueda(u));
+  const miUid = auth?.currentUser?.uid || '';
+  const copiarUid = async () => { try { await navigator.clipboard.writeText(miUid); setUidCopiado(true); setTimeout(() => setUidCopiado(false), 2000); } catch { /* sin portapapeles */ } };
+
+  const cargarStripe = async () => {
+    setStripe({ datos: null, cargando: true, error: null });
+    try {
+      setStripe({ datos: await resumenStripe(), cargando: false, error: null });
+    } catch (e) {
+      console.error('Resumen de Stripe:', e);
+      setStripe({ datos: null, cargando: false, error: stripeNoConfigurado(e) ? t.admStripeNoConfigurado : tf('admStripeError', { msg: e?.message || '' }) });
+    }
+  };
+  const fmtImporte = (v, moneda) => v == null ? '—' : v.toLocaleString(locale, { style: 'currency', currency: (moneda || 'eur').toUpperCase() });
 
   const exportCSV = () => {
     const headers = [t.csvUsuario, t.csvEmail, t.csvInicio, t.csvFin, t.csvDuracion];
@@ -3989,13 +4153,107 @@ function UserManagementView() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+      {/* ─── Suscripciones: KPIs ─── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14, marginBottom: 24 }}>
+        {kpis.map(k => (
+          <button key={k.id} onClick={() => setFiltro(k.id)} className="card" style={{ textAlign: 'left', cursor: 'pointer', padding: '16px 18px', border: filtro === k.id ? `1px solid ${k.color}` : '1px solid var(--border)' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{k.label}</div>
+            <div style={{ fontSize: 26, fontWeight: 900, color: k.color, marginTop: 4 }}>{k.valor}</div>
+          </button>
+        ))}
+        <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--green)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.admMrr}</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--green)', marginTop: 4 }}>{(dePago * PRECIO_MENSUAL_EUR).toLocaleString(locale, { style: 'currency', currency: 'EUR' })}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('admMrrAyuda', { n: dePago, precio: t.precioMes })}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(380px, 1fr))', gap: 24, marginBottom: 32 }}>
+        {/* ─── Acceso de administrador ─── */}
+        <div className="card">
+          <div className="chart-card-title">🛡️ {t.admAcceso}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: 14 }}>{t.admAccesoDesc}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '10px 12px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)' }}>{t.admTuUid}</span>
+            <code style={{ fontSize: 12, flex: 1, minWidth: 160, wordBreak: 'break-all' }}>{miUid}</code>
+            <button className="btn btn-ghost" style={{ padding: '4px 10px', fontSize: 11 }} onClick={copiarUid}>{uidCopiado ? `✓ ${t.admCopiado}` : t.admCopiar}</button>
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', margin: '16px 0 8px' }}>{t.admAdmins}</div>
+          {users.filter(u => u.isAdmin).map(u => (
+            <div key={u.uid} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 12, padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+              <span><b>{u.displayName}</b> <span style={{ color: 'var(--text-secondary)' }}>{u.email}</span></span>
+              <code style={{ color: 'var(--text-muted)', fontSize: 11 }}>{u.uid === miUid ? '★ ' : ''}{u.uid}</code>
+            </div>
+          ))}
+        </div>
+
+        {/* ─── Resumen de Stripe ─── */}
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="chart-card-title" style={{ marginBottom: 0 }}>💳 {t.admResumenStripe}</div>
+            <button className="btn btn-ghost" style={{ fontSize: 12 }} disabled={stripe.cargando} onClick={cargarStripe}>{stripe.cargando ? t.admCargando : (stripe.datos ? t.admActualizar : t.admCargarStripe)}</button>
+          </div>
+          {stripe.error && <div style={{ marginTop: 12, fontSize: 12, color: 'var(--red)' }}>{stripe.error}</div>}
+          {stripe.datos && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, marginBottom: 10 }}>
+                <span className={`badge ${stripe.datos.modoPrueba ? 'badge-ghost' : 'badge-green'}`}>{stripe.datos.modoPrueba ? t.admModoPrueba : t.admEnVivo}</span>
+                <span>{t.admActivas}: <b>{stripe.datos.activas}</b></span>
+                <span>{t.admMrrReal}: <b style={{ color: 'var(--green)' }}>{fmtImporte(stripe.datos.mrr, 'eur')}</b></span>
+                <span style={{ color: 'var(--text-muted)' }}>{tf('admConsultado', { hora: new Date(stripe.datos.consultado).toLocaleTimeString(locale) })}</span>
+              </div>
+              <div className="table-wrap" style={{ maxHeight: 260, overflowY: 'auto' }}>
+                <table style={{ fontSize: 12 }}>
+                  <thead><tr><th>{t.usuario}</th><th>{t.admEstado}</th><th className="text-right">{t.admImporte}</th><th className="text-right">{t.admRenovacion}</th></tr></thead>
+                  <tbody>
+                    {stripe.datos.suscripciones.length === 0 && <tr><td colSpan={4} className="text-center" style={{ padding: 16, color: 'var(--text-muted)' }}>{t.admStripeSin}</td></tr>}
+                    {stripe.datos.suscripciones.map(s => (
+                      <tr key={s.id}>
+                        <td>{users.find(u => u.uid === s.uid)?.displayName || s.email || s.id}<div style={{ color: 'var(--text-muted)', fontSize: 11 }}>{s.email}</div></td>
+                        <td><span className="badge badge-ghost" style={{ color: ['active', 'trialing'].includes(s.estado) ? 'var(--green)' : s.estado === 'past_due' ? 'var(--red)' : 'var(--text-muted)' }}>{s.estado}{s.cancelaAlFinal ? ' · ' + t.admCancelacion.toLowerCase() : ''}</span></td>
+                        <td className="text-right">{fmtImporte(s.importe, s.moneda)}{s.intervalo ? ` / ${s.intervalo}` : ''}</td>
+                        <td className="text-right">{s.renueva ? new Date(s.renueva).toLocaleDateString(locale) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', margin: '18px 0 8px' }}>{t.admEventos}</div>
+          {eventosStripe.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admSinEventos}</div> : (
+            <div className="table-wrap" style={{ maxHeight: 200, overflowY: 'auto' }}>
+              <table style={{ fontSize: 11 }}>
+                <thead><tr><th>{t.admFecha}</th><th>{t.admTipo}</th><th>{t.usuario}</th></tr></thead>
+                <tbody>
+                  {eventosStripe.map(ev => (
+                    <tr key={ev.id}>
+                      <td style={{ whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>{new Date(ev.procesado || ev.creado).toLocaleString(locale)}</td>
+                      <td><code>{ev.tipo}</code>{ev.modoPrueba && <span className="badge badge-ghost" style={{ marginLeft: 6, fontSize: 9 }}>test</span>}</td>
+                      <td>{users.find(u => u.uid === ev.uid)?.displayName || ev.uid || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, margin: 0 }}>{t.usuariosSistema}</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: '4px 0 0' }}>{t.gestionIdentidades}</p>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 360, textAlign: 'right' }}>
           {t.cuentasSeCrean}
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+        <input className="text-input" style={{ maxWidth: 320, height: 40 }} placeholder={t.admBuscar} value={busqueda} onChange={e => setBusqueda(e.target.value)} />
+        <div className="settings-toggle" style={{ flexWrap: 'wrap' }}>
+          {kpis.map(k => <button key={k.id} className={`settings-toggle-btn ${filtro === k.id ? 'active' : ''}`} onClick={() => setFiltro(k.id)}>{k.id === 'todos' ? t.admFiltroTodos : k.label} ({k.valor})</button>)}
         </div>
       </div>
 
@@ -4007,16 +4265,25 @@ function UserManagementView() {
             <thead>
               <tr>
                 <th>{t.usuario}</th>
+                <th>{t.admEstado}</th>
                 <th>{t.rolPermisos}</th>
                 <th className="text-center">{t.actions}</th>
               </tr>
             </thead>
             <tbody>
-              {users.map(u => (
+              {usuariosFiltrados.map(u => (
                 <tr key={u.uid}>
                   <td>
                     <div style={{ fontWeight: 600 }}>{u.displayName}</div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{u.email}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 10 }}>{t.admUltimoAcceso}: {ultimoAcceso(u)}</div>
+                  </td>
+                  <td>
+                    <span className="badge badge-ghost" style={{ color: COLOR_ESTADO_ADMIN[estadoDe(u)], borderColor: COLOR_ESTADO_ADMIN[estadoDe(u)], fontSize: 10 }}>{etiquetaEstado(u)}</span>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                      {u.isAdmin ? '' : (u.paidUntil || 0) > now ? tf('admPagadoHasta', { fecha: fechaCorta(u.paidUntil) }) : (u.trialEndsAt ? tf('admPruebaHasta', { fecha: fechaCorta(u.trialEndsAt) }) : t.admSinFecha)}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Stripe: {u.stripeStatus ? <code>{u.stripeStatus}</code> : t.admStripeSin}</div>
                   </td>
                   <td>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

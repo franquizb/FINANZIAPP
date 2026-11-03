@@ -12,18 +12,42 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // isAdmin se lee del documento del propio usuario. Es fiable PORQUE las
-    // reglas de abajo impiden que el cliente escriba ese campo.
-    function isAdmin() {
-      return isSignedIn()
-        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    // Propietario de la app: la UNICA cuenta que puede dar o quitar el rol de
+    // administrador. Pon aqui tu UID de Firebase Auth (lo ves en Gestion >
+    // Acceso de administrador). Mientras sea el valor de ejemplo, cualquier
+    // administrador puede nombrar administradores (comportamiento anterior).
+    function propietarioUid() {
+      return 'PON-AQUI-TU-UID';
+    }
+    function hayPropietario() {
+      return propietarioUid() != 'PON-AQUI-TU-UID';
+    }
+    function esPropietario() {
+      return isSignedIn() && request.auth.uid == propietarioUid();
     }
 
-    // Campos de privilegio, de suscripcion y de bloqueo: el cliente NUNCA los modifica.
+    // isAdmin se lee del documento del propio usuario. Es fiable PORQUE las
+    // reglas de abajo impiden que el cliente escriba ese campo. El propietario
+    // es administrador siempre, tenga o no el campo.
+    function isAdmin() {
+      return esPropietario()
+        || (isSignedIn()
+            && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+    }
+
+    // Campos de privilegio, de suscripcion, de Stripe y de bloqueo: el cliente
+    // NUNCA los modifica (los escriben el admin o las Cloud Functions de Stripe).
+    function camposProtegidos() {
+      return ['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil', 'bloqueado',
+              'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd'];
+    }
     function noTocaCamposProtegidos() {
-      return !request.resource.data.diff(resource.data).affectedKeys()
-                .hasAny(['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil', 'bloqueado']);
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposProtegidos());
+    }
+    // Cambiar el rol de administrador: solo el propietario (si esta configurado).
+    function cambiaRolAdmin() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']);
     }
 
     // Nunca se admite un campo password en la base de datos.
@@ -72,7 +96,8 @@ service cloud.firestore {
                     && sinPassword()
                     && (!request.resource.data.keys().hasAny(['isAdmin'])
                         || request.resource.data.isAdmin == false)
-                    && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado'])
+                    && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado',
+                                                             'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd'])
                     // Los permisos iniciales son los basicos: nadie se concede el
                     // panel de gestion al darse de alta.
                     && (!request.resource.data.keys().hasAny(['permissions'])
@@ -82,8 +107,9 @@ service cloud.firestore {
 
       // Edicion: el dueño no puede introducir password ni escalar privilegios
       // ni prolongarse la prueba ni desbloquearse. El admin si (ahi se marca
-      // el pago recibido o el bloqueo).
-      allow update: if isAdmin()
+      // el pago recibido o el bloqueo), pero solo el propietario puede dar o
+      // quitar el rol de administrador cuando propietarioUid() esta configurado.
+      allow update: if (isAdmin() && (!cambiaRolAdmin() || !hayPropietario() || esPropietario()))
                     || (isOwner(userId) && sinPassword() && noTocaCamposProtegidos());
 
       allow delete: if isAdmin();
@@ -135,6 +161,12 @@ service cloud.firestore {
                     && request.resource.data.error is string
                     && request.resource.data.error.size() <= 2000;
       allow update, delete: if isAdmin();
+    }
+
+    // ─── EVENTOS DE STRIPE (los escribe la Cloud Function del webhook) ──────────
+    match /eventos_stripe/{eventoId} {
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ─── TODO LO DEMAS: DENEGADO ──────────────────────────────────────────────

@@ -1,0 +1,20 @@
+{
+  "name": "finanziapp-functions",
+  "description": "Cloud Functions de FinanziApp: suscripciones con Stripe",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "node --check index.js",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions:finanziapp",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1",
+    "stripe": "^17.3.1"
+  }
+}
