@@ -4,12 +4,16 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 
 // Dominio que Google muestra en su ventana de inicio de sesión ("Ir a ...") y
-// que sirve los ayudantes de autenticación (/__/auth/*). Si la app se sirve
-// desde uno de nuestros dominios (conectados a Firebase Hosting, que ya sirve
-// esos ayudantes y los tiene autorizados en Google), se usa ese dominio; en la
-// vista previa o en local, el de Firebase.
+// que sirve los ayudantes de autenticación (/__/auth/*). Para usar el dominio
+// propio hace falta, ANTES, autorizar en Google Cloud Console (APIs y
+// servicios → Credenciales → cliente OAuth "Web client (auto created by
+// Google Service)") la URI de redirección https://<dominio>/__/auth/handler y
+// el origen https://<dominio>; si no, Google responde "redirect_uri_mismatch"
+// y nadie puede entrar con Google. Mientras USAR_DOMINIO_PROPIO sea false se
+// usa el dominio de Firebase, que siempre está autorizado.
+const USAR_DOMINIO_PROPIO = false;
 const DOMINIOS_PROPIOS = ['finanzas.franquizb.com', 'finanziapp.com', 'www.finanziapp.com'];
-const authDomain = (typeof window !== 'undefined' && DOMINIOS_PROPIOS.includes(window.location.hostname))
+const authDomain = (USAR_DOMINIO_PROPIO && typeof window !== 'undefined' && DOMINIOS_PROPIOS.includes(window.location.hostname))
     ? window.location.hostname
     : 'personal-franquizb.firebaseapp.com';
 
