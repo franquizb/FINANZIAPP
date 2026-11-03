@@ -123,6 +123,19 @@ const tirMensual = (flujos) => {
   return (lo + hi) / 2;
 };
 
+// Frecuencia de las aportaciones: cada cuántos meses se aporta y cuántas
+// aportaciones entran en ese mes. Las más frecuentes que el mes (diaria,
+// semanal, quincenal) se agrupan por mes: 365, 52 y 26 aportaciones al año.
+const FRECUENCIAS = {
+  diaria: { cadaMeses: 1, porMes: 365 / 12 },
+  semanal: { cadaMeses: 1, porMes: 52 / 12 },
+  quincenal: { cadaMeses: 1, porMes: 26 / 12 },
+  mensual: { cadaMeses: 1, porMes: 1 },
+  trimestral: { cadaMeses: 3, porMes: 1 },
+  anual: { cadaMeses: 12, porMes: 1 }
+};
+const frecuenciaDe = (f) => FRECUENCIAS[f] || { cadaMeses: parseInt(f) || 1, porMes: 1 };
+
 // Simulación mes a mes del interés compuesto con aportaciones, retiradas e
 // (opcionalmente) rentabilidad aleatoria de media la esperada.
 const simularCompuesto = (p, seed) => {
@@ -132,7 +145,7 @@ const simularCompuesto = (p, seed) => {
   const sigmaMes = (p.volatilidad / 100) / Math.sqrt(12);
   const muMes = Math.log(factorMes) - sigmaMes * sigmaMes / 2;
   const azar = p.modelo === 'volatil' ? generador(seed) : null;
-  const cadaN = parseInt(p.frecuencia) || 1;
+  const { cadaMeses: cadaN, porMes } = frecuenciaDe(p.frecuencia);
   const inflacion = (p.inflacion || 0) / 100;
 
   let balance = p.inicial, aportado = p.inicial, retirado = 0, rendimientoAcum = 0;
@@ -150,7 +163,7 @@ const simularCompuesto = (p, seed) => {
     let ap = 0;
     const aportando = p.detenerTras <= 0 || anio <= p.detenerTras;
     if (aportando && p.aportacion > 0 && m % cadaN === 0) {
-      ap = p.aportacion * (p.aportaciones === 'crecientes' ? Math.pow(1 + (p.crecimientoAportacion || 0) / 100, anio - 1) : 1);
+      ap = p.aportacion * porMes * (p.aportaciones === 'crecientes' ? Math.pow(1 + (p.crecimientoAportacion || 0) / 100, anio - 1) : 1);
     }
     let ret = 0;
     if (p.retiradaDesde > 0 && anio >= p.retiradaDesde && p.retiradaMensual > 0) {
@@ -199,7 +212,7 @@ function InteresCompuesto() {
   const { t, tf } = useApp();
   const tema = useTema();
   const [p, setP] = useState({
-    inicial: 10000, aportacion: 300, frecuencia: '1', rentabilidad: 7, capitalizacion: 'anual', anios: 20,
+    inicial: 10000, aportacion: 300, frecuencia: 'mensual', rentabilidad: 7, capitalizacion: 'anual', anios: 20,
     modelo: 'fijo', volatilidad: 15, aportaciones: 'constantes', crecimientoAportacion: 2, detenerTras: 0,
     retiradas: false, retiradaDesde: 15, retiradaMensual: 1000, inflacion: 2
   });
@@ -247,7 +260,9 @@ function InteresCompuesto() {
     <Formulario>
       <Campo label={t.ciInversionInicial} span><Stepper value={p.inicial} onChange={set('inicial')} step={500} decimales={2} /></Campo>
       <Campo label={t.ciAportacion}><Stepper value={p.aportacion} onChange={set('aportacion')} step={50} /></Campo>
-      <Campo label={t.ciFrecuencia}><Selector value={p.frecuencia} onChange={set('frecuencia')} opciones={[['1', t.ciMensual], ['3', t.ciTrimestral], ['12', t.ciAnual]]} /></Campo>
+      <Campo label={t.ciFrecuencia} ayuda={['diaria', 'semanal', 'quincenal'].includes(p.frecuencia) ? t.ciFrecuenciaAyuda : null}>
+        <Selector value={p.frecuencia} onChange={set('frecuencia')} opciones={[['diaria', t.ciDiaria], ['semanal', t.ciSemanal], ['quincenal', t.ciQuincenal], ['mensual', t.ciMensual], ['trimestral', t.ciTrimestral], ['anual', t.ciAnual]]} />
+      </Campo>
       <Campo label={t.ciRentabilidad}><Stepper value={p.rentabilidad} onChange={set('rentabilidad')} min={-50} max={100} step={0.5} decimales={2} /></Campo>
       <Campo label={t.ciCapitalizacion}><Selector value={p.capitalizacion} onChange={set('capitalizacion')} opciones={[['anual', t.ciAnual], ['mensual', t.ciMensual]]} /></Campo>
       <Campo label={t.ciAnios}><Stepper value={p.anios} onChange={set('anios')} min={1} max={60} step={1} decimales={0} /></Campo>
