@@ -2722,44 +2722,44 @@ function MonthlyView({ currentMonthData, categories, onUpdate, fullData, year, m
   const inputPeq = { height: 30, fontSize: 12, padding: '0 8px' };
 
   // Movimientos de una categoría dentro de la tabla: lista editable y alta.
+  // Filas flexibles (no una tabla anidada) para que quepan en la tarjeta y se
+  // reorganicen en pantallas estrechas sin desbordar la tabla principal.
+  const estiloFila = { display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: '4px 0', borderBottom: '1px solid var(--border)', fontSize: 12 };
+  const campoFecha = { ...inputPeq, width: 138, flex: '0 0 138px' };
+  const campoNota = { ...inputPeq, flex: '1 1 110px', minWidth: 90 };
+  const campoImporte = { ...inputPeq, width: 96, flex: '0 0 96px', textAlign: 'right' };
   const renderDetalle = (mk, sub, c, lista, esPrestamo, cuotas) => (
     <tr key={`${c}-detalle`}>
-      <td colSpan={3} style={{ padding: '8px 12px 14px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase' }}>{tf('smMovimientosDe', { sub })}</div>
-        {esPrestamo && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>{t.smCuotaAuto}: <b>{fmt(cuotas)}</b></div>}
-        <table style={{ margin: 0, fontSize: 12 }}>
-          <tbody>
-            {lista.length === 0 && <tr><td colSpan={4} style={{ color: 'var(--text-muted)', padding: '4px 0 8px' }}>{t.smSinMovimientos}</td></tr>}
-            {[...lista].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(tx => (
-              editMov && editMov.id === tx.id ? (
-                <tr key={tx.id}>
-                  <td><input type="date" className="date-input" style={inputPeq} value={editMov.date} onChange={e => setEditMov({ ...editMov, date: e.target.value })} /></td>
-                  <td><input className="text-input" style={inputPeq} placeholder={t.smConceptoOpcional} value={editMov.nota} onChange={e => setEditMov({ ...editMov, nota: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} /></td>
-                  <td className="text-right"><input type="number" step="0.01" className="number-input" style={{ ...inputPeq, width: 100, textAlign: 'right' }} value={editMov.amount} onChange={e => setEditMov({ ...editMov, amount: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} autoFocus /></td>
-                  <td className="text-right" style={{ whiteSpace: 'nowrap' }}>
-                    <button className="btn btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={guardarEdicionMov}>{t.smGuardar}</button>
-                    <button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, marginLeft: 4 }} onClick={() => setEditMov(null)}>✕</button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={tx.id} title={t.smEditarAyuda} style={{ cursor: 'pointer' }} onClick={() => setEditMov({ clave: c, id: tx.id, amount: String(tx.amount), date: tx.date, nota: tx.nota || '' })}>
-                  <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tx.date}</td>
-                  <td style={{ color: 'var(--text-muted)' }}>{tx.nota || ''}</td>
-                  <td className="text-right" style={{ fontWeight: 600, color: tx.amount < 0 ? 'var(--yellow)' : 'inherit' }}>{fmt(tx.amount)}</td>
-                  <td className="text-right">
-                    <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22 }} title={t.delete} onClick={e => { e.stopPropagation(); handleDelete(c, tx.id); }}><Ic d={PATHS.trash} size={11} /></button>
-                  </td>
-                </tr>
-              )
-            ))}
-            <tr>
-              <td><input type="date" className="date-input" style={inputPeq} value={nuevoMov.date} onChange={e => setNuevoMov({ ...nuevoMov, date: e.target.value })} /></td>
-              <td><input className="text-input" style={inputPeq} placeholder={t.smConceptoOpcional} value={nuevoMov.nota} onChange={e => setNuevoMov({ ...nuevoMov, nota: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} /></td>
-              <td className="text-right"><input type="number" step="0.01" className="number-input" style={{ ...inputPeq, width: 100, textAlign: 'right' }} placeholder="0.00" value={nuevoMov.amount} onChange={e => setNuevoMov({ ...nuevoMov, amount: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} /></td>
-              <td className="text-right"><button className="btn btn-primary" style={{ padding: '2px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => anadirMov(mk, sub)}>+ {t.add}</button></td>
-            </tr>
-          </tbody>
-        </table>
+      <td colSpan={3} style={{ padding: '8px 10px 12px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', whiteSpace: 'normal' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase' }}>{tf('smMovimientosDe', { sub })}</div>
+        {esPrestamo && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t.smCuotaAuto}: <b>{fmt(cuotas)}</b></div>}
+        {lista.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-muted)', padding: '4px 0' }}>{t.smSinMovimientos}</div>}
+        {[...lista].sort((a, b) => String(a.date).localeCompare(String(b.date))).map(tx => (
+          editMov && editMov.id === tx.id ? (
+            <div key={tx.id} style={{ ...estiloFila, cursor: 'default' }}>
+              <input type="date" className="date-input" style={campoFecha} value={editMov.date} onChange={e => setEditMov({ ...editMov, date: e.target.value })} />
+              <input className="text-input" style={campoNota} placeholder={t.smConceptoOpcional} value={editMov.nota} onChange={e => setEditMov({ ...editMov, nota: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} />
+              <input type="number" step="0.01" className="number-input" style={campoImporte} value={editMov.amount} onChange={e => setEditMov({ ...editMov, amount: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') guardarEdicionMov(); if (e.key === 'Escape') setEditMov(null); }} autoFocus />
+              <span style={{ whiteSpace: 'nowrap' }}>
+                <button className="btn btn-primary" style={{ padding: '2px 8px', fontSize: 11 }} onClick={guardarEdicionMov}>{t.smGuardar}</button>
+                <button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 11, marginLeft: 4 }} onClick={() => setEditMov(null)}>✕</button>
+              </span>
+            </div>
+          ) : (
+            <div key={tx.id} title={t.smEditarAyuda} style={{ ...estiloFila, flexWrap: 'nowrap', cursor: 'pointer' }} onClick={() => setEditMov({ clave: c, id: tx.id, amount: String(tx.amount), date: tx.date, nota: tx.nota || '' })}>
+              <span style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{tx.date}</span>
+              <span style={{ color: 'var(--text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.nota || ''}</span>
+              <span style={{ fontWeight: 600, whiteSpace: 'nowrap', color: tx.amount < 0 ? 'var(--yellow)' : 'inherit' }}>{fmt(tx.amount)}</span>
+              <button className="btn btn-icon btn-danger" style={{ width: 22, height: 22, flexShrink: 0 }} title={t.delete} onClick={e => { e.stopPropagation(); handleDelete(c, tx.id); }}><Ic d={PATHS.trash} size={11} /></button>
+            </div>
+          )
+        ))}
+        <div style={{ ...estiloFila, borderBottom: 'none', marginTop: 6 }}>
+          <input type="date" className="date-input" style={campoFecha} value={nuevoMov.date} onChange={e => setNuevoMov({ ...nuevoMov, date: e.target.value })} />
+          <input className="text-input" style={campoNota} placeholder={t.smConceptoOpcional} value={nuevoMov.nota} onChange={e => setNuevoMov({ ...nuevoMov, nota: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} />
+          <input type="number" step="0.01" className="number-input" style={campoImporte} placeholder="0.00" value={nuevoMov.amount} onChange={e => setNuevoMov({ ...nuevoMov, amount: e.target.value })} onKeyDown={e => e.key === 'Enter' && anadirMov(mk, sub)} />
+          <button className="btn btn-primary" style={{ padding: '2px 10px', fontSize: 11, whiteSpace: 'nowrap' }} onClick={() => anadirMov(mk, sub)}>+ {t.add}</button>
+        </div>
       </td>
     </tr>
   );
