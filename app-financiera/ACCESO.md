@@ -89,3 +89,23 @@ La interfaz oculta y muestra, pero quien manda son las reglas de Firestore:
 Para desplegar cambios de reglas: `firebase deploy --only firestore:rules`
 desde `app-financiera/` (o la API de Firebase Rules, como hace el script de
 despliegue de la sesión de trabajo).
+
+## Alta profesional: contraseña, correo verificado y recuperación
+
+- **Toda cuenta lleva contraseña.** Quien entra con Google y aún no la tiene
+  ve el paso «Completa tu registro» (nombre y contraseña) antes de entrar; la
+  contraseña queda enlazada a la misma cuenta, así que después puede entrar
+  con Google o con correo y contraseña. También se aplica a las cuentas de
+  Google antiguas en su siguiente inicio de sesión.
+- **Correo verificado.** Al registrarse con correo se envía un enlace de
+  verificación y la cuenta no entra hasta abrirlo (la pantalla lo comprueba
+  sola cada pocos segundos; hay «Reenviar correo» y «Usar otra cuenta»). Las
+  reglas de Firestore no dejan escribir datos a una cuenta nueva sin correo
+  verificado (campo `creado` en el perfil, obligatorio y real al darse de
+  alta; las cuentas anteriores a esta norma no lo tienen y quedan exentas).
+- **¿Has olvidado tu contraseña?** en la pantalla de acceso envía el enlace
+  de restablecimiento (el mensaje es el mismo exista o no la cuenta).
+- **Configuración → Perfil → Contraseña y seguridad**: cambiar la contraseña
+  (pide la actual) o crearla, y ver si el correo está verificado.
+- Los correos los envía Firebase Authentication; para que salgan de
+  `noreply@finanziapp.com` ver BRANDING-GOOGLE.md.

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import React, { useState, useEffect } from 'react';
+import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useApp } from './context/AppContext';
@@ -42,11 +42,21 @@ const invitacionDe = async (email) => {
 };
 
 // Campos de un perfil nuevo: prueba gratuita y, si procede, invitacion.
+// `creado` marca las cuentas posteriores a la verificacion obligatoria del
+// correo: las reglas exigen correo verificado para escribir datos en ellas.
 const perfilNuevo = async (email) => ({
   isAdmin: false,
+  creado: Date.now(),
   trialEndsAt: nuevaPrueba(await diasPruebaConfigurados()),
   ...(await invitacionDe(email))
 });
+
+const tienePassword = (u) => (u?.providerData || []).some(p => p.providerId === 'password');
+const esCuentaGoogle = (u) => (u?.providerData || []).some(p => p.providerId === 'google.com');
+// Cuenta con correo y contraseña, posterior a la verificacion obligatoria, sin verificar.
+const requiereVerificacion = (u, perfil) => !!u && !u.emailVerified && !esCuentaGoogle(u) && (perfil?.creado || 0) > 0;
+// A donde vuelve el usuario desde los correos de verificacion / restablecer contraseña.
+const ajustesAccion = () => ({ url: `${window.location.origin}/login` });
 
 // Construye el usuario de sesión a partir del perfil de Firestore. El rol de
 // administrador sale SOLO de ese documento (el cliente no puede modificarlo):
@@ -75,7 +85,9 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
   };
 };
 
-export default function Login({ onLogin }) {
+// `pendiente` llega de la app cuando Firebase restaura una sesion que aun no
+// puede entrar: { tipo: 'verificar' | 'completar', fbUser }.
+export default function Login({ onLogin, pendiente }) {
   const { t, tf } = useApp();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -83,7 +95,91 @@ export default function Login({ onLogin }) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [aviso, setAviso] = useState('');
   const [loading, setLoading] = useState(false);
+  // Cuenta de Google sin contraseña: hay que crearla antes de entrar.
+  const [completar, setCompletar] = useState(null);
+  // Cuenta nueva con correo: hay que verificarlo antes de entrar.
+  const [verificar, setVerificar] = useState(null);
+  const [reenvioEn, setReenvioEn] = useState(0);
+
+  useEffect(() => {
+    if (!pendiente) return;
+    setError(''); setAviso('');
+    if (pendiente.tipo === 'verificar') setVerificar({ user: pendiente.fbUser });
+    if (pendiente.tipo === 'completar') { setCompletar({ user: pendiente.fbUser }); setName(pendiente.fbUser.displayName || ''); }
+  }, [pendiente]);
+
+  // Cuenta regresiva para reenviar el correo de verificacion.
+  useEffect(() => {
+    if (reenvioEn <= 0) return undefined;
+    const id = setTimeout(() => setReenvioEn(s => s - 1), 1000);
+    return () => clearTimeout(id);
+  }, [reenvioEn]);
+
+  // Entra en la app con un usuario de Firebase que ya puede hacerlo: lee (o
+  // crea) el perfil, apunta el acceso y construye la sesion.
+  const entrarConUsuario = async (fbUser) => {
+    // Tras verificar el correo, el token de sesion sigue diciendo "sin
+    // verificar" hasta que se renueva; las reglas de Firestore lo leen de ahi
+    // y denegarian las escrituras durante casi una hora. Se fuerza la renovacion.
+    try { await fbUser.getIdToken(true); } catch (e) { /* sin red: se reintentara al escribir */ }
+    const emailQuery = String(fbUser.email || '').toLowerCase();
+    const snap = await getDoc(doc(db, 'users', fbUser.uid));
+    const previo = snap.exists() ? (snap.data() || {}) : {};
+    const perfil = { uid: fbUser.uid, email: emailQuery, displayName: previo.displayName || fbUser.displayName || emailQuery.split('@')[0], lastLogin: Date.now() };
+    if (!snap.exists()) Object.assign(perfil, await perfilNuevo(emailQuery));
+    await setDoc(doc(db, 'users', fbUser.uid), perfil, { merge: true });
+    const sessionUser = sesionDesdePerfil(fbUser.uid, emailQuery, { ...previo, ...perfil }, fbUser.displayName);
+    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+    onLogin(sessionUser);
+  };
+
+  // Mientras se espera la verificacion, se comprueba sola cada pocos segundos:
+  // al abrir el enlace del correo el usuario entra sin tocar nada.
+  useEffect(() => {
+    if (!verificar) return undefined;
+    const id = setInterval(async () => {
+      try {
+        await verificar.user.reload();
+        if (verificar.user.emailVerified) { clearInterval(id); await entrarConUsuario(verificar.user); }
+      } catch (e) { /* sin red: se reintenta */ }
+    }, 4000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verificar]);
+
+  const comprobarVerificacion = async () => {
+    setError(''); setAviso(''); setLoading(true);
+    try {
+      await verificar.user.reload();
+      if (verificar.user.emailVerified) await entrarConUsuario(verificar.user);
+      else setAviso(t.loginVerificarPendiente);
+    } catch (err) { setError(tf('loginErrAuth', { msg: err.message })); }
+    setLoading(false);
+  };
+  const reenviarVerificacion = async () => {
+    setError(''); setAviso('');
+    try { await sendEmailVerification(verificar.user, ajustesAccion()); setAviso(t.loginVerificarReenviado); setReenvioEn(30); }
+    catch (err) { setError(tf('loginErrAuth', { msg: err.message })); }
+  };
+  const usarOtraCuenta = async () => {
+    try { await signOut(auth); } catch (e) { /* sin sesion */ }
+    setVerificar(null); setCompletar(null); setError(''); setAviso(''); setPassword(''); setConfirmPassword('');
+  };
+
+  // Enlace para restablecer la contraseña. El mensaje es el mismo exista o no
+  // la cuenta, para no revelar que correos estan registrados.
+  const handleOlvide = async () => {
+    setError(''); setAviso('');
+    const emailQuery = email.trim().toLowerCase();
+    if (!emailQuery) { setError(t.loginResetSinCorreo); return; }
+    try { await sendPasswordResetEmail(auth, emailQuery, ajustesAccion()); setAviso(t.loginResetEnviado); }
+    catch (err) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') setAviso(t.loginResetEnviado);
+      else setError(tf('loginErrAuth', { msg: err.message }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,6 +209,7 @@ export default function Login({ onLogin }) {
         const profileSnap = await getDoc(doc(db, 'users', finalUid));
         const perfilExistia = profileSnap.exists();
         const userDoc = perfilExistia ? (profileSnap.data() || {}) : {};
+        const usuarioAuth = auth.currentUser;
 
         // Solo campos no privilegiados. isAdmin, el rol y las excepciones se
         // gestionan desde el panel de admin; si el cliente los enviara, las
@@ -133,6 +230,13 @@ export default function Login({ onLogin }) {
         }
 
         await setDoc(doc(db, 'users', finalUid), perfil, { merge: true });
+
+        // Cuenta nueva sin el correo verificado: no entra hasta verificarlo.
+        if (requiereVerificacion(usuarioAuth, { ...userDoc, ...perfil })) {
+          setVerificar({ user: usuarioAuth });
+          setLoading(false);
+          return;
+        }
 
         const sessionUser = sesionDesdePerfil(finalUid, emailQuery, { ...userDoc, ...perfil }, null);
         localStorage.setItem('currentUser', JSON.stringify(sessionUser));
@@ -174,10 +278,14 @@ export default function Login({ onLogin }) {
           // Auth ok, ahora sí tenemos permisos para crear su perfil de BD
           await setDoc(doc(db, 'users', newUid), newUser);
 
-          const sessionUser = sesionDesdePerfil(newUid, emailQuery, newUser, null);
-
-          localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-          onLogin(sessionUser);
+          // Verificacion del correo: se envia el enlace y la cuenta no entra
+          // hasta que lo abra (evita correos falsos). Las reglas tampoco dejan
+          // escribir datos a una cuenta nueva sin verificar.
+          try { await sendEmailVerification(userCredential.user, ajustesAccion()); } catch (e) { console.warn('No se pudo enviar la verificación:', e?.message); }
+          setVerificar({ user: userCredential.user });
+          setReenvioEn(30);
+          setLoading(false);
+          return;
 
         } catch (regErr) {
           if (regErr.code === 'auth/email-already-in-use') {
@@ -198,55 +306,93 @@ export default function Login({ onLogin }) {
     }
   };
 
+  // Entra (o da de alta) con una cuenta de Google que ya tiene contraseña.
+  const finalizarGoogle = async (user, nombre) => {
+    // La prueba gratuita SOLO se estampa si el documento no existia todavia.
+    // En logins posteriores no se puede reenviar trialEndsAt: las reglas
+    // prohiben modificar ese campo desde el cliente y denegarian la escritura
+    // entera, dejando el login de Google roto.
+    const refPerfil = doc(db, 'users', user.uid);
+    const perfilPrevio = await getDoc(refPerfil);
+    const esAltaNueva = !perfilPrevio.exists();
+    const datosPrevios = esAltaNueva ? {} : (perfilPrevio.data() || {});
+    const emailQuery = String(user.email || '').toLowerCase();
+
+    const profile = {
+      uid: user.uid,
+      email: emailQuery,
+      displayName: (nombre && nombre.trim()) || datosPrevios.displayName || user.displayName || emailQuery.split('@')[0],
+      photoURL: user.photoURL || null,
+      lastLogin: Date.now()
+    };
+    if (esAltaNueva) {
+      Object.assign(profile, await perfilNuevo(emailQuery));
+      profile.isGoogle = true;
+    }
+    await setDoc(refPerfil, profile, { merge: true });
+
+    // La sesión se construye siempre con el uid de Firebase Auth y el perfil
+    // de Firestore. Antes se usaba una lista de usuarios de localStorage que
+    // podía devolver un uid antiguo distinto y cargar datos de otra ruta.
+    const sessionUser = sesionDesdePerfil(user.uid, emailQuery, { ...datosPrevios, ...profile }, user.displayName);
+    localStorage.setItem('currentUser', JSON.stringify(sessionUser));
+    onLogin(sessionUser);
+  };
+
   const handleGoogleSignIn = async () => {
     if (!auth) {
       setError(t.loginErrFirebaseConfig);
       return;
     }
-    setError('');
+    setError(''); setAviso('');
     setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Guardar perfil en Firestore.
-      // La prueba gratuita SOLO se estampa si el documento no existia todavia.
-      // En logins posteriores no se puede reenviar trialEndsAt: las reglas
-      // prohiben modificar ese campo desde el cliente y denegarian la escritura
-      // entera, dejando el login de Google roto.
-      const refPerfil = doc(db, 'users', user.uid);
-      const perfilPrevio = await getDoc(refPerfil);
-      const esAltaNueva = !perfilPrevio.exists();
-      const datosPrevios = esAltaNueva ? {} : (perfilPrevio.data() || {});
-
-      const profile = {
-        uid: user.uid,
-        email: user.email,
-        displayName: datosPrevios.displayName || user.displayName || user.email.split('@')[0],
-        photoURL: user.photoURL || null,
-        lastLogin: Date.now()
-      };
-
-      if (esAltaNueva) {
-        Object.assign(profile, await perfilNuevo(String(user.email || '').toLowerCase()));
-        profile.isGoogle = true;
+      // Toda cuenta lleva contraseña: si entra con Google y aun no la tiene,
+      // se le pide crearla (queda enlazada a la misma cuenta) antes de entrar.
+      if (!tienePassword(user)) {
+        setCompletar({ user });
+        setName(user.displayName || '');
+        setPassword(''); setConfirmPassword('');
+        setLoading(false);
+        return;
       }
-
-      await setDoc(refPerfil, profile, { merge: true });
-
-      // La sesión se construye siempre con el uid de Firebase Auth y el perfil
-      // de Firestore. Antes se usaba una lista de usuarios de localStorage que
-      // podía devolver un uid antiguo distinto y cargar datos de otra ruta.
-      const sessionUser = sesionDesdePerfil(user.uid, user.email, { ...datosPrevios, ...profile }, user.displayName);
-      localStorage.setItem('currentUser', JSON.stringify(sessionUser));
-      onLogin(sessionUser);
+      await finalizarGoogle(user, null);
     } catch (err) {
       console.error(err);
       setError(tf('loginErrGoogle', { msg: err.message }));
     }
     setLoading(false);
   };
+
+  // Paso "completa tu registro": nombre y contraseña para una cuenta de Google.
+  const handleCompletar = async (e) => {
+    e.preventDefault();
+    setError(''); setAviso('');
+    if (password.length < 8) { setError(t.loginErrPasswordLength); return; }
+    if (password !== confirmPassword) { setError(t.loginErrPasswordMismatch); return; }
+    setLoading(true);
+    try {
+      const user = completar.user;
+      try {
+        await linkWithCredential(user, EmailAuthProvider.credential(user.email, password));
+      } catch (err) {
+        if (err.code !== 'auth/provider-already-linked') throw err;
+      }
+      await finalizarGoogle(user, name);
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') setError(t.loginErrEmailInUse);
+      else if (err.code === 'auth/weak-password') setError(t.loginErrPasswordLength);
+      else if (err.code === 'auth/requires-recent-login') setError(t.loginErrReciente);
+      else setError(tf('loginErrAuth', { msg: err.message }));
+    }
+    setLoading(false);
+  };
+  const cancelarCompletar = usarOtraCuenta;
 
   return (
     <div style={{
@@ -331,6 +477,20 @@ export default function Login({ onLogin }) {
           border-radius: 8px; padding: 10px 14px;
           color: #ef4444; font-size: 12px; margin-bottom: 16px;
         }
+        .login-ok {
+          background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.35);
+          border-radius: 8px; padding: 10px 14px;
+          color: #34d399; font-size: 12px; margin-bottom: 16px;
+        }
+        .login-link {
+          background: none; border: none; padding: 0; cursor: pointer;
+          color: #8b92b8; font-size: 12px; text-decoration: underline; font-family: inherit;
+        }
+        .login-link:hover { color: #c7cbe6; }
+        .login-btn-secundario { background: #252840; color: #c7cbe6; margin-top: 10px; }
+        .login-btn-secundario:hover { background: #2d3148; }
+        .login-paso-titulo { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
+        .login-paso-texto { font-size: 13px; color: #8b92b8; line-height: 1.55; margin-bottom: 20px; }
         .login-hint {
           text-align: center; font-size: 11px; color: #565d80; margin-top: 20px;
         }
@@ -345,6 +505,44 @@ export default function Login({ onLogin }) {
         <div className="login-title">Finanzi<span style={{ color: '#2dd4bf' }}>App</span></div>
         <div className="login-sub">{t.loginSubtitle}</div>
 
+        {completar ? (
+          <form onSubmit={handleCompletar} className="login-completar">
+            <div className="login-paso-titulo">{t.loginCompletarTitulo}</div>
+            <div className="login-paso-texto">{t.loginCompletarTexto}</div>
+            {error && <div className="login-error">{error}</div>}
+            <div className="login-field">
+              <label className="login-label">{t.loginEmail}</label>
+              <input className="login-input" type="email" value={completar.user.email || ''} readOnly disabled />
+            </div>
+            <div className="login-field">
+              <label className="login-label">{t.loginName}</label>
+              <input className="login-input" type="text" placeholder={t.loginNamePlaceholder} value={name} onChange={e => setName(e.target.value)} required />
+            </div>
+            <div className="login-field">
+              <label className="login-label">{t.loginPassword}</label>
+              <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" autoFocus />
+            </div>
+            <div className="login-field">
+              <label className="login-label">{t.loginRepeatPassword}</label>
+              <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
+            </div>
+            <button className="login-btn" type="submit" disabled={loading}>{loading ? t.loginLoading : t.loginCompletarBtn}</button>
+            <button className="login-btn login-btn-secundario" type="button" onClick={cancelarCompletar} disabled={loading}>{t.loginCancelar}</button>
+          </form>
+        ) : verificar ? (
+          <div className="login-verificar">
+            <div className="login-paso-titulo">✉️ {t.loginVerificarTitulo}</div>
+            <div className="login-paso-texto">{tf('loginVerificarTexto', { email: verificar.user.email })}</div>
+            {error && <div className="login-error">{error}</div>}
+            {aviso && <div className="login-ok">{aviso}</div>}
+            <button className="login-btn" type="button" onClick={comprobarVerificacion} disabled={loading}>{loading ? t.loginLoading : t.loginVerificarComprobar}</button>
+            <button className="login-btn login-btn-secundario" type="button" onClick={reenviarVerificacion} disabled={loading || reenvioEn > 0}>{reenvioEn > 0 ? `${t.loginVerificarReenviar} (${reenvioEn})` : t.loginVerificarReenviar}</button>
+            <div style={{ textAlign: 'center', marginTop: 18 }}>
+              <button type="button" className="login-link" onClick={usarOtraCuenta}>{t.loginVerificarOtra}</button>
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="tab-container">
           <button type="button" className={`tab-btn ${isLogin ? 'active' : ''}`} onClick={() => setIsLogin(true)}>
             {t.loginSignIn}
@@ -356,6 +554,7 @@ export default function Login({ onLogin }) {
 
         <form onSubmit={handleSubmit}>
           {error && <div className="login-error">{error}</div>}
+          {aviso && <div className="login-ok">{aviso}</div>}
           {!isLogin && (
             <div className="login-field">
               <label className="login-label">{t.loginName}</label>
@@ -368,7 +567,12 @@ export default function Login({ onLogin }) {
           </div>
           <div className="login-field">
             <label className="login-label">{t.loginPassword}</label>
-            <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+            <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete={isLogin ? 'current-password' : 'new-password'} />
+            {isLogin && (
+              <div style={{ textAlign: 'right', marginTop: 8 }}>
+                <button type="button" className="login-link" onClick={handleOlvide}>{t.loginOlvide}</button>
+              </div>
+            )}
           </div>
           {!isLogin && (
             <div className="login-field">
@@ -393,9 +597,12 @@ export default function Login({ onLogin }) {
           Google
         </button>
 
+
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <a href="/" style={{ color: '#8b92b8', fontSize: 13, textDecoration: 'none' }}>{t.loginBackHome}</a>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

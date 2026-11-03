@@ -13,7 +13,7 @@ import {
 import TutorialWizard from './components/TutorialWizard';
 import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
 
@@ -954,9 +954,14 @@ function AppInner({ isHome }) {
     // dejaba la pantalla en "Cargando..." para siempre, porque el efecto no se
     // reinicia si el uid no cambia.
     setUser(u);
+    setPendiente(null);
     setError(null); setBudgetLocked(true);
     navigate('/dashboard');
   };
+
+  // Sesion de Firebase que todavia no puede entrar: correo sin verificar
+  // (cuenta nueva) o cuenta de Google sin contraseña. Login muestra el paso.
+  const [pendiente, setPendiente] = useState(null);
 
   useEffect(() => {
     const unsubAuth = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -972,6 +977,27 @@ function AppInner({ isHome }) {
         } catch (e) {
           console.error('No se pudo leer el perfil del usuario:', e);
         }
+        // Antes de entrar: toda cuenta lleva contraseña y, si es nueva y entra
+        // con correo, el correo tiene que estar verificado. Las cuentas
+        // anteriores a esta norma (perfil sin `creado`) no se bloquean.
+        const proveedores = (firebaseUser.providerData || []).map(p => p.providerId);
+        const esGoogle = proveedores.includes('google.com');
+        const cuentaNueva = !perfilLeido || (userData.creado || 0) > 0;
+        if (esGoogle && !proveedores.includes('password')) {
+          localStorage.removeItem('currentUser');
+          setUser(null);
+          setPendiente({ tipo: 'completar', fbUser: firebaseUser });
+          if (!['/login', '/register', '/'].includes(window.location.pathname)) navigate('/login');
+          return;
+        }
+        if (!esGoogle && !firebaseUser.emailVerified && cuentaNueva) {
+          localStorage.removeItem('currentUser');
+          setUser(null);
+          setPendiente({ tipo: 'verificar', fbUser: firebaseUser });
+          if (!['/login', '/register', '/'].includes(window.location.pathname)) navigate('/login');
+          return;
+        }
+        setPendiente(null);
         const isAdmin = userData.isAdmin === true;
         const sessionUser = {
           uid: firebaseUser.uid,
@@ -1003,9 +1029,11 @@ function AppInner({ isHome }) {
         // conservaba la copia de localStorage y "cerrar sesión" no cerraba nada.
         localStorage.removeItem('currentUser');
         setUser(null);
+        setPendiente(null);
       }
     });
     return () => unsubAuth();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -1277,7 +1305,7 @@ function AppInner({ isHome }) {
 
   if (!user) {
     if (isHome) return <LandingPage />;
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} pendiente={pendiente} />;
   }
 
   const updateProfile = async (newProfile) => {
@@ -3524,6 +3552,66 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
 
 
 // ─── SETTINGS ─────────────────────────────────────────────────────────────────
+// Cambiar la contraseña (pide la actual) o crearla si la cuenta entro con
+// Google y todavia no tiene. Tambien muestra si el correo esta verificado.
+function BloquePassword() {
+  const { t, tf } = useApp();
+  const [abierto, setAbierto] = useState(false);
+  const [actual, setActual] = useState('');
+  const [nueva, setNueva] = useState('');
+  const [repetir, setRepetir] = useState('');
+  const [aviso, setAviso] = useState(null);
+  const [ocupado, setOcupado] = useState(false);
+  const fbUser = auth?.currentUser;
+  const tienePass = !!fbUser?.providerData?.some(p => p.providerId === 'password');
+  const verificado = !!fbUser?.emailVerified;
+  const guardar = async (e) => {
+    e.preventDefault(); setAviso(null);
+    if (nueva.length < 8) { setAviso({ tipo: 'error', texto: t.passCorta }); return; }
+    if (nueva !== repetir) { setAviso({ tipo: 'error', texto: t.passNoCoincide }); return; }
+    setOcupado(true);
+    try {
+      if (tienePass) {
+        await reauthenticateWithCredential(fbUser, EmailAuthProvider.credential(fbUser.email, actual));
+        await updatePassword(fbUser, nueva);
+      } else {
+        await linkWithCredential(fbUser, EmailAuthProvider.credential(fbUser.email, nueva));
+      }
+      setAviso({ tipo: 'ok', texto: t.passOk }); setActual(''); setNueva(''); setRepetir('');
+    } catch (err) {
+      const mal = ['auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-login-credentials'].includes(err?.code);
+      setAviso({ tipo: 'error', texto: mal ? t.passActualMal : tf('passError', { msg: err?.message || '' }) });
+    }
+    setOcupado(false);
+  };
+  if (!fbUser) return null;
+  return (
+    <div className="bloque-password" style={{ marginTop: 24, background: 'var(--bg-input)', padding: 20, borderRadius: 16, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 800, letterSpacing: '0.05em' }}>{t.passTitulo}</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            {verificado ? `✅ ${t.passVerificado}` : `⚠️ ${t.passSinVerificar}`}{tienePass ? '' : ` · ${t.passCrearTexto}`}
+          </div>
+        </div>
+        {!abierto && <button className="btn btn-ghost" onClick={() => setAbierto(true)}>{tienePass ? t.passGuardar : t.passCrear}</button>}
+      </div>
+      {abierto && (
+        <form onSubmit={guardar} className="fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 16, alignItems: 'end' }}>
+          {tienePass && <div><label className="login-label">{t.passActual}</label><input className="text-input" type="password" value={actual} onChange={e => setActual(e.target.value)} required autoComplete="current-password" /></div>}
+          <div><label className="login-label">{t.passNueva}</label><input className="text-input" type="password" value={nueva} onChange={e => setNueva(e.target.value)} required minLength={8} autoComplete="new-password" /></div>
+          <div><label className="login-label">{t.passRepetir}</label><input className="text-input" type="password" value={repetir} onChange={e => setRepetir(e.target.value)} required minLength={8} autoComplete="new-password" /></div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-ghost" onClick={() => { setAbierto(false); setAviso(null); }}>{t.cancel}</button>
+            <button type="submit" className="btn btn-primary" disabled={ocupado}>{tienePass ? t.passGuardar : t.passCrear}</button>
+          </div>
+          {aviso && <div className="bloque-password-aviso" style={{ gridColumn: '1 / -1', fontSize: 12, color: aviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{aviso.texto}</div>}
+        </form>
+      )}
+    </div>
+  );
+}
+
 function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial, soloLectura }) {
   const { t, tf, theme, toggleTheme, language, setLanguageTo, locale } = useApp();
   // Vuelta de Stripe Checkout (?pago=ok | cancelado): se muestra una vez y se limpia la URL.
@@ -3636,6 +3724,9 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
                 )}
               </div>
             </div>
+
+            {/* Contraseña: cambiarla, o crearla si la cuenta entro con Google y aun no tiene */}
+            <BloquePassword />
 
             {isEditingProfile ? (
               <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 40 }} className="fade-in">

@@ -125,7 +125,23 @@ export const publico = {
     tutoBack: 'Atrás',
     tutoLetsGo: '¡Vamos Allá!',
     tutoNext: 'Siguiente',
-    tutoInteract: 'Interactúa para seguir'
+    tutoInteract: 'Interactúa para seguir',
+    // ─── Registro profesional: verificación, contraseña con Google, recuperar ───
+    loginCompletarTitulo: 'Completa tu registro',
+    loginCompletarTexto: 'Para proteger tu cuenta, crea una contraseña. Así también podrás entrar con tu correo cuando no uses Google.',
+    loginCompletarBtn: 'Guardar y entrar',
+    loginCancelar: 'Cancelar',
+    loginVerificarTitulo: 'Verifica tu correo',
+    loginVerificarTexto: 'Te hemos enviado un correo a {email} con un enlace para activar tu cuenta. Ábrelo y vuelve aquí: entrarás automáticamente. Si no lo ves, mira en spam.',
+    loginVerificarComprobar: 'Ya lo he verificado',
+    loginVerificarReenviar: 'Reenviar correo',
+    loginVerificarReenviado: 'Correo reenviado. Revisa también la carpeta de spam.',
+    loginVerificarPendiente: 'Todavía no aparece como verificado. Abre el enlace del correo y vuelve a intentarlo.',
+    loginVerificarOtra: 'Usar otra cuenta',
+    loginOlvide: '¿Has olvidado tu contraseña?',
+    loginResetEnviado: 'Si ese correo tiene cuenta, te hemos enviado un enlace para restablecer la contraseña.',
+    loginResetSinCorreo: 'Escribe tu correo arriba y vuelve a pulsar.',
+    loginErrReciente: 'Por seguridad, vuelve a entrar con Google y repite este paso.',
   },
   en: {
     // --- Landing: header ---
@@ -249,7 +265,23 @@ export const publico = {
     tutoBack: 'Back',
     tutoLetsGo: "Let's Go!",
     tutoNext: 'Next',
-    tutoInteract: 'Interact to continue'
+    tutoInteract: 'Interact to continue',
+    // ─── Professional sign-up: verification, password with Google, recovery ───
+    loginCompletarTitulo: 'Complete your sign-up',
+    loginCompletarTexto: 'To protect your account, create a password. You will also be able to sign in with your email when you are not using Google.',
+    loginCompletarBtn: 'Save and enter',
+    loginCancelar: 'Cancel',
+    loginVerificarTitulo: 'Verify your email',
+    loginVerificarTexto: 'We have sent an email to {email} with a link to activate your account. Open it and come back here: you will be signed in automatically. Check your spam folder if you cannot see it.',
+    loginVerificarComprobar: 'I have verified it',
+    loginVerificarReenviar: 'Resend email',
+    loginVerificarReenviado: 'Email resent. Check your spam folder too.',
+    loginVerificarPendiente: 'It does not show as verified yet. Open the link in the email and try again.',
+    loginVerificarOtra: 'Use another account',
+    loginOlvide: 'Forgot your password?',
+    loginResetEnviado: 'If that email has an account, we have sent you a link to reset the password.',
+    loginResetSinCorreo: 'Type your email above and click again.',
+    loginErrReciente: 'For security, sign in with Google again and repeat this step.',
   },
   de: {
     // --- Landing: Kopfbereich ---
@@ -373,6 +405,22 @@ export const publico = {
     tutoBack: 'Zurück',
     tutoLetsGo: "Los geht's!",
     tutoNext: 'Weiter',
-    tutoInteract: 'Interagieren Sie, um fortzufahren'
+    tutoInteract: 'Interagieren Sie, um fortzufahren',
+    // ─── Professionelle Registrierung: Verifizierung, Passwort mit Google, Wiederherstellung ───
+    loginCompletarTitulo: 'Registrierung abschließen',
+    loginCompletarTexto: 'Zum Schutz Ihres Kontos legen Sie ein Passwort fest. So können Sie sich auch mit Ihrer E-Mail anmelden, wenn Sie Google nicht nutzen.',
+    loginCompletarBtn: 'Speichern und anmelden',
+    loginCancelar: 'Abbrechen',
+    loginVerificarTitulo: 'E-Mail bestätigen',
+    loginVerificarTexto: 'Wir haben eine E-Mail an {email} mit einem Link zur Aktivierung Ihres Kontos gesendet. Öffnen Sie ihn und kommen Sie hierher zurück: Sie werden automatisch angemeldet. Prüfen Sie auch den Spam-Ordner.',
+    loginVerificarComprobar: 'Ich habe bestätigt',
+    loginVerificarReenviar: 'E-Mail erneut senden',
+    loginVerificarReenviado: 'E-Mail erneut gesendet. Prüfen Sie auch den Spam-Ordner.',
+    loginVerificarPendiente: 'Noch nicht als bestätigt erkannt. Öffnen Sie den Link in der E-Mail und versuchen Sie es erneut.',
+    loginVerificarOtra: 'Anderes Konto verwenden',
+    loginOlvide: 'Passwort vergessen?',
+    loginResetEnviado: 'Falls diese E-Mail ein Konto hat, haben wir Ihnen einen Link zum Zurücksetzen des Passworts gesendet.',
+    loginResetSinCorreo: 'Geben Sie oben Ihre E-Mail ein und klicken Sie erneut.',
+    loginErrReciente: 'Melden Sie sich aus Sicherheitsgründen erneut mit Google an und wiederholen Sie diesen Schritt.',
   }
 };

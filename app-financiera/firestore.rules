@@ -42,7 +42,7 @@ service cloud.firestore {
     function camposProtegidos() {
       return ['isAdmin', 'permissions', 'trialEndsAt', 'plan', 'paidUntil', 'bloqueado',
               'stripeCustomerId', 'stripeSubscriptionId', 'stripeStatus', 'cancelAtPeriodEnd',
-              'invitado', 'invitadoHasta', 'vistasExtra', 'vistasQuitadas'];
+              'invitado', 'invitadoHasta', 'vistasExtra', 'vistasQuitadas', 'creado'];
     }
     function noTocaCamposProtegidos() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(camposProtegidos());
@@ -112,12 +112,24 @@ service cloud.firestore {
       return 86400000;
     }
 
-    // Puede escribir sus datos: segun su rol (prueba vigente, pagado, invitado
-    // o prueba terminada) y lo que el administrador haya configurado para ese
-    // rol; nunca si esta bloqueado. Las fechas se guardan en milisegundos
-    // (Date.now()), igual que el resto de marcas de tiempo de la app.
+    // Correo verificado (las cuentas de Google lo traen verificado). Las
+    // cuentas anteriores a la verificacion obligatoria no tienen el campo
+    // `creado` y quedan exentas; el cliente no puede escribir ese campo.
+    function correoVerificado() {
+      return request.auth.token.get('email_verified', false) == true;
+    }
+    function verificacionOk(perfil) {
+      return correoVerificado() || perfil.get('creado', 0) == 0;
+    }
+
+    // Puede escribir sus datos: correo verificado (cuentas nuevas) y, segun su
+    // rol (prueba vigente, pagado, invitado o prueba terminada), lo que el
+    // administrador haya configurado para ese rol; nunca si esta bloqueado.
+    // Las fechas se guardan en milisegundos (Date.now()), igual que el resto
+    // de marcas de tiempo de la app.
     function suscripcionActiva(userId) {
-      return rolPuedeEscribir(rolDe(get(/databases/$(database)/documents/users/$(userId)).data));
+      let perfil = get(/databases/$(database)/documents/users/$(userId)).data;
+      return verificacionOk(perfil) && rolPuedeEscribir(rolDe(perfil));
     }
 
     // Los documentos de actividad se llaman session_<uid>_<fecha>.
@@ -142,6 +154,11 @@ service cloud.firestore {
                                                              'vistasExtra', 'vistasQuitadas'])
                     && (!request.resource.data.keys().hasAny(['invitado', 'invitadoHasta'])
                         || (request.resource.data.get('invitado', false) == true && invitacionValida()))
+                    // Fecha de alta obligatoria y real (con tolerancia de reloj):
+                    // sin ella una cuenta nueva se saltaria la verificacion del correo.
+                    && request.resource.data.get('creado', 0) is int
+                    && request.resource.data.get('creado', 0) >= request.time.toMillis() - toleranciaReloj()
+                    && request.resource.data.get('creado', 0) <= request.time.toMillis() + toleranciaReloj()
                     // Los permisos iniciales son los basicos: nadie se concede el
                     // panel de gestion al darse de alta.
                     && (!request.resource.data.keys().hasAny(['permissions'])
