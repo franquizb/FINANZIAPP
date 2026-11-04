@@ -60,7 +60,7 @@ const escenaHTML = (lang, t, fmt) => {
       ${anim(chip(t.ejemplo, { x: .5, y: alto ? .405 : .4, ax: 'c', ay: 'c', color: '#10b981', z: 8 }), 'aparecer:1.1')}
     </div>
     <div class="escena" data-escena="final">
-      ${anim(movil(lang, 'm-dashboard.png', alto ? { x: .5, y: -.2, ax: 'c', w: .42, h: .62, rot: -4 } : { x: .5, y: -.25, ax: 'c', w: .42, h: .74, rot: -4 }), 'subir:0.2')}
+      ${anim(movil(lang, 'm-dashboard.png', alto ? { x: .5, y: -.2, ax: 'c', w: .42, h: .62, rot: -4 } : { x: .5, y: -.17, ax: 'c', w: .42, h: .66, rot: -4 }), 'subir:0.2')}
     </div>`;
 };
 
