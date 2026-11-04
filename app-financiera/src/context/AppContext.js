@@ -8,7 +8,16 @@ const AppContext = createContext();
 
 // Idiomas disponibles y su configuración regional para fechas y moneda.
 export const IDIOMAS = ['es', 'en', 'de'];
-export const LOCALES = { es: 'es-ES', en: 'en-GB', de: 'de-DE' };
+export const LOCALES = { es: 'es-ES', en: 'en-US', de: 'de-DE' };
+// Configuración regional para fechas y números: la variante del navegador si
+// coincide con el idioma (en-GB, es-MX, de-AT…), y si no la de LOCALES. Así un
+// estadounidense ve "$1,234.50" y 12/18/2026, y un británico "£1,234.50" y 18/12/2026.
+export const localeDe = (lang) => {
+    const candidatos = (typeof navigator !== 'undefined' && (navigator.languages?.length ? navigator.languages : [navigator.language])) || [];
+    const propio = candidatos.find(c => String(c || '').toLowerCase().startsWith(lang + '-'));
+    if (propio) { try { return Intl.getCanonicalLocales(propio)[0]; } catch { /* etiqueta no válida */ } }
+    return LOCALES[lang] || LOCALES.es;
+};
 
 // Los meses se guardan en los datos con su nombre en español (son claves del
 // modelo); aquí solo se traduce cómo se muestran.
@@ -439,7 +448,7 @@ const detectarIdioma = () => {
 // helpers del modelo). Se actualizan de forma síncrona al cambiar de idioma,
 // antes del re-render, para que ese mismo render ya los use.
 let idiomaActual = detectarIdioma();
-let localeActual = LOCALES[idiomaActual];
+let localeActual = localeDe(idiomaActual);
 export const getLocale = () => localeActual;
 export const getIdioma = () => idiomaActual;
 
@@ -506,7 +515,7 @@ export function AppProvider({ children }) {
         if (!IDIOMAS.includes(lang)) return;
         try { localStorage.setItem('appLanguage', lang); } catch { /* sin localStorage */ }
         idiomaActual = lang;
-        localeActual = LOCALES[lang];
+        localeActual = localeDe(lang);
         setLanguage(lang);
     };
     const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -517,7 +526,7 @@ export function AppProvider({ children }) {
         const nombres = MESES[language] || MESES.es;
         return {
             theme, toggleTheme, language, toggleLanguage, setLanguageTo, t,
-            locale: LOCALES[language] || LOCALES.es,
+            locale: localeDe(language),
             tf: (clave, vars) => interpolar(t[clave], vars),
             // Nombre del mes a partir de su clave en español ("enero" → "January").
             mes: (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? clave : nombres[i]; },

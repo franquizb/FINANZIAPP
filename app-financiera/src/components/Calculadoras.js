@@ -737,9 +737,9 @@ const CALCULADORAS = [
   { id: 'intrinseco', titulo: 'calcIntrinsecoTitulo', desc: 'calcIntrinsecoDesc', Comp: ValorIntrinseco, icono: 'M21 21H3V3|M7 14l3-3 5 5 6-6|M16 10h5v5' }
 ];
 
-export default function Calculadoras() {
+export default function Calculadoras({ inicial = null }) {
   const { t } = useApp();
-  const [activa, setActiva] = useState(null);
+  const [activa, setActiva] = useState(CALCULADORAS.some(c => c.id === inicial) ? inicial : null);
   const def = CALCULADORAS.find(c => c.id === activa);
 
   if (def) {

@@ -1,5 +1,5 @@
 // App.js — App Financiera (localStorage, sin Firebase, sin IA)
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { VISTAS_ASIGNABLES, ROLES, AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso, rolEfectivo, vistasPermitidas, puedeVer, puedeEscribir, vistasConCandado, excepcionesDesdeMarcadas } from './acceso';
 import Login from './Login';
@@ -17,6 +17,10 @@ import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
+
+// Modo demo para capturas de marketing: solo existe en builds locales hechos
+// con REACT_APP_DEMO=1 (ver marketing/instagram). En producción no hay ruta.
+const DemoApp = process.env.REACT_APP_DEMO === '1' ? React.lazy(() => import('./demo/DemoApp')) : null;
 
 const logErrorToFirebase = async (context, err) => {
   try {
@@ -859,6 +863,7 @@ export default function App() {
           <Route path="/terminos" element={<PaginaLegal tipo="terminos" />} />
           <Route path="/terms" element={<PaginaLegal tipo="terminos" />} />
           {PERMISSIONS.map(p => <Route key={p.id} path={`/${p.id}`} element={<AppInner />} />)}
+          {DemoApp && <Route path="/demo" element={<Suspense fallback={null}><DemoApp /></Suspense>} />}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AppProvider>
@@ -2244,7 +2249,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
   const ingresoMedioMensual = mesesConIngreso > 0 ? ingresosYTD / mesesConIngreso : totalIncomeBudgeted;
 
   // Fondo de emergencia: activos líquidos del último mes con patrimonio anotado.
-  const esLiquido = (c) => /efectivo|cuenta|liquid|caja/i.test(c);
+  const esLiquido = (c) => /efectivo|cuenta|liquid|caja|cash|checking|saving|bank|konto|bargeld|spar/i.test(c);
   const catsLiquidas = (categories["Activos"] || []).filter(esLiquido);
   const catsFondo = catsLiquidas.length ? catsLiquidas : (categories["Activos"] || []);
   let mesPatrimonio = -1;
@@ -2723,7 +2728,7 @@ function DashboardView({ data, year, categories, onUpdate, fullData, onUpdateCfg
 
       <div className="grid-2" style={{ alignItems: 'stretch' }}>
         {widgetsVisibles.map((w, idx) => (
-          <div key={w.id} style={{ gridColumn: w.size === 'full' ? '1 / -1' : 'auto', position: 'relative', outline: editandoDashboard ? '2px dashed var(--accent)' : 'none', outlineOffset: 4, borderRadius: 12 }}>
+          <div key={w.id} data-widget={w.id} style={{ gridColumn: w.size === 'full' ? '1 / -1' : 'auto', position: 'relative', outline: editandoDashboard ? '2px dashed var(--accent)' : 'none', outlineOffset: 4, borderRadius: 12 }}>
             {editandoDashboard && (
               <div style={{ position: 'absolute', top: 6, right: 6, zIndex: 5, display: 'flex', gap: 4, background: 'var(--bg-card)', border: '1px solid var(--accent)', borderRadius: 8, padding: 4, boxShadow: 'var(--shadow)' }}>
                 <button className="btn btn-icon btn-ghost" style={botonEdicion} title={t.subir} disabled={idx === 0} onClick={() => moverWidget(w.id, -1)}>▲</button>
@@ -5010,3 +5015,6 @@ function UserManagementView({ ajustesAcceso }) {
     </div>
   );
 }
+
+// Piezas de la interfaz que reutiliza el modo demo local (src/demo/DemoApp.js).
+export const PiezasDemo = { Sidebar, Topbar, DashboardView, MonthlyView, NetWorthView, LoansView, TradingView, generateInitialYearData, normalizarConfig, VERSION_DATOS, months };
