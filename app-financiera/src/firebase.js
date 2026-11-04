@@ -11,7 +11,7 @@ import { getFirestore } from "firebase/firestore";
 // el origen https://<dominio>; si no, Google responde "redirect_uri_mismatch"
 // y nadie puede entrar con Google. Mientras USAR_DOMINIO_PROPIO sea false se
 // usa el dominio de Firebase, que siempre está autorizado.
-const USAR_DOMINIO_PROPIO = false;
+const USAR_DOMINIO_PROPIO = true;
 const DOMINIOS_PROPIOS = ['finanzas.franquizb.com', 'finanziapp.com', 'www.finanziapp.com'];
 const authDomain = (USAR_DOMINIO_PROPIO && typeof window !== 'undefined' && DOMINIOS_PROPIOS.includes(window.location.hostname))
     ? window.location.hostname
