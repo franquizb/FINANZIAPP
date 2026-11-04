@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { VISTAS_ASIGNABLES, ROLES, AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso, rolEfectivo, vistasPermitidas, puedeVer, puedeEscribir, vistasConCandado, excepcionesDesdeMarcadas } from './acceso';
 import Login from './Login';
+import PaginaLegal from './Legal';
 import LandingPage from './LandingPage';
 import { AppProvider, useApp, getLocale, nombreMesCorto, tx } from './context/AppContext';
 import {
@@ -847,6 +848,10 @@ export default function App() {
           <Route path="/" element={<AppInner isHome />} />
           <Route path="/login" element={<AppInner />} />
           <Route path="/register" element={<AppInner />} />
+          <Route path="/privacidad" element={<PaginaLegal tipo="privacidad" />} />
+          <Route path="/privacy" element={<PaginaLegal tipo="privacidad" />} />
+          <Route path="/terminos" element={<PaginaLegal tipo="terminos" />} />
+          <Route path="/terms" element={<PaginaLegal tipo="terminos" />} />
           {PERMISSIONS.map(p => <Route key={p.id} path={`/${p.id}`} element={<AppInner />} />)}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

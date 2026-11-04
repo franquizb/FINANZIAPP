@@ -580,6 +580,11 @@ export default function Login({ onLogin, pendiente }) {
               <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} />
             </div>
           )}
+          {!isLogin && (
+            <div style={{ fontSize: 11, color: '#8b92b8', lineHeight: 1.5, marginBottom: 14 }}>
+              {t.loginAceptas} <a href="/terminos" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginTerminos}</a> {t.loginYLa} <a href="/privacidad" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginPrivacidad}</a>.
+            </div>
+          )}
           <button className="login-btn" type="submit" disabled={loading}>
             {loading ? t.loginLoading : (isLogin ? t.loginSignIn : t.loginCreateAccount)}
           </button>

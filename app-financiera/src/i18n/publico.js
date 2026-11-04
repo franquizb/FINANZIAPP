@@ -144,6 +144,10 @@ export const publico = {
     loginErrReciente: 'Por seguridad, vuelve a entrar con Google y repite este paso.',
     tutoStepPresuTitle: 'Configura tu presupuesto 🧮',
     tutoStepPresuContent: 'Pulsa "Desbloquear Edición" para cambiar las cantidades mensuales de cada categoría (son el estimado que verás en Seguimiento). El "+" de cada bloque añade una categoría y, con la edición abierta, cada fila tiene su papelera para quitarla. Abajo, "Gastos puntuales" recoge lo que no se repite cada mes. Cuando termines, vuelve a bloquear para no tocar nada sin querer.',
+    loginAceptas: 'Al crear la cuenta aceptas los',
+    loginTerminos: 'Términos de uso',
+    loginYLa: 'y la',
+    loginPrivacidad: 'Política de privacidad',
   },
   en: {
     // --- Landing: header ---
@@ -286,6 +290,10 @@ export const publico = {
     loginErrReciente: 'For security, sign in with Google again and repeat this step.',
     tutoStepPresuTitle: 'Set up your budget 🧮',
     tutoStepPresuContent: 'Press "Unlock Editing" to change the monthly amount of each category (that is the estimate you will see in Tracking). The "+" on each block adds a category and, while editing is open, every row has a bin to remove it. Below, "One-time expenses" collects what does not repeat every month. When you are done, lock it again so nothing changes by accident.',
+    loginAceptas: 'By creating an account you accept the',
+    loginTerminos: 'Terms of Service',
+    loginYLa: 'and the',
+    loginPrivacidad: 'Privacy Policy',
   },
   de: {
     // --- Landing: Kopfbereich ---
@@ -428,5 +436,9 @@ export const publico = {
     loginErrReciente: 'Melden Sie sich aus Sicherheitsgründen erneut mit Google an und wiederholen Sie diesen Schritt.',
     tutoStepPresuTitle: 'Budget einrichten 🧮',
     tutoStepPresuContent: 'Drücken Sie „Bearbeitung freigeben“, um den Monatsbetrag jeder Kategorie zu ändern (das ist der Sollwert in der Verfolgung). Das „+“ jedes Blocks fügt eine Kategorie hinzu, und bei offener Bearbeitung hat jede Zeile einen Papierkorb zum Entfernen. Unten sammelt „Einmalige Ausgaben“, was sich nicht monatlich wiederholt. Sperren Sie danach wieder, damit sich nichts versehentlich ändert.',
+    loginAceptas: 'Mit der Kontoerstellung akzeptieren Sie die',
+    loginTerminos: 'Nutzungsbedingungen',
+    loginYLa: 'und die',
+    loginPrivacidad: 'Datenschutzerklärung',
   }
 };
