@@ -7,11 +7,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ComposedChart, Line, BarChart, Bar, Cell, ReferenceLine
 } from 'recharts';
-import { useApp, getLocale } from '../context/AppContext';
+import { useApp, getLocale, getMoneda } from '../context/AppContext';
 
 // ─── Formato ─────────────────────────────────────────────────────────────────
 const fin = (v) => (Number.isFinite(v) ? v : 0);
-const fmt = (v, dec = 2) => fin(v).toLocaleString(getLocale(), { style: 'currency', currency: 'EUR', minimumFractionDigits: dec, maximumFractionDigits: dec });
+const fmt = (v, dec = 2) => fin(v).toLocaleString(getLocale(), { style: 'currency', currency: getMoneda(), minimumFractionDigits: dec, maximumFractionDigits: dec });
 const pct = (v, dec = 1) => `${fin(v).toFixed(dec)} %`;
 const num = (v, dec = 2) => fin(v).toLocaleString(getLocale(), { maximumFractionDigits: dec });
 const compacto = (v) => new Intl.NumberFormat(getLocale(), { notation: 'compact', maximumFractionDigits: 1 }).format(fin(v));
@@ -297,7 +297,7 @@ function InteresCompuesto() {
         sub={bandas ? `${t.ciPesimista}: ${fmt(bandas.finalP10, 0)} · ${t.ciOptimista}: ${fmt(bandas.finalP90, 0)}` : (p.inflacion > 0 ? `${t.ciValorFinalReal}: ${fmt(r.finalReal, 0)}` : null)} />
       {bandas && <Resultado label={t.ciTrayectoriaMostrada} valor={fmt(mostrada.final, 0)} atenuado sub={p.inflacion > 0 ? `${t.ciValorFinalReal} (${t.ciMedianaCorta}): ${fmt(r.finalReal, 0)}` : null} />}
       {bandas && p.retiradas && bandas.agotadas > 0 && <Resultado label={t.ciProbAgotar} valor={pct(bandas.agotadas / bandas.N * 100, 0)} color="var(--red)" atenuado />}
-      <Resultado label={t.ciTotalInvertido} valor={fmt(r.aportado, 0)} sub={`${t.ciInversionInicial.replace(' (€)', '')}: ${fmt(p.inicial, 0)} · ${t.ciAportadoTotal}: ${fmt(r.aportado - p.inicial, 0)}`} />
+      <Resultado label={t.ciTotalInvertido} valor={fmt(r.aportado, 0)} sub={`${t.ciInversionInicial.replace(/\s*\([^)]*\)\s*$/, '')}: ${fmt(p.inicial, 0)} · ${t.ciAportadoTotal}: ${fmt(r.aportado - p.inicial, 0)}`} />
       <Resultado label={t.ciInicialPct} valor={pct(pctInicial)} atenuado />
       <Resultado label={t.ciGananciaTotal} valor={fmt(r.ganancia, 0)} color={r.ganancia >= 0 ? 'var(--green)' : 'var(--red)'} />
       <Resultado label={t.ciGananciaPct} valor={pct(gananciaPct)} atenuado />

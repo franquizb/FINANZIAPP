@@ -1,7 +1,7 @@
 // src/LandingPage.js
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useApp, MESES_CLAVE } from './context/AppContext';
+import { useApp, MESES_CLAVE, getMoneda } from './context/AppContext';
 
 // --- Importaciones de Recharts para maquetas de gráficos realistas ---
 import {
@@ -28,7 +28,8 @@ const TargetIcon = ({ className }) => (
 );
 
 // --- UTILIDADES ---
-const formatCurrency = (value, locale) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(typeof value === 'number' ? value : 0);
+const formatCurrency = (value, locale) => new Intl.NumberFormat(locale, { style: 'currency', currency: getMoneda() }).format(typeof value === 'number' ? value : 0);
+const formatCompacto = (value, locale) => new Intl.NumberFormat(locale, { style: 'currency', currency: getMoneda(), notation: 'compact', maximumFractionDigits: 0 }).format(value);
 // Clave del mes (en español, como en el resto del modelo); se traduce al mostrarla con mes()/mesCorto().
 const claveMes = (monthIndex) => MESES_CLAVE[monthIndex];
 // En la landing los meses van con inicial mayúscula ("Nov", "Noviembre"), como hasta ahora.
@@ -129,9 +130,9 @@ const DashboardMockLineChart = ({ selectedYearOffset }) => {
             <LineChart data={adjustedData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
                 <XAxis dataKey="name" stroke="#cbd5e0" tick={{ fontSize: 10 }} />
-                <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`} stroke="#cbd5e0" tick={{ fontSize: 10 }} />
+                <YAxis tickFormatter={(value) => formatCompacto(value, locale)} stroke="#cbd5e0" tick={{ fontSize: 10 }} />
                 <Tooltip
-                    formatter={(value) => `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value)}`}
+                    formatter={(value) => formatCurrency(value, locale)}
                     contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '0.5rem', fontSize: '12px' }}
                     itemStyle={{ color: '#ffffff' }}
                 />
@@ -173,7 +174,7 @@ const DashboardMockPieChart = () => {
                     ))}
                 </Pie>
                 <Tooltip
-                    formatter={(value) => `${new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(value)}`}
+                    formatter={(value) => formatCurrency(value, locale)}
                     contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '0.5rem', fontSize: '12px' }}
                     itemStyle={{ color: '#ffffff' }}
                 />
@@ -184,7 +185,8 @@ const DashboardMockPieChart = () => {
 };
 
 const DashboardMockTable = () => {
-    const { t } = useApp();
+    const { t, locale } = useApp();
+    const m = (v) => formatCurrency(v, locale);
     return (
         <div className="overflow-x-auto text-xs">
             <table className="w-full text-left text-gray-300">
@@ -199,27 +201,27 @@ const DashboardMockTable = () => {
                 <tbody>
                     <tr className="border-b border-slate-700">
                         <td className="py-2 px-3">{t.landingRowRent}</td>
-                        <td className="py-2 px-3 text-right">€800,00</td>
-                        <td className="py-2 px-3 text-right">€800,00</td>
-                        <td className="py-2 px-3 text-right text-green-400">€0,00</td>
+                        <td className="py-2 px-3 text-right">{m(800)}</td>
+                        <td className="py-2 px-3 text-right">{m(800)}</td>
+                        <td className="py-2 px-3 text-right text-green-400">{m(0)}</td>
                     </tr>
                     <tr className="border-b border-slate-700">
                         <td className="py-2 px-3">{t.landingRowFood}</td>
-                        <td className="py-2 px-3 text-right">€400,00</td>
-                        <td className="py-2 px-3 text-right">€450,00</td>
-                        <td className="py-2 px-3 text-right text-red-400">€-50,00</td>
+                        <td className="py-2 px-3 text-right">{m(400)}</td>
+                        <td className="py-2 px-3 text-right">{m(450)}</td>
+                        <td className="py-2 px-3 text-right text-red-400">{m(-50)}</td>
                     </tr>
                     <tr className="border-b border-slate-700">
                         <td className="py-2 px-3">{t.landingRowTransport}</td>
-                        <td className="py-2 px-3 text-right">€100,00</td>
-                        <td className="py-2 px-3 text-right">€80,00</td>
-                        <td className="py-2 px-3 text-right text-green-400">€20,00</td>
+                        <td className="py-2 px-3 text-right">{m(100)}</td>
+                        <td className="py-2 px-3 text-right">{m(80)}</td>
+                        <td className="py-2 px-3 text-right text-green-400">{m(20)}</td>
                     </tr>
                     <tr>
                         <td className="py-2 px-3 font-bold">{t.landingRowTotalExpenses}</td>
-                        <td className="py-2 px-3 text-right font-bold">€1.300,00</td>
-                        <td className="py-2 px-3 text-right font-bold text-orange-400">€1.330,00</td>
-                        <td className="py-2 px-3 text-right font-bold text-red-400">€-30,00</td>
+                        <td className="py-2 px-3 text-right font-bold">{m(1300)}</td>
+                        <td className="py-2 px-3 text-right font-bold text-orange-400">{m(1330)}</td>
+                        <td className="py-2 px-3 text-right font-bold text-red-400">{m(-30)}</td>
                     </tr>
                 </tbody>
             </table>
@@ -230,7 +232,7 @@ const DashboardMockTable = () => {
 // --- Componente para la maqueta de la tabla de amortización ---
 const LoanAmortizationMockTable = () => {
     const { t, tf, mes, locale } = useApp();
-    const principal = 150000; // €
+    const principal = 150000;
     const annualInterestRate = 3.5; // %
     const termInYears = 30;
     const termInMonths = termInYears * 12;
@@ -415,7 +417,7 @@ const FeaturesSection = () => {
 
 // --- Componente: Vista Previa del Dashboard (Más Realista) ---
 const DashboardPreviewSection = () => {
-    const { t, tf, mesCorto } = useApp();
+    const { t, tf, mesCorto, locale } = useApp();
     const [selectedYearOffset, setSelectedYearOffset] = useState(0); // 0 = current year, 1 = current year + 1, etc.
     const currentYear = new Date().getFullYear(); // dynamic current year
 
@@ -460,7 +462,7 @@ const DashboardPreviewSection = () => {
                         )}
                         {activeTab === 'loan' && (
                             <div className="text-sm font-semibold text-gray-300">
-                                {t.landingLoanSummary}
+                                {tf('landingLoanSummary', { importe: formatCompacto(150000, locale) })}
                             </div>
                         )}
                     </div>
@@ -484,13 +486,13 @@ const DashboardPreviewSection = () => {
                                     <h4 className="font-bold text-white mb-4 text-left text-sm">{t.landingMonthSummary}</h4>
                                     <div className="text-xs text-gray-300">
                                         <div className="flex justify-between py-1 border-b border-slate-700">
-                                            <span>{t.landingActualIncome}</span> <span className="font-bold text-green-400">€2.500,00</span>
+                                            <span>{t.landingActualIncome}</span> <span className="font-bold text-green-400">{formatCurrency(2500, locale)}</span>
                                         </div>
                                         <div className="flex justify-between py-1 border-b border-slate-700">
-                                            <span>{t.landingActualExpenses}</span> <span className="font-bold text-red-400">€1.330,00</span>
+                                            <span>{t.landingActualExpenses}</span> <span className="font-bold text-red-400">{formatCurrency(1330, locale)}</span>
                                         </div>
                                         <div className="flex justify-between py-1">
-                                            <span>{t.landingRemainder}</span> <span className="font-bold text-teal-400">€1.170,00</span>
+                                            <span>{t.landingRemainder}</span> <span className="font-bold text-teal-400">{formatCurrency(1170, locale)}</span>
                                         </div>
                                     </div>
                                 </div>

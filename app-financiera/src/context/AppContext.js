@@ -410,8 +410,12 @@ const DICCIONARIOS = Object.fromEntries(IDIOMAS.map(l => [l, diccionario(l)]));
 
 // Cualquier clave que falte en un idioma cae al español (el texto original) y,
 // si tampoco existe, se muestra la propia clave: así nunca aparece "undefined".
+// El marcador global {moneda} (símbolo de la moneda activa) se sustituye al leer el texto.
 const conFallback = (lang) => new Proxy(DICCIONARIOS[lang], {
-    get: (obj, k) => (typeof k === 'string' && obj[k] !== undefined) ? obj[k] : (DICCIONARIOS.es[k] !== undefined ? DICCIONARIOS.es[k] : (typeof k === 'string' ? k : undefined))
+    get: (obj, k) => {
+        const v = (typeof k === 'string' && obj[k] !== undefined) ? obj[k] : (DICCIONARIOS.es[k] !== undefined ? DICCIONARIOS.es[k] : (typeof k === 'string' ? k : undefined));
+        return typeof v === 'string' && v.includes('{') ? sustituirGlobales(v) : v;
+    }
 });
 const TEXTOS = Object.fromEntries(IDIOMAS.map(l => [l, conFallback(l)]));
 
@@ -438,6 +442,40 @@ let idiomaActual = detectarIdioma();
 let localeActual = LOCALES[idiomaActual];
 export const getLocale = () => localeActual;
 export const getIdioma = () => idiomaActual;
+
+// ─── Moneda ──────────────────────────────────────────────────────────────────
+// Los importes son números; la moneda solo decide cómo se muestran. Es una
+// propiedad de los datos del usuario (config.moneda en Firestore), no del
+// dispositivo: así un mismo usuario ve el mismo símbolo en el móvil y en el
+// ordenador. Si aún no ha elegido, se detecta por la región del navegador.
+export const MONEDAS = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF', 'MXN', 'ARS', 'CLP', 'COP', 'PEN'];
+const MONEDA_POR_REGION = {
+    US: 'USD', PR: 'USD', EC: 'USD', SV: 'USD', PA: 'USD',
+    GB: 'GBP', CA: 'CAD', AU: 'AUD', CH: 'CHF', LI: 'CHF',
+    MX: 'MXN', AR: 'ARS', CL: 'CLP', CO: 'COP', PE: 'PEN'
+};
+const ZONA_EURO = ['ES', 'DE', 'FR', 'IT', 'PT', 'NL', 'BE', 'AT', 'IE', 'FI', 'GR', 'SK', 'SI', 'EE', 'LV', 'LT', 'LU', 'MT', 'CY', 'HR', 'AD', 'MC', 'SM', 'VA', 'ME'];
+export const detectarMoneda = () => {
+    const candidatos = (typeof navigator !== 'undefined' && (navigator.languages?.length ? navigator.languages : [navigator.language])) || [];
+    for (const c of candidatos) {
+        let region = null;
+        try { region = new Intl.Locale(c).maximize().region; } catch { region = String(c || '').split('-')[1]?.toUpperCase() || null; }
+        if (region && MONEDA_POR_REGION[region]) return MONEDA_POR_REGION[region];
+        if (region && ZONA_EURO.includes(region)) return 'EUR';
+    }
+    return 'USD';
+};
+let monedaActual = detectarMoneda();
+export const getMoneda = () => monedaActual;
+export const setMonedaActiva = (m) => { if (MONEDAS.includes(m)) monedaActual = m; };
+export const simboloMoneda = (m = monedaActual) => {
+    try { return new Intl.NumberFormat(localeActual, { style: 'currency', currency: m }).formatToParts(0).find(p => p.type === 'currency')?.value || m; }
+    catch { return m; }
+};
+export const nombreMoneda = (m) => {
+    try { return new Intl.DisplayNames([localeActual], { type: 'currency' }).of(m); } catch { return m; }
+};
+const sustituirGlobales = (texto) => texto.replace(/\{moneda\}/g, () => simboloMoneda());
 
 // Texto con variables: tf('clave', { n: 3 }) sustituye {n} en el texto.
 const interpolar = (texto, vars) => String(texto).replace(/\{(\w+)\}/g, (_, k) => (vars && vars[k] !== undefined) ? vars[k] : '');

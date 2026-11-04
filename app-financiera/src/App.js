@@ -5,7 +5,7 @@ import { VISTAS_ASIGNABLES, ROLES, AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustes
 import Login from './Login';
 import PaginaLegal from './Legal';
 import LandingPage from './LandingPage';
-import { AppProvider, useApp, getLocale, nombreMesCorto, tx } from './context/AppContext';
+import { AppProvider, useApp, getLocale, nombreMesCorto, tx, getMoneda, setMonedaActiva, detectarMoneda, MONEDAS, simboloMoneda, nombreMoneda } from './context/AppContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
@@ -203,7 +203,11 @@ const normalizarConfig = (savedConfig) => ({
   visibleBudgetSections: savedConfig?.visibleBudgetSections || [...SECCIONES_PRESUPUESTO],
   dashboard: normalizarDashboard(savedConfig?.dashboard),
   // Último año cuyo presupuesto se dio por revisado en la "revisión de inicio de año".
-  revisionAnio: parseInt(savedConfig?.revisionAnio) || 0
+  revisionAnio: parseInt(savedConfig?.revisionAnio) || 0,
+  // Moneda en la que el usuario lleva sus cuentas. Las cuentas creadas antes de
+  // existir este ajuste estaban en euros (la app solo mostraba €); las nuevas
+  // empiezan con la moneda de la región del navegador.
+  moneda: MONEDAS.includes(savedConfig?.moneda) ? savedConfig.moneda : (savedConfig ? 'EUR' : detectarMoneda())
 });
 
 // ¿Toca revisar las expectativas del año? Solo al empezar un año (enero a
@@ -235,7 +239,9 @@ const getCategoryColor = (mk) => {
   }
 };
 
-const fmt = (v, currency = 'EUR') => (v || 0).toLocaleString(getLocale(), { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmt = (v, currency = getMoneda()) => (v || 0).toLocaleString(getLocale(), { style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Número con dos decimales, sin símbolo (tablas compactas).
+const fmtNum = (v) => (v || 0).toLocaleString(getLocale(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 const EXPENSE_KEYS = ["Gastos Esenciales", "Gastos Discrecionales", "Pago de Deudas", "Ahorro e Inversión"];
 const ALL_MAIN_KEYS = ["Ingresos", ...EXPENSE_KEYS];
@@ -869,6 +875,10 @@ function AppInner({ isHome }) {
   const userId = user?.uid || null;
 
   const [config, setConfig] = useState(null);
+  // Moneda activa para todo el formato (fmt, calculadoras, textos con {moneda}).
+  // Se fija durante el render para que este mismo render ya la use; sin sesión
+  // (landing, login) se usa la de la región del navegador.
+  setMonedaActiva(config?.moneda || detectarMoneda());
   const [financialData, setFinancialData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -3208,7 +3218,7 @@ function NetWorthView({ data, categories, onUpdate, fullData, year }) {
                       return (
                         <td key={m} className="text-right">
                           {prestamos.length ? (
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{fmt(val).replace(' €', '')}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-muted)', fontWeight: 600 }}>{fmtNum(val)}</span>
                           ) : (
                             <input type="number" className="nw-input" value={val || 0}
                               onChange={e => handleChange(type, cat, m, e.target.value)}
@@ -3383,7 +3393,7 @@ function LoansView({ loans, onUpdate, fullData, userId, onUpdateCfg, config }) {
         <div className="card">
           <form onSubmit={handleAdd} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
             <div><label>{t.loanName}</label><input name="name" className="text-input" placeholder={t.ejHipoteca} required /></div>
-            <div><label>{t.loanTotal} (€)</label><input name="loanTotal" type="number" step="0.01" className="text-input" required /></div>
+            <div><label>{t.loanTotal} ({simboloMoneda()})</label><input name="loanTotal" type="number" step="0.01" className="text-input" required /></div>
             <div><label>{t.installments}</label><input name="installments" type="number" min="1" className="text-input" required /></div>
             <div><label>{t.interestRate}</label><input name="rate" type="number" step="0.01" className="text-input" placeholder="0.00" /></div>
             <div><label>{t.startDate}</label><input name="start" type="date" className="date-input" required /></div>
@@ -3976,6 +3986,14 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
                 {t.aniosNuevosAyuda}
               </div>
+            </div>
+            {/* Moneda de las cuentas del usuario */}
+            <div>
+              <label style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8, display: 'block' }}>{t.moneda}</label>
+              <select className="select-input" value={config?.moneda || getMoneda()} onChange={e => onUpdate({ ...config, moneda: e.target.value })} style={{ width: '100%', maxWidth: 250, height: 46 }}>
+                {MONEDAS.map(m => <option key={m} value={m}>{simboloMoneda(m)} · {nombreMoneda(m)}</option>)}
+              </select>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t.monedaAyuda}</div>
             </div>
           </div>
         </div>
