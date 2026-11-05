@@ -1,7 +1,7 @@
 // ─── MODO DEMO (solo local, REACT_APP_DEMO=1) ───────────────────────────────
 // La interfaz real de FinanziApp con datos de ejemplo y sin Firebase, para
 // hacer capturas y vídeos de marketing. Parámetros de la URL:
-//   v      vista: dashboard | monthly | networth | loans | trading | analysis
+//   v      vista: dashboard | monthly | networth | loans | trading | analysis | settings
 //   modo   en monthly: seguimiento | presupuesto
 //   mes    mes de Seguimiento (clave en español: enero…diciembre)
 //   calc   en analysis: compuesto | hipoteca | fire | vpn | dca | intrinseco
@@ -17,7 +17,7 @@ import { crearDemo } from './datosDemo';
 export default function DemoApp() {
   const { theme, language } = useApp();
   const {
-    Sidebar, Topbar, DashboardView, MonthlyView, NetWorthView, LoansView, TradingView,
+    Sidebar, Topbar, DashboardView, MonthlyView, NetWorthView, LoansView, TradingView, SettingsView,
     generateInitialYearData, normalizarConfig, VERSION_DATOS, months
   } = PiezasDemo;
   const params = new URLSearchParams(window.location.search);
@@ -47,6 +47,7 @@ export default function DemoApp() {
       case 'loans': return <LoansView loans={financialData.loans} onUpdate={setFinancialData} fullData={financialData} userId="demo" onUpdateCfg={setConfig} config={config} />;
       case 'trading': return <TradingView trades={financialData.trading} onUpdate={setFinancialData} fullData={financialData} />;
       case 'analysis': return <Calculadoras inicial={params.get('calc')} />;
+      case 'settings': return <SettingsView config={config} selectedYear={selectedYear} onUpdate={setConfig} financialData={financialData} onUpdateFD={setFinancialData} user={demo.user} onUpdateProfile={() => {}} onUpdateVisibility={(v) => setConfig(c => ({ ...c, visibleViews: v }))} onStartTutorial={() => {}} soloLectura={false} />;
       default:
         return <DashboardView {...commonProps} mode="charts" setMode={() => {}} budgetLocked={budgetLocked} setBudgetLocked={setBudgetLocked} visibleBudgetSections={config.visibleBudgetSections} visibleViews={config.visibleViews} soloLectura={false} />;
     }

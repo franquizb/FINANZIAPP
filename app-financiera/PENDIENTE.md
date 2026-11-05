@@ -41,7 +41,9 @@ marca de Google. Detalle en BRANDING-GOOGLE.md.
 4. Firebase Console → Authentication → Templates → Personalizar dominio del
    remitente → registros DNS → los correos de verificación y contraseña
    salen de `noreply@finanziapp.com`.
-Pasos completos en BRANDING-GOOGLE.md.
+Pasos completos en BRANDING-GOOGLE.md; los registros de correo (MX, un
+solo SPF, DKIM, DMARC), la newsletter con Brevo y las aportaciones, en
+CORREO.md.
 
 ## 4. Roles y permisos
 
@@ -55,6 +57,13 @@ Cuenta de Stripe, producto con precio recurrente de 2,50 USD (`price_…`),
 webhook en `https://europe-west1-personal-franquizb.cloudfunctions.net/stripeWebhook`
 y los secretos `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET` en Secret Manager.
 Con eso despliego las funciones y activo el botón de pago. Pasos en STRIPE.md.
+
+## 5b. Aportaciones voluntarias
+
+La tarjeta de apoyo y la línea del pie están hechas pero ocultas. Con la
+cuenta de Stripe creada: Payment Link con «los clientes eligen el importe»,
+pegar el enlace en `URL_APOYO` (`src/marca.js`) y desplegar. Antes, pregunta
+a tu gestor cómo declararlas (CORREO.md, apartado «Aportaciones»).
 
 ## 6. Comprobar tú mismo
 

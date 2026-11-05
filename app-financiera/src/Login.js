@@ -58,6 +58,11 @@ const requiereVerificacion = (u, perfil) => !!u && !u.emailVerified && !esCuenta
 // A donde vuelve el usuario desde los correos de verificacion / restablecer contraseña.
 const ajustesAccion = () => ({ url: `${window.location.origin}/login` });
 
+// Alta en la newsletter desde el registro. Solo si la persona marca la casilla
+// (sin marcar por defecto): queda la fecha, el idioma y el origen como prueba
+// del consentimiento. La baja se hace en Configuración o desde cada correo.
+const camposNewsletter = (idioma) => ({ newsletter: true, newsletterFecha: Date.now(), newsletterIdioma: idioma, newsletterOrigen: 'registro' });
+
 // Construye el usuario de sesión a partir del perfil de Firestore. El rol de
 // administrador sale SOLO de ese documento (el cliente no puede modificarlo):
 // no hay ningún correo privilegiado incrustado en el código.
@@ -80,6 +85,8 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
     invitadoHasta: perfil.invitadoHasta || 0,
     vistasExtra: Array.isArray(perfil.vistasExtra) ? perfil.vistasExtra : [],
     vistasQuitadas: Array.isArray(perfil.vistasQuitadas) ? perfil.vistasQuitadas : [],
+    newsletter: perfil.newsletter === true,
+    newsletterFecha: perfil.newsletterFecha || 0,
     // El perfil viene del servidor: la app ya puede mostrar el estado de la suscripción.
     perfilListo: true
   };
@@ -88,7 +95,7 @@ const sesionDesdePerfil = (uid, email, perfil, displayNameAuth) => {
 // `pendiente` llega de la app cuando Firebase restaura una sesion que aun no
 // puede entrar: { tipo: 'verificar' | 'completar', fbUser }.
 export default function Login({ onLogin, pendiente }) {
-  const { t, tf } = useApp();
+  const { t, tf, language } = useApp();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -102,6 +109,11 @@ export default function Login({ onLogin, pendiente }) {
   // Cuenta nueva con correo: hay que verificarlo antes de entrar.
   const [verificar, setVerificar] = useState(null);
   const [reenvioEn, setReenvioEn] = useState(0);
+  const [newsletter, setNewsletter] = useState(false);
+
+  // Los correos de Firebase (verificación, restablecer contraseña) salen en el
+  // idioma de la app en vez de en el idioma por defecto del proyecto.
+  useEffect(() => { if (auth) auth.languageCode = language; }, [language]);
 
   useEffect(() => {
     if (!pendiente) return;
@@ -272,6 +284,7 @@ export default function Login({ onLogin, pendiente }) {
             email: emailQuery,
             displayName: name.trim() || emailQuery.split('@')[0],
             ...(await perfilNuevo(emailQuery)),
+            ...(newsletter ? camposNewsletter(language) : {}),
             lastLogin: Date.now()
           };
 
@@ -307,7 +320,7 @@ export default function Login({ onLogin, pendiente }) {
   };
 
   // Entra (o da de alta) con una cuenta de Google que ya tiene contraseña.
-  const finalizarGoogle = async (user, nombre) => {
+  const finalizarGoogle = async (user, nombre, conNewsletter = false) => {
     // La prueba gratuita SOLO se estampa si el documento no existia todavia.
     // En logins posteriores no se puede reenviar trialEndsAt: las reglas
     // prohiben modificar ese campo desde el cliente y denegarian la escritura
@@ -329,6 +342,8 @@ export default function Login({ onLogin, pendiente }) {
       Object.assign(profile, await perfilNuevo(emailQuery));
       profile.isGoogle = true;
     }
+    // Solo se escribe si marca la casilla: no se pisa un alta anterior.
+    if (conNewsletter && datosPrevios.newsletter !== true) Object.assign(profile, camposNewsletter(language));
     await setDoc(refPerfil, profile, { merge: true });
 
     // La sesión se construye siempre con el uid de Firebase Auth y el perfil
@@ -382,7 +397,7 @@ export default function Login({ onLogin, pendiente }) {
       } catch (err) {
         if (err.code !== 'auth/provider-already-linked') throw err;
       }
-      await finalizarGoogle(user, name);
+      await finalizarGoogle(user, name, newsletter);
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/credential-already-in-use' || err.code === 'auth/email-already-in-use') setError(t.loginErrEmailInUse);
@@ -491,6 +506,13 @@ export default function Login({ onLogin, pendiente }) {
         .login-btn-secundario:hover { background: #2d3148; }
         .login-paso-titulo { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
         .login-paso-texto { font-size: 13px; color: #8b92b8; line-height: 1.55; margin-bottom: 20px; }
+        .login-casilla {
+          display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
+          font-size: 11px; line-height: 1.5; color: #8b92b8; margin: 4px 0 14px;
+          text-transform: none; letter-spacing: normal; font-weight: 400;
+        }
+        .login-casilla input { margin-top: 2px; width: 15px; height: 15px; flex: none; accent-color: #6366f1; cursor: pointer; }
+        .login-casilla span { flex: 1; }
         .login-hint {
           text-align: center; font-size: 11px; color: #565d80; margin-top: 20px;
         }
@@ -526,6 +548,10 @@ export default function Login({ onLogin, pendiente }) {
               <label className="login-label">{t.loginRepeatPassword}</label>
               <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
             </div>
+            <label className="login-casilla">
+              <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />
+              <span>{t.loginNewsletter}</span>
+            </label>
             <button className="login-btn" type="submit" disabled={loading}>{loading ? t.loginLoading : t.loginCompletarBtn}</button>
             <button className="login-btn login-btn-secundario" type="button" onClick={cancelarCompletar} disabled={loading}>{t.loginCancelar}</button>
           </form>
@@ -579,6 +605,12 @@ export default function Login({ onLogin, pendiente }) {
               <label className="login-label">{t.loginRepeatPassword}</label>
               <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} />
             </div>
+          )}
+          {!isLogin && (
+            <label className="login-casilla">
+              <input type="checkbox" checked={newsletter} onChange={e => setNewsletter(e.target.checked)} />
+              <span>{t.loginNewsletter}</span>
+            </label>
           )}
           {!isLogin && (
             <div style={{ fontSize: 11, color: '#8b92b8', lineHeight: 1.5, marginBottom: 14 }}>

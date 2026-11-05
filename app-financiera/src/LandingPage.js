@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp, MESES_CLAVE, getMoneda } from './context/AppContext';
+import { CORREO_SOPORTE, enlaceApoyo } from './marca';
 
 // --- Importaciones de Recharts para maquetas de gráficos realistas ---
 import {
@@ -563,8 +564,12 @@ const HowItWorksSection = () => {
 };
 
 // --- Componente: Pie de página (Footer) ---
+// Enlaces legales y de contacto (Meta y Google los exigen en la web de destino
+// de los anuncios) y, si hay enlace oficial configurado, una línea discreta
+// para apoyar el proyecto.
 const Footer = () => {
     const { t } = useApp();
+    const apoyo = enlaceApoyo();
     return (
         <footer className="bg-slate-900 border-t border-slate-800 py-8 text-gray-400">
             <div className="container mx-auto px-6 text-center">
@@ -572,6 +577,17 @@ const Footer = () => {
                     Finanzi<span className="text-teal-400">App</span>
                 </p>
                 <p className="text-sm">&copy; {new Date().getFullYear()} FinanziApp. {t.landingFooterTagline}</p>
+                <nav className="mt-4 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                    <a href="/privacidad" className="hover:text-white transition-colors">{t.footPrivacidad}</a>
+                    <a href="/terminos" className="hover:text-white transition-colors">{t.footTerminos}</a>
+                    <a href={`mailto:${CORREO_SOPORTE}`} className="hover:text-white transition-colors">{t.footContacto}</a>
+                </nav>
+                {apoyo && (
+                    <p className="mt-4 text-xs text-gray-500">
+                        🚧 {t.footConstruccion}{' '}
+                        <a href={apoyo} target="_blank" rel="noopener noreferrer" className="text-teal-400 hover:text-teal-300 underline underline-offset-2">{t.footApoyar}</a>
+                    </p>
+                )}
             </div>
         </footer>
     );

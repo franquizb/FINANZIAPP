@@ -16,6 +16,7 @@ import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
+import { enlaceApoyo } from './marca';
 import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
 
 // Modo demo para capturas de marketing: solo existe en builds locales hechos
@@ -1039,6 +1040,8 @@ function AppInner({ isHome }) {
           stripeStatus: userData.stripeStatus || null,
           stripeSubscriptionId: userData.stripeSubscriptionId || null,
           cancelAtPeriodEnd: userData.cancelAtPeriodEnd === true,
+          newsletter: userData.newsletter === true,
+          newsletterFecha: userData.newsletterFecha || 0,
           // El perfil se ha leído del servidor: los avisos de suscripción ya pueden mostrarse.
           perfilListo: perfilLeido
         };
@@ -1188,6 +1191,8 @@ function AppInner({ isHome }) {
           stripeStatus: tiene('stripeStatus') ? (d.stripeStatus || null) : (prev.stripeStatus || null),
           stripeSubscriptionId: tiene('stripeSubscriptionId') ? (d.stripeSubscriptionId || null) : (prev.stripeSubscriptionId || null),
           cancelAtPeriodEnd: tiene('cancelAtPeriodEnd') ? d.cancelAtPeriodEnd === true : !!prev.cancelAtPeriodEnd,
+          newsletter: tiene('newsletter') ? d.newsletter === true : !!prev.newsletter,
+          newsletterFecha: tiene('newsletterFecha') ? (d.newsletterFecha || 0) : (prev.newsletterFecha || 0),
           perfilListo: prev.perfilListo || (!snap.metadata.hasPendingWrites && !snap.metadata.fromCache)
         };
         localStorage.setItem('currentUser', JSON.stringify(nu));
@@ -3633,6 +3638,69 @@ function BloquePassword() {
   );
 }
 
+// Newsletter: alta o baja con un clic. Se guarda en el perfil (campos que el
+// propio usuario puede escribir siempre, también con la prueba terminada o la
+// cuenta bloqueada: darse de baja nunca puede depender del pago). El alta deja
+// fecha, idioma y origen como prueba del consentimiento.
+function TarjetaNewsletter({ user }) {
+  const { t, tf, language, locale } = useApp();
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState(null);
+  const activa = user?.newsletter === true;
+  const cambiar = async () => {
+    const uid = auth?.currentUser?.uid || user?.uid;
+    if (!uid) return;
+    setOcupado(true); setAviso(null);
+    try {
+      await setDoc(doc(db, 'users', uid), activa
+        ? { newsletter: false, newsletterBaja: Date.now() }
+        : { newsletter: true, newsletterFecha: Date.now(), newsletterIdioma: language, newsletterOrigen: 'ajustes' }, { merge: true });
+      setAviso({ tipo: 'ok', texto: activa ? t.nlOkBaja : t.nlOkAlta });
+    } catch (err) {
+      setAviso({ tipo: 'error', texto: tf('nlError', { msg: err?.message || '' }) });
+    }
+    setOcupado(false);
+  };
+  return (
+    <div className="card tarjeta-newsletter" style={{ alignSelf: 'start' }}>
+      <div className="chart-card-title">📬 {t.nlTitulo}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220 }}>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{t.nlDesc}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, marginTop: 10, color: activa ? 'var(--green)' : 'var(--text-muted)' }}>
+            {activa ? `✅ ${user?.newsletterFecha ? tf('nlActiva', { fecha: new Date(user.newsletterFecha).toLocaleDateString(locale) }) : t.nlActivaSinFecha}` : t.nlInactiva}
+          </div>
+          {user?.email && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{tf('nlCorreo', { email: user.email })}</div>}
+        </div>
+        <button className={`btn ${activa ? 'btn-ghost' : 'btn-primary'}`} onClick={cambiar} disabled={ocupado}>{activa ? t.nlBaja : t.nlApuntarme}</button>
+      </div>
+      {aviso && <div className="tarjeta-newsletter-aviso" style={{ fontSize: 12, marginTop: 12, color: aviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{aviso.texto}</div>}
+    </div>
+  );
+}
+
+// Apoyo voluntario: una tarjeta discreta al final de Configuración, sin
+// avisos emergentes. La suscripción va primero; quien ya paga ve un
+// agradecimiento. Solo aparece si hay un enlace oficial configurado (marca.js).
+function TarjetaApoyo({ user }) {
+  const { t, tf, locale } = useApp();
+  const url = enlaceApoyo();
+  if (!url) return null;
+  const suscrito = ['activa', 'cancelando'].includes(describirSuscripcion(user, t, tf, locale).clave);
+  return (
+    <div className="card tarjeta-apoyo" style={{ gridColumn: '1 / -1', background: 'linear-gradient(135deg, rgba(45,212,191,.06), rgba(129,140,248,.06))' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <div className="chart-card-title" style={{ marginBottom: 8 }}>🚧 {t.apoyoTitulo}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{suscrito ? t.apoyoTextoSuscrito : t.apoyoTexto}</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t.apoyoNota}</div>
+        </div>
+        <a className="btn btn-ghost" href={url} target="_blank" rel="noopener noreferrer">💚 {t.apoyoBoton}</a>
+      </div>
+    </div>
+  );
+}
+
 function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateFD, user, onUpdateProfile, onUpdateVisibility, onStartTutorial, soloLectura }) {
   const { t, tf, theme, toggleTheme, language, setLanguageTo, locale } = useApp();
   // Vuelta de Stripe Checkout (?pago=ok | cancelado): se muestra una vez y se limpia la URL.
@@ -3862,6 +3930,9 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
           {!user?.isAdmin && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
         </div>
 
+        {/* Newsletter (siempre disponible: la baja no depende del pago) */}
+        <TarjetaNewsletter user={user} />
+
         {/* Gestión de Secciones (oculto en solo lectura: no se podria guardar) */}
         {!soloLectura && <div className="card">
           <div className="chart-card-title">{t.visibilidadSecciones}</div>
@@ -4041,6 +4112,9 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             ))}
           </div>
         </div>}
+
+        {/* Apoyo voluntario (solo con enlace oficial configurado) */}
+        <TarjetaApoyo user={user} />
       </div>
 
       {/* Add subcategory modal */}
@@ -4692,19 +4766,74 @@ function UserManagementView({ ajustesAcceso }) {
     </div>
   );
 
+  // ─── Newsletter: quién se ha apuntado (con fecha, idioma y origen) ───
+  const suscritosNl = users.filter(u => u.newsletter === true).sort((a, b) => (b.newsletterFecha || 0) - (a.newsletterFecha || 0));
+  const bajasNl = users.filter(u => u.newsletter === false && u.newsletterBaja).length;
+  const origenNl = (o) => ({ registro: t.admNlOrigenRegistro, ajustes: t.admNlOrigenAjustes }[o] || o || '—');
+  // CSV listo para importar en Brevo o Mailchimp (EMAIL y FIRSTNAME se
+  // asignan solos). Solo quien tiene la newsletter activa.
+  const exportarNewsletter = () => {
+    // Un nombre que empiece por = + - @ se ejecutaría como fórmula en Excel.
+    const campo = (v) => { const x = String(v ?? ''); return `"${(/^[=+\-@\t\r]/.test(x) ? `'${x}` : x).replace(/"/g, '""')}"`; };
+    const filas = suscritosNl.map(u => [u.email, u.displayName || '', u.newsletterIdioma || '', u.newsletterFecha ? new Date(u.newsletterFecha).toISOString() : '', u.newsletterOrigen || '']);
+    const csv = [['EMAIL', 'FIRSTNAME', 'LANGUAGE', 'OPT_IN_DATE', 'SOURCE'], ...filas].map(r => r.map(campo).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `newsletter_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  const renderNewsletter = () => (
+    <div className="card fade-in adm-newsletter">
+      <div className="chart-card-title">📬 {t.admNlTitulo}</div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, marginBottom: 16 }}>{t.admNlDesc}</div>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+        <div className="card" style={{ padding: '12px 16px', minWidth: 130 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.admNlSuscritos}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--green)' }}>{suscritosNl.length}</div>
+        </div>
+        <div className="card" style={{ padding: '12px 16px', minWidth: 130 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.admNlBajas}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-muted)' }}>{bajasNl}</div>
+        </div>
+        <button className="btn btn-primary" onClick={exportarNewsletter} disabled={!suscritosNl.length}>{t.admNlExportar}</button>
+      </div>
+      {suscritosNl.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admNlVacio}</div> : (
+        <div className="table-wrap">
+          <table style={{ fontSize: 12 }}>
+            <thead><tr><th>{t.usuario}</th><th>{t.email}</th><th>{t.admNlIdioma}</th><th>{t.admNlFecha}</th><th>{t.admNlOrigen}</th></tr></thead>
+            <tbody>
+              {suscritosNl.map(u => (
+                <tr key={u.uid}>
+                  <td style={{ fontWeight: 700 }}>{u.displayName || '—'}</td>
+                  <td style={{ color: 'var(--text-secondary)' }}>{u.email}</td>
+                  <td>{String(u.newsletterIdioma || '—').toUpperCase()}</td>
+                  <td>{fechaCorta(u.newsletterFecha)}</td>
+                  <td>{origenNl(u.newsletterOrigen)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div className="section-gap fade-in" style={{ width: '100%', maxWidth: 1600, margin: '0 auto' }}>
       {/* Pestañas del panel de gestión */}
       <div className="settings-toggle adm-tabs">
-        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
+        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['newsletter', t.admPestNewsletter], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
           <button key={id} className={`settings-toggle-btn ${pestana === id ? 'active' : ''}`} onClick={() => setPestana(id)}>
-            {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
+            {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'newsletter' && suscritosNl.length ? ` (${suscritosNl.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
           </button>
         ))}
       </div>
 
       {pestana === 'roles' && renderRoles()}
       {pestana === 'invitaciones' && renderInvitaciones()}
+      {pestana === 'newsletter' && renderNewsletter()}
 
       {pestana === 'actividad' && (<>
       {/* Analytics Dashboard - Professional Layout */}
@@ -5017,4 +5146,4 @@ function UserManagementView({ ajustesAcceso }) {
 }
 
 // Piezas de la interfaz que reutiliza el modo demo local (src/demo/DemoApp.js).
-export const PiezasDemo = { Sidebar, Topbar, DashboardView, MonthlyView, NetWorthView, LoansView, TradingView, generateInitialYearData, normalizarConfig, VERSION_DATOS, months };
+export const PiezasDemo = { Sidebar, Topbar, DashboardView, MonthlyView, NetWorthView, LoansView, TradingView, SettingsView, generateInitialYearData, normalizarConfig, VERSION_DATOS, months };

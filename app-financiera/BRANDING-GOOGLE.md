@@ -49,7 +49,8 @@ lápiz junto al remitente → **Personalizar dominio** → `finanziapp.com`.
 Firebase muestra 4-5 registros DNS (un TXT de verificación, un TXT SPF
 `v=spf1 include:_spf.firebasemail.com ~all` y dos CNAME DKIM
 `firebase1._domainkey` / `firebase2._domainkey`). Ponlos en el DNS y pulsa
-«Verificar». Desde entonces el remitente es `noreply@finanziapp.com`
+«Verificar». Ojo: el dominio solo puede tener **un** TXT `v=spf1`; si
+Workspace ya tiene el suyo, junta los dos en uno (ver CORREO.md). Desde entonces el remitente es `noreply@finanziapp.com`
 (puedes cambiar el nombre visible a «FinanziApp» en la misma pantalla).
 Ahí mismo se edita el texto de cada plantilla (asunto y cuerpo) en cada
 idioma: Authentication → Templates → Idioma de la plantilla.
