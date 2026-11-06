@@ -119,6 +119,14 @@ async function capturarMovil(browser, { lang, locale, tz }) {
   await page.waitForTimeout(400);
   await page.screenshot({ path: path.join(dir, 'm-salud.png') });
   await page.close();
+  // Pantalla de registro (fuera del modo demo: es la pública de /login).
+  page = await ctx.newPage();
+  await page.goto(`${BASE}/login`, { waitUntil: 'networkidle' });
+  await page.addStyleTag({ content: CSS_LIMPIO });
+  await page.locator('.tab-btn').nth(1).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: path.join(dir, 'm-registro.png') });
+  await page.close();
   await ctx.close();
 }
 

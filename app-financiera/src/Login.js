@@ -433,7 +433,8 @@ export default function Login({ onLogin, pendiente }) {
         }
         .login-logo {
           width: 52px; height: 52px;
-          background: linear-gradient(135deg, #6366f1, #818cf8);
+          background: linear-gradient(135deg, #2dd4bf, #14b8a6);
+          box-shadow: 0 10px 26px rgba(45, 212, 191, 0.3);
           border-radius: 14px;
           display: flex; align-items: center; justify-content: center;
           font-weight: 800; font-size: 20px; color: white;
@@ -448,7 +449,7 @@ export default function Login({ onLogin, pendiente }) {
           flex: 1; padding: 10px; border-radius: 8px; border: none; background: transparent;
           color: #8b92b8; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s;
         }
-        .tab-btn.active { background: #6366f1; color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .tab-btn.active { background: #0d9488; color: white; box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35); }
         .login-label { display: block; font-size: 11px; font-weight: 600; color: #8b92b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
         .login-input {
           width: 100%; padding: 11px 14px;
@@ -457,19 +458,19 @@ export default function Login({ onLogin, pendiente }) {
           font-size: 14px; font-family: 'Inter', sans-serif;
           outline: none; transition: border-color 0.15s;
         }
-        .login-input:focus { border-color: #6366f1; }
+        .login-input:focus { border-color: #2dd4bf; }
         .login-input::placeholder { color: #565d80; }
         .login-field { margin-bottom: 16px; }
         .login-btn {
           width: 100%; padding: 12px;
-          background: #6366f1; color: white;
+          background: #0d9488; color: white;
           border: none; border-radius: 8px;
           font-size: 14px; font-weight: 600;
           font-family: 'Inter', sans-serif;
           cursor: pointer; margin-top: 8px;
           transition: background 0.15s;
         }
-        .login-btn:hover { background: #4f52d9; }
+        .login-btn:hover { background: #0f766e; }
         .login-btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .login-btn-google {
           background: white; color: #1f2937;
@@ -511,7 +512,7 @@ export default function Login({ onLogin, pendiente }) {
           font-size: 11px; line-height: 1.5; color: #8b92b8; margin: 4px 0 14px;
           text-transform: none; letter-spacing: normal; font-weight: 400;
         }
-        .login-casilla input { margin-top: 2px; width: 15px; height: 15px; flex: none; accent-color: #6366f1; cursor: pointer; }
+        .login-casilla input { margin-top: 2px; width: 15px; height: 15px; flex: none; accent-color: #14b8a6; cursor: pointer; }
         .login-casilla span { flex: 1; }
         .login-hint {
           text-align: center; font-size: 11px; color: #565d80; margin-top: 20px;
@@ -523,7 +524,9 @@ export default function Login({ onLogin, pendiente }) {
       `}</style>
 
       <div className="login-card">
-        <div className="login-logo">FZ</div>
+        <div className="login-logo" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>
+        </div>
         <div className="login-title">Finanzi<span style={{ color: '#2dd4bf' }}>App</span></div>
         <div className="login-sub">{t.loginSubtitle}</div>
 

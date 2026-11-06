@@ -5,6 +5,9 @@ Reels), en inglés (USD, para EE. UU.) y en español (EUR). Todo sale de la
 interfaz **real** de la app con datos de ejemplo ficticios: dos perfiles,
 «Alex Morgan» (inglés, dólares) y «Lucía Romero» (español, euros).
 
+El perfil de Instagram (foto, destacadas, 9 posts, 26 historias, bio y
+calendario) está en **PERFIL.md**; aquí, los anuncios de pago.
+
 ## Qué hay en `out/`
 
 | Carpeta | Formato | Uso en Meta Ads |
@@ -86,6 +89,7 @@ instalada (también *Inter Display*).
    node capturar.js http://localhost:4300   # capturas/<idioma>/*.png (~3 min)
    node anuncios.js                         # out/<idioma>/{feed-4x5,stories-9x16,carrusel-1x1}
    node video.js                            # out/<idioma>/video-*.mp4 (~5 min)
+   node perfil.js --web && node organico.js && node vista.js   # perfil orgánico (PERFIL.md)
    ```
 
    `node anuncios.js en` o `node video.js es 9x16` generan solo una parte.
