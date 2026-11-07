@@ -97,3 +97,19 @@ instalada (también *Inter Display*).
 Los textos de los anuncios están al principio de `anuncios.js` (objeto `TXT`)
 y de `video.js`; las composiciones, en `ESCENAS`. Los datos de ejemplo de la
 app están en `app-financiera/src/demo/datosDemo.js`.
+
+## Consejos semanales (TikTok, Reels e Instagram)
+
+Un consejo de ahorro al día, en inglés (dólares) y español (euros), con la
+estética de la web: vídeo vertical de ~15 s (gancho, 3 pasos, la cuenta que lo
+demuestra y cierre con la app), imagen 4:5 para el feed y portada 9:16.
+
+- Contenido: `consejos-semana-<n>.js` (textos, pasos, cuentas y descripción
+  de cada publicación con hashtags). Las cifras de la descripción y del vídeo
+  deben cuadrar; el interés compuesto lo calcula `consejos.js`.
+- Generar: `node consejos.js <n>` (o `node consejos.js <n> en`). Revisión
+  rápida sin vídeos: `node consejos.js <n> en fotos consejo=3`.
+- Calendario para Google Docs: `node calendario.js <n> AAAA-MM-DD > calendario.html`.
+- Salida en `out/consejos/semana-<n>/` (no se sube a git: va a Google Drive,
+  carpeta **FinanziApp → Marketing**, junto con «Calendario y textos» y la guía
+  de TikTok en **Marketing → TikTok**).
