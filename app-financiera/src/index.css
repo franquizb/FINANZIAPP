@@ -1154,6 +1154,15 @@ label {
 .nav-item .nav-lock { margin-left: auto; display: inline-flex; opacity: .8; }
 .sidebar.collapsed .nav-item .nav-lock { display: none; }
 .adm-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 22px; }
+.adm-resumen { display: flex; flex-direction: column; gap: 20px; }
+.adm-resumen-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.adm-resumen-kpis .card { margin: 0; }
+.adm-resumen-dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 20px; }
+.adm-resumen-dos .card, .adm-resumen > .card { margin: 0; }
+.adm-resumen-atajos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
+.adm-resumen-atajos .btn { display: flex; width: 100%; }
+@media (max-width: 600px) { .adm-agenda-email { display: none; } .adm-agenda th, .adm-agenda td { padding-left: 6px; padding-right: 6px; } }
+@media (max-width: 480px) { .adm-resumen-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } .adm-resumen-kpis .card { padding: 12px 14px !important; } }
 .adm-matriz th, .adm-matriz td { text-align: center; }
 .adm-matriz th:first-child, .adm-matriz td:first-child { text-align: left; }
 .adm-matriz input[type="checkbox"] { width: 17px; height: 17px; cursor: pointer; }

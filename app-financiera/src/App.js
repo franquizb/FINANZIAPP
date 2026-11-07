@@ -12,6 +12,7 @@ import {
   AreaChart, Area, ComposedChart
 } from 'recharts';
 import TutorialWizard from './components/TutorialWizard';
+import { calcularResumen, estadoUsuarioAdmin } from './resumenGestion';
 import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
@@ -4605,14 +4606,7 @@ function TradingView({ trades, onUpdate, fullData }) {
 
 // ─── MANAGEMENT VIEW (CRUD + ANALYTICS) ─────────────────────────────────────────
 // Estado de un usuario para el panel de gestión.
-const estadoUsuarioAdmin = (u, ahora) => {
-  if (u.isAdmin) return 'admin';
-  if (u.bloqueado) return 'bloqueado';
-  if ((u.paidUntil || 0) > ahora) return u.stripeStatus === 'past_due' ? 'impago' : (u.cancelAtPeriodEnd ? 'cancelando' : 'pago');
-  if (u.invitado === true && (!(u.invitadoHasta || 0) || u.invitadoHasta > ahora)) return 'invitado';
-  if ((u.trialEndsAt || 0) > ahora) return 'prueba';
-  return 'caducado';
-};
+// (estadoUsuarioAdmin está en resumenGestion.js, junto a los cálculos del resumen.)
 const COLOR_ESTADO_ADMIN = { admin: 'var(--accent)', pago: 'var(--green)', cancelando: 'var(--yellow)', impago: 'var(--red)', invitado: 'var(--accent)', prueba: 'var(--blue)', caducado: 'var(--text-muted)', bloqueado: 'var(--red)' };
 
 function UserManagementView({ ajustesAcceso, ajustesPagos }) {
@@ -4626,7 +4620,7 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   const [busqueda, setBusqueda] = useState('');
   const [stripe, setStripe] = useState({ datos: null, cargando: false, error: null });
   const [uidCopiado, setUidCopiado] = useState(false);
-  const [pestana, setPestana] = useState('usuarios');
+  const [pestana, setPestana] = useState('resumen');
   const [invitaciones, setInvitaciones] = useState([]);
   const [invEmail, setInvEmail] = useState('');
   const [invHasta, setInvHasta] = useState('');
@@ -5191,17 +5185,170 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
     </div>
   );
 
+  // ─── Resumen: la foto del negocio de un vistazo ───
+  const resumen = calcularResumen({ users, logs, ahora: now, precio: PRECIO_MENSUAL });
+  const dinero = (v) => (v || 0).toLocaleString(locale, { style: 'currency', currency: MONEDA_PRECIO });
+  const porcentaje = (v) => v == null ? t.resSinDatos : v.toLocaleString(locale, { style: 'percent', maximumFractionDigits: 0 });
+  const terminan7 = users.filter(u => estadoDe(u) === 'prueba' && u.trialEndsAt <= now + 7 * 86400000).length;
+  const etiquetaEvento = (tipo) => ({ renovacion: t.resEvRenovacion, primerCobro: t.resEvPrimerCobro, baja: t.resEvBaja, finPrueba: t.resEvFinPrueba, finInvitacion: t.resEvFinInvitacion, impago: t.resEvImpago }[tipo] || tipo);
+  const colorEvento = { renovacion: 'var(--green)', primerCobro: 'var(--green)', baja: 'var(--yellow)', finPrueba: 'var(--blue)', finInvitacion: 'var(--accent)', impago: 'var(--red)' };
+  const tooltipGrafico = { contentStyle: { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }, labelStyle: { color: 'var(--text-primary)', fontWeight: 700 }, itemStyle: { color: 'var(--text-secondary)' }, cursor: { fill: 'var(--accent-light)' } };
+  const renderResumen = () => {
+    const { altas, activos, ingresos: ing, estados } = resumen;
+    const tarjetas = [
+      { label: t.admUsuarios, valor: resumen.usuarios, ayuda: `${tf('resEsteMes', { n: altas.mes })} · ${tf('resMesPasado', { n: altas.mesAnteriorMismoTramo })}`, filtro: 'todos' },
+      { label: t.resAltas30, valor: altas.d30, ayuda: tf('resHoy7', { hoy: altas.hoy, d7: altas.d7 }) },
+      { label: t.resActivos7, valor: activos.d7, ayuda: tf('resHoy30', { hoy: activos.hoy, d30: activos.d30 }), pestana: 'actividad' },
+      { label: t.resEnPrueba, valor: estados.prueba || 0, ayuda: tf('resTerminan7', { n: terminan7 }), filtro: 'prueba' },
+      { label: t.resSuscriptores, valor: ing.activas + ing.pruebaConTarjeta + ing.cancelando + ing.impago, ayuda: tf('resSuscriptoresAyuda', { cancelando: ing.cancelando, impago: ing.impago }), filtro: 'pago' },
+      { label: t.resPrevistoMes, valor: dinero(ing.previsto), ayuda: tf('resNetoAprox', { importe: dinero(ing.netoPrevisto) }), destacado: true, pestana: 'stripe' }
+    ];
+    const irA = (k) => { if (k.filtro) { setFiltro(k.filtro); setPestana('usuarios'); } else if (k.pestana) setPestana(k.pestana); };
+    const ordenEstados = ['pago', 'cancelando', 'impago', 'prueba', 'invitado', 'caducado', 'bloqueado', 'admin'];
+    const etiquetaEstadoPlano = (e) => ({ admin: t.admEstadoAdmin, pago: t.admEstadoPago, cancelando: t.resEstadoCancelando, impago: t.admEstadoImpago, invitado: t.admEstadoInvitado, prueba: t.admEstadoPrueba, caducado: t.admEstadoCaducado, bloqueado: t.admEstadoBloqueado }[e] || e);
+    const lineas = [
+      { label: t.resLineaActivas, detalle: `${ing.activas} × ${dinero(ing.precio)}`, valor: dinero(ing.mrr) },
+      { label: t.resLineaPruebaTarjeta, detalle: `${ing.pruebaConTarjeta} × ${dinero(ing.precio)}`, valor: dinero(ing.pruebaConTarjeta * ing.precio) },
+      { label: t.resLineaPrevisto, valor: dinero(ing.previsto), total: true },
+      { label: t.resLineaNeto, valor: `≈ ${dinero(ing.netoPrevisto)}` },
+      { label: t.resLineaAnual, valor: dinero(ing.anual) }
+    ];
+    const avisos = [
+      { label: t.resLineaBajas, detalle: `${ing.cancelando} × ${dinero(ing.precio)}`, valor: ing.perdida ? `− ${dinero(ing.perdida)}` : dinero(0), color: ing.perdida ? 'var(--yellow)' : undefined },
+      { label: t.resLineaImpago, detalle: `${ing.impago} × ${dinero(ing.precio)}`, valor: dinero(ing.enRiesgo), color: ing.enRiesgo ? 'var(--red)' : undefined },
+      { label: t.resLineaPotencial, detalle: ing.potencialEsMaximo ? tf('resPotencialMax', { n: ing.enPrueba }) : tf('resPotencialAyuda', { n: ing.enPrueba, pct: porcentaje(ing.conversion) }), valor: `+ ${dinero(ing.potencialPruebas)}`, color: 'var(--blue)' },
+      { label: t.resConversion, detalle: ing.decididos ? tf('resConversionAyuda', { n: ing.convertidos, total: ing.decididos }) : '', valor: porcentaje(ing.conversion) }
+    ];
+    const fila = (l, i) => (
+      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, padding: '7px 0', borderTop: l.total ? '1px solid var(--border)' : 'none', fontWeight: l.total ? 800 : 500 }}>
+        <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{l.label}{l.detalle ? <span style={{ display: 'block', fontSize: 11, fontWeight: 400, color: 'var(--text-muted)' }}>{l.detalle}</span> : null}</span>
+        <span style={{ fontSize: l.total ? 16 : 13, whiteSpace: 'nowrap', color: l.color || 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{l.valor}</span>
+      </div>
+    );
+    const eventos = [...resumen.impagos, ...resumen.agenda];
+    const MAX_EVENTOS = 20;
+    const fechaDia = (ms) => new Date(ms).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+    const fechaMes = (ms) => new Date(ms).toLocaleDateString(locale, { month: 'short', year: '2-digit' });
+    const atajos = [
+      { id: 'incidencias', label: t.admPestIncidencias, valor: abiertas.length, color: abiertas.length ? 'var(--yellow)' : undefined },
+      { id: 'invitaciones', label: t.admPestInvitaciones, valor: invitaciones.length },
+      { id: 'newsletter', label: t.admPestNewsletter, valor: suscritosNl.length },
+      { id: 'errores', label: t.admPestErrores, valor: systemErrors.length, color: systemErrors.length ? 'var(--red)' : undefined }
+    ];
+    return (
+      <div className="fade-in adm-resumen">
+        <div className="adm-resumen-kpis">
+          {tarjetas.map((k, i) => (
+            <button key={i} type="button" onClick={() => irA(k)} className="card" style={{ textAlign: 'left', cursor: k.filtro || k.pestana ? 'pointer' : 'default', padding: '16px 18px', borderLeft: k.destacado ? '4px solid var(--green)' : undefined }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{k.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: k.destacado ? 'var(--green)' : 'var(--text-primary)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>{k.valor}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{k.ayuda}</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="adm-resumen-dos">
+          <div className="card">
+            <div className="chart-card-title">💵 {t.resIngresosTitulo}</div>
+            {lineas.map(fila)}
+            <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+            {avisos.map(fila)}
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 10 }}>{tf('resNotaIngresos', { precio: t.precioMes })}</div>
+          </div>
+          <div className="card">
+            <div className="chart-card-title">👥 {t.resEstadosTitulo}</div>
+            {ordenEstados.filter(e => estados[e]).map(e => {
+              const pct = resumen.usuarios ? estados[e] / resumen.usuarios : 0;
+              return (
+                <button key={e} type="button" onClick={() => { setFiltro(['cancelando', 'impago'].includes(e) ? 'pago' : e); setPestana('usuarios'); }} style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: '6px 0', cursor: 'pointer', textAlign: 'left', color: 'inherit' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: COLOR_ESTADO_ADMIN[e] }} />{etiquetaEstadoPlano(e)}</span>
+                    <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{estados[e]} <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: 11 }}>{porcentaje(pct)}</span></span>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--bg-secondary)', marginTop: 5, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.max(pct * 100, 1.5)}%`, height: '100%', borderRadius: 3, background: COLOR_ESTADO_ADMIN[e] }} />
+                  </div>
+                </button>
+              );
+            })}
+            {resumen.altas.sinFecha > 0 && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10 }}>{tf('resSinFechaAlta', { n: resumen.altas.sinFecha })}</div>}
+            <div className="adm-resumen-atajos">
+              {atajos.map(a => (
+                <button key={a.id} type="button" className="btn btn-ghost" onClick={() => setPestana(a.id)} style={{ justifyContent: 'space-between', fontSize: 12 }}>
+                  <span>{a.label}</span><b style={{ color: a.color || 'var(--text-primary)' }}>{a.valor}</b>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="adm-resumen-dos">
+          <div className="card adm-resumen-grafico">
+            <div className="chart-card-title">{t.resAltasDiaTitulo}</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={resumen.porDia.map(d => ({ name: fechaDia(d.fecha), [t.resSerieAltas]: d.altas }))} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} interval="preserveStartEnd" minTickGap={18} />
+                <YAxis allowDecimals={false} fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} />
+                <Tooltip {...tooltipGrafico} />
+                <Bar dataKey={t.resSerieAltas} fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={14} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="card adm-resumen-grafico">
+            <div className="chart-card-title">{t.resCrecimientoTitulo}</div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={resumen.porMes.map(m => ({ name: fechaMes(m.fecha), [t.resSerieTotal]: m.total, [t.resSerieAltas]: m.altas }))} margin={{ top: 8, right: 4, left: -24, bottom: 0 }}>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
+                <XAxis dataKey="name" fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} interval="preserveStartEnd" minTickGap={12} />
+                <YAxis allowDecimals={false} fontSize={10} axisLine={false} tickLine={false} tick={{ fill: 'var(--text-muted)' }} />
+                <Tooltip {...tooltipGrafico} formatter={(v, nombre, item) => nombre === t.resSerieTotal ? [`${v} (+${item.payload[t.resSerieAltas]})`, nombre] : [v, nombre]} />
+                <Bar dataKey={t.resSerieTotal} fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={22} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <div className="chart-card-title" style={{ marginBottom: 0 }}>🗓️ {t.resAgendaTitulo}</div>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{tf('resAgendaAyuda', { n: resumen.cobrosProximos.n, importe: dinero(resumen.cobrosProximos.importe) })}</span>
+          </div>
+          {eventos.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12 }}>{t.resAgendaVacia}</div> : (
+            <div className="table-wrap" style={{ marginTop: 10 }}>
+              <table className="adm-agenda" style={{ fontSize: 12 }}>
+                <thead><tr><th>{t.resColFecha}</th><th>{t.usuario}</th><th>{t.resColQue}</th><th className="text-right">{t.resColImporte}</th></tr></thead>
+                <tbody>
+                  {eventos.slice(0, MAX_EVENTOS).map((e, i) => (
+                    <tr key={`${e.tipo}-${e.uid}-${i}`}>
+                      <td style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.tipo === 'impago' ? '—' : fechaDia(e.fecha)}</td>
+                      <td><b>{e.nombre || '—'}</b> <span className="adm-agenda-email" style={{ color: 'var(--text-secondary)' }}>{e.email}</span></td>
+                      <td><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: colorEvento[e.tipo] }} />{etiquetaEvento(e.tipo)}</span></td>
+                      <td className="text-right" style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{e.importe ? dinero(e.importe) : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {eventos.length > MAX_EVENTOS && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{tf('resAgendaMas', { n: eventos.length - MAX_EVENTOS })}</div>}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="section-gap fade-in" style={{ width: '100%', maxWidth: 1600, margin: '0 auto' }}>
       {/* Pestañas del panel de gestión */}
       <div className="settings-toggle adm-tabs">
-        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['incidencias', t.admPestIncidencias], ['newsletter', t.admPestNewsletter], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
+        {[['resumen', t.admPestResumen], ['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['incidencias', t.admPestIncidencias], ['newsletter', t.admPestNewsletter], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
           <button key={id} className={`settings-toggle-btn ${pestana === id ? 'active' : ''}`} onClick={() => setPestana(id)}>
             {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'newsletter' && suscritosNl.length ? ` (${suscritosNl.length})` : ''}{id === 'incidencias' && abiertas.length ? ` (${abiertas.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
           </button>
         ))}
       </div>
 
+      {pestana === 'resumen' && renderResumen()}
       {pestana === 'roles' && renderRoles()}
       {pestana === 'invitaciones' && renderInvitaciones()}
       {pestana === 'incidencias' && renderIncidencias()}
@@ -5295,8 +5442,8 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
         ))}
         <div className="card" style={{ padding: '16px 18px', borderLeft: '4px solid var(--green)' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>{t.admMrr}</div>
-          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--green)', marginTop: 4 }}>{(dePago * PRECIO_MENSUAL).toLocaleString(locale, { style: 'currency', currency: MONEDA_PRECIO })}</div>
-          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('admMrrAyuda', { n: dePago, precio: t.precioMes })}</div>
+          <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--green)', marginTop: 4 }}>{resumen.ingresos.mrr.toLocaleString(locale, { style: 'currency', currency: MONEDA_PRECIO })}</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{tf('admMrrAyuda', { n: resumen.ingresos.activas, precio: t.precioMes })}</div>
         </div>
       </div>
 
