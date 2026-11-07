@@ -5,7 +5,6 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useApp } from './context/AppContext';
 import { AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso } from './acceso';
 import { CORREO_SOPORTE } from './marca';
-import { enviarVerificacionPropia, enviarContrasenaPropia, esLimiteCorreo } from './correo';
 
 // Duracion de la prueba gratuita, en dias, si el administrador no ha fijado
 // otra en ajustes/acceso (Gestion > Roles y permisos). Las reglas de Firestore
@@ -117,18 +116,6 @@ export default function Login({ onLogin, pendiente }) {
   // idioma de la app en vez de en el idioma por defecto del proyecto.
   useEffect(() => { if (auth) auth.languageCode = language; }, [language]);
 
-  // Verificación: primero el correo propio (noreply@finanziapp.com, enlace en
-  // finanziapp.com); si la función falla, el de Firebase, para que el registro
-  // no dependa nunca de un servicio externo.
-  const enviarVerificacion = async (usuario) => {
-    try { await enviarVerificacionPropia(language); }
-    catch (e) {
-      if (esLimiteCorreo(e)) throw e;
-      console.warn('Correo propio no disponible, se usa el de Firebase:', e?.message);
-      await sendEmailVerification(usuario, ajustesAccion());
-    }
-  };
-
   useEffect(() => {
     if (!pendiente) return;
     setError(''); setAviso('');
@@ -186,8 +173,8 @@ export default function Login({ onLogin, pendiente }) {
   };
   const reenviarVerificacion = async () => {
     setError(''); setAviso('');
-    try { await enviarVerificacion(verificar.user); setAviso(t.loginVerificarReenviado); setReenvioEn(60); }
-    catch (err) { setError(esLimiteCorreo(err) ? t.loginEsperaCorreo : tf('loginErrAuth', { msg: err.message })); }
+    try { await sendEmailVerification(verificar.user, ajustesAccion()); setAviso(t.loginVerificarReenviado); setReenvioEn(30); }
+    catch (err) { setError(tf('loginErrAuth', { msg: err.message })); }
   };
   const usarOtraCuenta = async () => {
     try { await signOut(auth); } catch (e) { /* sin sesion */ }
@@ -200,11 +187,6 @@ export default function Login({ onLogin, pendiente }) {
     setError(''); setAviso('');
     const emailQuery = email.trim().toLowerCase();
     if (!emailQuery) { setError(t.loginResetSinCorreo); return; }
-    try { await enviarContrasenaPropia(emailQuery, language); setAviso(t.loginResetEnviado); return; }
-    catch (err) {
-      if (esLimiteCorreo(err)) { setError(t.loginEsperaCorreo); return; }
-      console.warn('Correo propio no disponible, se usa el de Firebase:', err?.message);
-    }
     try { await sendPasswordResetEmail(auth, emailQuery, ajustesAccion()); setAviso(t.loginResetEnviado); }
     catch (err) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') setAviso(t.loginResetEnviado);
@@ -313,7 +295,7 @@ export default function Login({ onLogin, pendiente }) {
           // Verificacion del correo: se envia el enlace y la cuenta no entra
           // hasta que lo abra (evita correos falsos). Las reglas tampoco dejan
           // escribir datos a una cuenta nueva sin verificar.
-          try { await enviarVerificacion(userCredential.user); } catch (e) { console.warn('No se pudo enviar la verificación:', e?.message); }
+          try { await sendEmailVerification(userCredential.user, ajustesAccion()); } catch (e) { console.warn('No se pudo enviar la verificación:', e?.message); }
           setVerificar({ user: userCredential.user });
           setReenvioEn(30);
           setLoading(false);
