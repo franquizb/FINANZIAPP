@@ -17,7 +17,7 @@ import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { enlaceApoyo, CORREO_SOPORTE } from './marca';
-import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, AJUSTES_PAGOS_POR_DEFECTO, normalizarAjustesPagos, setAjustesPagos, esProbadorPagos, pagosAbiertos, pagoDisponiblePara } from './suscripcion';
+import { irAPagar, irAlPortal, cambiarRenovacion, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, AJUSTES_PAGOS_POR_DEFECTO, normalizarAjustesPagos, setAjustesPagos, esProbadorPagos, pagosAbiertos, pagoDisponiblePara } from './suscripcion';
 
 // Modo demo para capturas de marketing: solo existe en builds locales hechos
 // con REACT_APP_DEMO=1 (ver marketing/instagram). En producción no hay ruta.
@@ -793,6 +793,68 @@ function BotonesSuscripcion({ user }) {
         : <button className="btn btn-primary" disabled={ocupado} onClick={() => ir(() => irAPagar(language))} style={{ whiteSpace: 'nowrap' }}>{ocupado ? t.susRedirigiendo : t.susActivar}</button>}
       {error && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 6, maxWidth: 320 }}>{error}</div>}
       {!tieneStripe && !pagosAbiertos() && <div style={{ color: 'var(--yellow)', fontSize: 11, marginTop: 6, maxWidth: 320 }}>🧪 {t.susModoProbador}</div>}
+    </div>
+  );
+}
+
+// Baja desde la app con doble confirmación, sin insistir: primero se explica
+// qué pasa (acceso hasta el fin del periodo, datos conservados) con un motivo
+// opcional; después se confirma. Mientras el periodo siga vigente se puede
+// reactivar con un clic. En los dos pasos, «Seguir suscrito» es la opción principal.
+const MOTIVOS_BAJA = ['too_expensive', 'missing_features', 'switched_service', 'unused', 'other'];
+function GestionBaja({ user }) {
+  const { t, tf, locale } = useApp();
+  const [paso, setPaso] = useState(0);
+  const [motivo, setMotivo] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState(null);
+  const tieneStripe = !!user?.stripeSubscriptionId && ESTADOS_STRIPE_VIVOS.includes(user?.stripeStatus);
+  const avisoHtml = aviso && <div className="gestion-baja-aviso" style={{ fontSize: 12, marginTop: 8, color: aviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{aviso.texto}</div>;
+  if (!tieneStripe) return avisoHtml || null;
+  const fecha = new Date(Math.max(0, (user.paidUntil || 0) - GRACIA_MS)).toLocaleDateString(locale);
+  const etiquetaMotivo = (m) => ({ too_expensive: t.susMotivoCaro, missing_features: t.susMotivoFunciones, switched_service: t.susMotivoOtraApp, unused: t.susMotivoNoUso, other: t.susMotivoOtro }[m]);
+  const aplicar = async (cancelar) => {
+    setOcupado(true); setAviso(null);
+    try {
+      const r = await cambiarRenovacion(cancelar, cancelar && motivo ? motivo : undefined);
+      const f = r?.finPeriodo ? new Date(r.finPeriodo).toLocaleDateString(locale) : fecha;
+      setAviso({ tipo: 'ok', texto: cancelar ? tf('susCancelada', { fecha: f }) : t.susReactivada });
+      setPaso(0); setMotivo('');
+    } catch (e) {
+      setAviso({ tipo: 'error', texto: tf('susCancelarError', { msg: e?.message || '' }) });
+    }
+    setOcupado(false);
+  };
+  return (
+    <div className="gestion-baja" style={{ marginTop: 14 }}>
+      {user.cancelAtPeriodEnd
+        ? <button type="button" className="btn btn-primary" disabled={ocupado} onClick={() => aplicar(false)}>{t.susReactivar}</button>
+        : <button type="button" onClick={() => { setAviso(null); setPaso(1); }} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: 'var(--text-muted)', textDecoration: 'underline' }}>{t.susCancelar}</button>}
+      {avisoHtml}
+      {paso > 0 && (
+        <div className="modal-overlay" onClick={() => { if (!ocupado) setPaso(0); }}>
+          <div className="modal gestion-baja-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.06em', marginBottom: 8 }}>{paso}/2</div>
+            <h3 style={{ margin: '0 0 10px', fontSize: 19 }}>{paso === 1 ? t.susCancelarTitulo : t.susConfirmarTitulo}</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{tf(paso === 1 ? 'susCancelarTexto' : 'susConfirmarTexto', { fecha })}</p>
+            {paso === 1 && (
+              <div style={{ marginTop: 16 }}>
+                <label className="login-label">{t.susCancelarMotivo}</label>
+                <select className="text-input" value={motivo} onChange={e => setMotivo(e.target.value)}>
+                  <option value="">—</option>
+                  {MOTIVOS_BAJA.map(m => <option key={m} value={m}>{etiquetaMotivo(m)}</option>)}
+                </select>
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 22 }}>
+              {paso === 1
+                ? <button type="button" className="btn btn-ghost" onClick={() => setPaso(2)}>{t.susContinuarBaja}</button>
+                : <button type="button" className="btn btn-ghost" style={{ color: 'var(--red)' }} disabled={ocupado} onClick={() => aplicar(true)}>{ocupado ? t.susRedirigiendo : t.susConfirmarBaja}</button>}
+              <button type="button" className="btn btn-primary" disabled={ocupado} onClick={() => setPaso(0)}>{t.susSeguir}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4121,6 +4183,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <BotonesSuscripcion user={user} />
             </div>
           </div>
+          <GestionBaja user={user} />
           {(!user?.isAdmin || esProbadorPagos(user)) && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
         </div>}
 

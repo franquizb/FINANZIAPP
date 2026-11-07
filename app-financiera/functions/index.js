@@ -176,6 +176,31 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
 });
 
 // ─── Portal de cliente ───────────────────────────────────────────────────────
+// Baja (o reactivación) desde la propia app, con doble confirmación en la
+// interfaz: la suscripción deja de renovarse al final del periodo pagado (o de
+// la prueba) y el acceso se mantiene hasta entonces. Reactivar deshace la baja
+// mientras el periodo siga vigente.
+const MOTIVOS_BAJA = ['too_expensive', 'missing_features', 'switched_service', 'unused', 'other'];
+exports.cambiarRenovacion = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => {
+  const uid = usuarioAutenticado(req);
+  const u = (await db.collection('users').doc(uid).get()).data() || {};
+  if (!u.stripeSubscriptionId || !u.stripeCustomerId) throw new HttpsError('failed-precondition', 'No tienes una suscripción activa.');
+  const stripe = stripeCliente();
+  const actual = await stripe.subscriptions.retrieve(u.stripeSubscriptionId);
+  const cliente = typeof actual.customer === 'string' ? actual.customer : actual.customer?.id;
+  if (cliente !== u.stripeCustomerId) throw new HttpsError('permission-denied', 'La suscripción no es de esta cuenta.');
+  if (!['active', 'trialing', 'past_due'].includes(actual.status)) throw new HttpsError('failed-precondition', 'La suscripción ya no está activa.');
+  const cancelar = req.data?.cancelar === true;
+  const motivo = MOTIVOS_BAJA.includes(req.data?.motivo) ? req.data.motivo : undefined;
+  const sub = await stripe.subscriptions.update(actual.id, {
+    cancel_at_period_end: cancelar,
+    ...(cancelar && motivo ? { cancellation_details: { feedback: motivo } } : {})
+  });
+  await sincronizarSuscripcion(sub, uid);
+  logger.info(cancelar ? 'Baja programada desde la app' : 'Suscripción reactivada desde la app', { uid, subscription: sub.id, motivo: motivo || null });
+  return { cancelaAlFinal: sub.cancel_at_period_end === true, finPeriodo: finPeriodoMs(sub) };
+});
+
 exports.crearPortalCliente = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => {
   const uid = usuarioAutenticado(req);
   const u = (await db.collection('users').doc(uid).get()).data() || {};

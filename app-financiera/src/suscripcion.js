@@ -48,6 +48,10 @@ export const irAPagar = async (locale) => {
   window.location.assign(r.url);
 };
 
+// Baja desde la app (cancelar = true) o reactivación (false). La suscripción
+// deja de renovarse al final del periodo pagado; el acceso se mantiene.
+export const cambiarRenovacion = (cancelar, motivo) => llamar('cambiarRenovacion', { cancelar, motivo });
+
 // Portal de Stripe: cambiar tarjeta, ver facturas, cancelar.
 export const irAlPortal = async () => {
   const r = await llamar('crearPortalCliente', { origen: origen() });
