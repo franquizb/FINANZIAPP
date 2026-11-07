@@ -25,12 +25,13 @@ textos `precioMes` / `susIncluye` de `src/i18n/`.
    `stripeSubscriptionId`, `cancelAtPeriodEnd`. El cliente **no puede**
    modificar ninguno de esos campos (reglas).
 4. **Gestionar suscripción** abre el portal de Stripe (cambiar tarjeta,
-   facturas, datos). La **baja** se hace en la propia app (Mi cuenta →
-   Suscripción, con doble confirmación y motivo) a través de la función
-   `cambiarRenovacion`, que también permite reactivarla; por eso el portal
-   tiene la cancelación desactivada. `resumenStripe` da al administrador el
-   estado de todas las suscripciones desde el panel de Gestión, y la pestaña
-   Gestión → Resumen calcula los ingresos previstos con los datos de la app.
+   facturas, datos, cancelar). La **baja** también se puede hacer en la propia
+   app (Mi cuenta → Suscripción, con doble confirmación y motivo) a través de
+   la función `cambiarRenovacion`, que también permite reactivarla; las dos
+   vías cancelan al final del periodo pagado. `resumenStripe` da al
+   administrador el estado de todas las suscripciones desde el panel de
+   Gestión, y la pestaña Gestión → Resumen calcula los ingresos previstos con
+   los datos de la app.
 
 Las funciones viven en `functions/` (Node 24, región `europe-west1`, codebase
 `finanziapp`, así que el despliegue no toca las funciones `searchSymbol` y
@@ -105,9 +106,16 @@ una cuenta de Stripe.
    ```
 
 6. **Portal de cliente**: en Stripe → Configuración → Portal de cliente, activa
-   «actualizar método de pago», «historial de facturas» y «datos del cliente»,
-   y deja **desactivado** «cancelar suscripción» (la baja va por la app). Al
-   pasar a modo real, repite esta configuración en el portal en vivo.
+   «actualizar método de pago», «historial de facturas», «datos del cliente» y
+   «cancelar suscripción» (al final del periodo, con motivo). Al pasar a modo
+   real, repite esta configuración en el portal en vivo.
+
+   **Datos que ven los clientes en facturas y recibos**: salen de Stripe →
+   Configuración → Empresa → Datos públicos (dashboard.stripe.com/settings/public).
+   Rellena nombre público «FinanziApp», web `https://finanziapp.com`, correo
+   `support@finanziapp.com` y política de privacidad; no pongas tu teléfono
+   personal. Stripe exige una dirección de atención al cliente en los recibos:
+   mejor una dirección de empresa que la de casa.
 
 7. **Abrir los pagos por fases** (Gestión → Stripe → «Lanzamiento de los
    pagos», documento `ajustes/pagos`): al principio están **cerrados** y solo
