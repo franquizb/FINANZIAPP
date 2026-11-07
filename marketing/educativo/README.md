@@ -33,3 +33,19 @@ Metricool puede publicarlos solo).
 - Subir: `node publicar-drive.cjs <…> <…> reel out-reels/<slug> "Día N · …" "3 · Reel · Título"`.
 - Guías y calendario: `publicar-drive.cjs doc|hoja <archivo> raíz "<título>" --reemplazar`
   actualiza el documento sin cambiar su enlace.
+
+# Reels hablados (voz en off + metáfora animada)
+
+Estructura de cada guion: gancho → intro → cuerpo 1 (algo útil que no
+sabían) → bucle («eso no es lo más loco…», deja una pregunta abierta) →
+cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
+
+- `reels-voz/<slug>.js`: guion por frases `[escena, texto]` en EN y ES.
+  `*palabra*` sale resaltada en los subtítulos, `[sarcasm]`, `[short pause]`…
+  dirigen la voz (no salen en pantalla) y `§` marca momentos para la animación.
+- `voz.cjs`: voz de Google Cloud Text-to-Speech (Gemini TTS, dirigida con un
+  `estilo`); cada frase se guarda en `cache-voz/` para no volver a pagarla.
+- `reel-voz.js`: escenas al ritmo real de la voz, subtítulos grandes y
+  `mezcla.py` baja la música mientras se habla.
+- Revisar sin voz: `node reel-voz.js <slug> --vista --sin-voz`.
+- Con voz (necesita la credencial en FBT y SA): `node reel-voz.js <slug>`.
