@@ -4,9 +4,9 @@
 
 export const SITIO = 'https://finanziapp.com';
 
-// Buzón de soporte que se muestra a los usuarios. Cuando exista
-// support@finanziapp.com (pasos en CORREO.md), cambia esta línea.
-export const CORREO_SOPORTE = 'brian@franquizb.com';
+// Buzón de soporte que se muestra a los usuarios (Privacidad, Términos, pie de
+// la portada). Tiene que existir como alias en Workspace (CORREO.md).
+export const CORREO_SOPORTE = 'support@finanziapp.com';
 
 // Enlace OFICIAL para aportaciones voluntarias: un Payment Link de la misma
 // cuenta de Stripe que cobra la suscripción, con "el cliente elige el importe"

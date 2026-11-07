@@ -83,6 +83,40 @@ async function foto(browser, html, w, h, salida, transparente = false) {
       'im = Image.open(sys.argv[1]).convert("RGBA")',
       'im.save(sys.argv[2], sizes=[(16,16),(32,32),(48,48),(64,64)])'
     ].join('\n'), path.join(PUBLICO, 'logo512.png'), path.join(PUBLICO, 'favicon.ico')]);
+    // Icono adaptable de Android (maskable: sin esquinas transparentes, el
+    // símbolo dentro de la zona segura) e icono de iPhone (iOS redondea solo
+    // las esquinas y pinta de negro lo transparente), a partir de la foto de perfil.
+    execFileSync('python3', ['-I', '-c', [
+      'import sys', 'from PIL import Image',
+      'im = Image.open(sys.argv[1]).convert("RGB")',
+      'im.resize((512, 512), Image.LANCZOS).save(sys.argv[2])',
+      'im.resize((180, 180), Image.LANCZOS).save(sys.argv[3])'
+    ].join('\n'), path.join(SALIDA, 'foto-perfil.png'), path.join(PUBLICO, 'logo-maskable-512.png'), path.join(PUBLICO, 'apple-touch-icon.png')]);
+    // Imagen de vista previa al compartir el enlace (og:image, 1200 × 630).
+    if (fs.existsSync(path.join(RAIZ, 'capturas', 'en', 'd-dashboard.png'))) {
+      const { portatil, movil, COLOCAR, LOGO, cssBase } = require('./comun');
+      const F = { w: 1200, h: 630, pad: [0, 0, 0, 0], titulo: 64, sub: 24 };
+      const html = `<!doctype html><html><head><meta charset="utf-8"><style>${cssBase(F, 'og')}
+        .texto { position: absolute; left: 64px; top: 70px; width: 500px; }
+        .texto h1 { font-size: 62px; margin-top: 40px; }
+        .texto .sub { font-size: 24px; margin-top: 20px; }
+        .nota { margin-top: 34px; display: inline-block; padding: 14px 24px; border-radius: 999px; font-size: 22px; font-weight: 800; color: #04111c; background: linear-gradient(90deg, #2dd4bf, #22d3ee); }
+        .escenario { position: absolute !important; right: 0; top: 40px; width: 640px; height: 560px; margin: 0 !important; }
+      </style></head><body><div class="rejilla"></div>
+        <div class="texto">${LOGO}<h1>All your money.<br><em>One dashboard.</em></h1>
+          <div class="sub">Budget, spending, net worth, loans and 6 calculators.</div>
+          <div class="nota">Free for 15 days · No card needed</div></div>
+        <div class="escenario">${portatil('en', 'd-dashboard.png', { x: 0, y: .5, ay: 'c', w: .95, h: .9, rot: 6 }) + movil('en', 'm-dashboard.png', { x: .98, y: .5, ax: 'r', ay: 'c', w: .3, h: 1 })}</div>
+      <script>${COLOCAR}</script></body></html>`;
+      const tmp = path.join(SALIDA, '.og.html');
+      fs.writeFileSync(tmp, html);
+      const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+      await page.goto('file://' + tmp, { waitUntil: 'load' });
+      await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(i => i.decode().catch(() => {}))); colocar(); });
+      await page.screenshot({ path: path.join(PUBLICO, 'og-image.png') });
+      await page.close();
+      fs.unlinkSync(tmp);
+    }
   }
   await browser.close();
   console.log(`✓ perfil: ${SALIDA}${conWeb ? ' + iconos de la web' : ''}`);

@@ -123,6 +123,16 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
   const u = (await ref.get()).data() || {};
   if (u.bloqueado === true) throw new HttpsError('permission-denied', 'La cuenta está bloqueada.');
 
+  // Lanzamiento de los pagos (Gestión → Stripe, documento ajustes/pagos): con
+  // los pagos cerrados solo pueden suscribirse los probadores. Es la misma
+  // regla que aplica la app, pero aquí no se puede saltar.
+  const pagos = (await db.collection('ajustes').doc('pagos').get()).data() || {};
+  const correo = String(req.auth.token.email || u.email || '').toLowerCase();
+  const probadores = Array.isArray(pagos.probadores) ? pagos.probadores.map(c => String(c).toLowerCase()) : [];
+  if (pagos.abierto !== true && !probadores.includes(correo)) {
+    throw new HttpsError('failed-precondition', 'Los pagos todavía no están abiertos.');
+  }
+
   let customerId = u.stripeCustomerId;
   if (!customerId) {
     const cliente = await stripe.customers.create({

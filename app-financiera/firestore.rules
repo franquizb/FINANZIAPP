@@ -234,13 +234,25 @@ service cloud.firestore {
     // Cualquier usuario identificado los lee (la app decide que secciones
     // mostrar y cuantos dias de prueba dar al registrarse); solo el admin los
     // escribe, y con forma valida.
-    match /ajustes/{ajusteId} {
+    match /ajustes/acceso {
       allow read: if isSignedIn();
       allow create, update: if isAdmin()
                             && request.resource.data.diasPrueba is int
                             && request.resource.data.diasPrueba >= 1
                             && request.resource.data.diasPrueba <= 365
                             && request.resource.data.roles is map;
+      allow delete: if isAdmin();
+    }
+
+    // Lanzamiento de los pagos (Gestion > Stripe): abiertos a todos o solo a
+    // los probadores. La app lo lee para mostrar el boton; la funcion de pago
+    // lo vuelve a comprobar en el servidor.
+    match /ajustes/pagos {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin()
+                            && request.resource.data.abierto is bool
+                            && request.resource.data.probadores is list
+                            && request.resource.data.probadores.size() <= 50;
       allow delete: if isAdmin();
     }
 

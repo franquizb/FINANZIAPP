@@ -7,7 +7,12 @@
       "source": "functions",
       "codebase": "finanziapp",
       "runtime": "nodejs20",
-      "ignore": ["node_modules", ".git", "*.log", ".env.example"]
+      "ignore": [
+        "node_modules",
+        ".git",
+        "*.log",
+        ".env.example"
+      ]
     }
   ],
   "hosting": {
@@ -21,6 +26,35 @@
       {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/static/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "**/*.@(png|svg|ico|jpg)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=86400"
+          }
+        ]
       }
     ]
   }

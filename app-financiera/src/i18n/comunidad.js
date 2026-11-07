@@ -21,6 +21,11 @@ export const comunidad = {
     apoyoBoton: 'Hacer una aportación',
     apoyoNota: 'Pago único y seguro por nuestro canal oficial. Es totalmente opcional y no cambia nada de tu cuenta.',
 
+    pwaTitulo: 'FinanziApp en tu móvil',
+    pwaDesc: 'Instálala en la pantalla de inicio: se abre a pantalla completa, como una app, y carga al instante.',
+    pwaBoton: 'Instalar',
+    pwaIos: 'En iPhone: en Safari, pulsa Compartir y luego «Añadir a pantalla de inicio».',
+
     footPrivacidad: 'Privacidad',
     footTerminos: 'Términos',
     footContacto: 'Contacto',
@@ -60,6 +65,11 @@ export const comunidad = {
     apoyoBoton: 'Make a contribution',
     apoyoNota: 'One-off, secure payment through our official channel. Completely optional; it does not change anything in your account.',
 
+    pwaTitulo: 'FinanziApp on your phone',
+    pwaDesc: 'Add it to your home screen: it opens full screen like an app and loads instantly.',
+    pwaBoton: 'Install',
+    pwaIos: 'On iPhone: in Safari, tap Share, then "Add to Home Screen".',
+
     footPrivacidad: 'Privacy',
     footTerminos: 'Terms',
     footContacto: 'Contact',
@@ -98,6 +108,11 @@ export const comunidad = {
     apoyoTextoSuscrito: 'Danke für Ihr Abo – es macht FinanziApp erst möglich. Die App ist noch im Aufbau; wenn Sie einen Schritt weiter gehen und uns helfen möchten, sie auszubauen und zu verbessern, können Sie über unseren offiziellen Kanal einen freiwilligen Beitrag in beliebiger Höhe leisten.',
     apoyoBoton: 'Beitrag leisten',
     apoyoNota: 'Einmalige, sichere Zahlung über unseren offiziellen Kanal. Völlig freiwillig; an Ihrem Konto ändert sich nichts.',
+
+    pwaTitulo: 'FinanziApp auf Ihrem Handy',
+    pwaDesc: 'Fügen Sie sie zum Startbildschirm hinzu: Sie öffnet sich im Vollbild wie eine App und lädt sofort.',
+    pwaBoton: 'Installieren',
+    pwaIos: 'Auf dem iPhone: In Safari auf „Teilen“ tippen und dann „Zum Home-Bildschirm“.',
 
     footPrivacidad: 'Datenschutz',
     footTerminos: 'Nutzungsbedingungen',

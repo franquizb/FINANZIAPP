@@ -10,10 +10,25 @@ export const REGION_FUNCIONES = 'europe-west1';
 // STRIPE_PRICE_ID; quien ya estuviera suscrito conserva su precio.
 export const PRECIO_MENSUAL = 2.5;
 export const MONEDA_PRECIO = 'USD';
-// Ponlo a true cuando las funciones de Stripe estén desplegadas y configuradas
-// (STRIPE.md). Mientras sea false, la app no muestra el botón de pago sino un
-// aviso de que todavía no está disponible.
-export const STRIPE_ACTIVO = false;
+// Interruptor general del código de pagos. Quién puede pagar lo decide el
+// administrador en Gestión → Stripe (documento ajustes/pagos): primero solo
+// los probadores y después todo el mundo. Sin ajustes, nadie ve el botón.
+export const STRIPE_ACTIVO = true;
+
+// Lanzamiento de los pagos (ajustes/pagos): { abierto, probadores: [correos] }.
+// La app lo lee en tiempo real; la función crearSesionCheckout aplica la misma
+// regla en el servidor, así que ocultar el botón no es la única barrera.
+export const AJUSTES_PAGOS_POR_DEFECTO = { abierto: false, probadores: [] };
+export const normalizarAjustesPagos = (d) => ({
+  abierto: d?.abierto === true,
+  probadores: Array.isArray(d?.probadores) ? [...new Set(d.probadores.map(c => String(c || '').trim().toLowerCase()).filter(c => c.includes('@')))].slice(0, 50) : []
+});
+let ajustesPagosActuales = AJUSTES_PAGOS_POR_DEFECTO;
+export const setAjustesPagos = (a) => { ajustesPagosActuales = normalizarAjustesPagos(a); };
+export const esProbadorPagos = (user) => !!user?.email && ajustesPagosActuales.probadores.includes(String(user.email).toLowerCase());
+export const pagosAbiertos = () => ajustesPagosActuales.abierto;
+// ¿Puede este usuario pagar ahora mismo?
+export const pagoDisponiblePara = (user) => STRIPE_ACTIVO && !!user && (ajustesPagosActuales.abierto || esProbadorPagos(user));
 
 const funciones = () => getFunctions(app, REGION_FUNCIONES);
 const llamar = async (nombre, datos) => (await httpsCallable(funciones(), nombre)(datos || {})).data;

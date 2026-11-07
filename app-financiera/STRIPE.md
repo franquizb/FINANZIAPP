@@ -103,9 +103,14 @@ una cuenta de Stripe.
 6. **Portal de cliente**: en Stripe → Configuración → Portal de cliente, activa
    «cancelar suscripción» y «actualizar método de pago» y guarda.
 
-7. **Activar el botón en la app**: en `src/suscripcion.js` pon
-   `STRIPE_ACTIVO = true` (mientras está en `false` la app muestra «el pago con
-   tarjeta todavía no está disponible» en lugar del botón).
+7. **Abrir los pagos por fases** (Gestión → Stripe → «Lanzamiento de los
+   pagos», documento `ajustes/pagos`): al principio están **cerrados** y solo
+   los **probadores** (correos de la lista) ven el botón de suscripción; la
+   función `crearSesionCheckout` aplica la misma regla en el servidor. Añádete
+   con «Añadirme a mí» (como administrador también puedes pagar, para probar
+   un cobro real), comprueba el pago y, cuando todo esté bien, pulsa **Abrir a
+   todos**. Quien ya tiene suscripción puede gestionarla siempre, aunque los
+   pagos se vuelvan a cerrar.
 
 8. **Reglas y hosting**: `npm run build` y
    `firebase deploy --only firestore:rules,hosting` (las reglas ya incluyen

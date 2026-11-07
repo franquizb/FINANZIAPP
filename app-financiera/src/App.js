@@ -17,7 +17,7 @@ import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
 import { enlaceApoyo } from './marca';
-import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, STRIPE_ACTIVO } from './suscripcion';
+import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, AJUSTES_PAGOS_POR_DEFECTO, normalizarAjustesPagos, setAjustesPagos, esProbadorPagos, pagosAbiertos, pagoDisponiblePara } from './suscripcion';
 
 // Modo demo para capturas de marketing: solo existe en builds locales hechos
 // con REACT_APP_DEMO=1 (ver marketing/instagram). En producción no hay ruta.
@@ -769,9 +769,14 @@ function BotonesSuscripcion({ user }) {
   const { t, tf, language } = useApp();
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState(null);
-  if (!user || user.isAdmin || user.bloqueado || estadoSuscripcion(user).motivo === 'invitado') return null;
-  if (!STRIPE_ACTIVO) return <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{t.susNoDisponible}</div>;
+  if (!user || user.bloqueado || estadoSuscripcion(user).motivo === 'invitado') return null;
+  // El administrador solo ve el pago si se ha puesto como probador (para
+  // comprobar el cobro real con su cuenta antes de abrirlo a todos).
   const tieneStripe = !!user.stripeSubscriptionId && ESTADOS_STRIPE_VIVOS.includes(user.stripeStatus);
+  if (user.isAdmin && !esProbadorPagos(user) && !tieneStripe) return null;
+  // Quien ya tiene suscripción puede gestionarla (tarjeta, facturas, cancelar)
+  // siempre; el interruptor de lanzamiento solo limita las altas nuevas.
+  if (!tieneStripe && !pagoDisponiblePara(user)) return <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{t.susNoDisponible}</div>;
   const ir = async (fn) => {
     setOcupado(true); setError(null);
     try { await fn(); } // redirige a Stripe; si vuelve, es por error
@@ -787,6 +792,7 @@ function BotonesSuscripcion({ user }) {
         ? <button className="btn btn-ghost" disabled={ocupado} onClick={() => ir(irAlPortal)} style={{ whiteSpace: 'nowrap' }}>{ocupado ? t.susRedirigiendo : t.susGestionar}</button>
         : <button className="btn btn-primary" disabled={ocupado} onClick={() => ir(() => irAPagar(language))} style={{ whiteSpace: 'nowrap' }}>{ocupado ? t.susRedirigiendo : t.susActivar}</button>}
       {error && <div style={{ color: 'var(--red)', fontSize: 12, marginTop: 6, maxWidth: 320 }}>{error}</div>}
+      {!tieneStripe && !pagosAbiertos() && <div style={{ color: 'var(--yellow)', fontSize: 11, marginTop: 6, maxWidth: 320 }}>🧪 {t.susModoProbador}</div>}
     </div>
   );
 }
@@ -962,6 +968,16 @@ function AppInner({ isHome }) {
       (err) => console.warn('Ajustes de acceso no disponibles:', err?.message));
     return () => unsub();
   }, [userId]);
+  // Lanzamiento de los pagos (Gestión → Stripe): solo probadores o todo el mundo.
+  const [ajustesPagos, setAjustesPagosEstado] = useState(AJUSTES_PAGOS_POR_DEFECTO);
+  useEffect(() => {
+    if (!userId) { setAjustesPagosEstado(AJUSTES_PAGOS_POR_DEFECTO); return undefined; }
+    const unsub = onSnapshot(doc(db, 'ajustes', 'pagos'),
+      (snap) => setAjustesPagosEstado(normalizarAjustesPagos(snap.exists() ? snap.data() : null)),
+      (err) => console.warn('Ajustes de pagos no disponibles:', err?.message));
+    return () => unsub();
+  }, [userId]);
+  setAjustesPagos(ajustesPagos);
   // Sin permiso de escritura (prueba terminada, bloqueado...): la interfaz
   // oculta lo que acabaria en "no guardado"; las reglas lo deniegan igualmente.
   const soloLectura = !puedeEscribir(user, ajustesAcceso);
@@ -1417,7 +1433,7 @@ function AppInner({ isHome }) {
       case 'settings':
         return <SettingsView config={config} selectedYear={selectedYear} onUpdate={updateCfg} financialData={financialData} onUpdateFD={updateFD} user={user} onUpdateProfile={updateProfile} onUpdateVisibility={updateVisibleViews} onStartTutorial={() => setShowTutorial(true)} soloLectura={soloLectura} />;
       case 'users':
-        return <UserManagementView ajustesAcceso={ajustesAcceso} />;
+        return <UserManagementView ajustesAcceso={ajustesAcceso} ajustesPagos={ajustesPagos} />;
       default: return null;
     }
   };
@@ -3679,6 +3695,40 @@ function TarjetaNewsletter({ user }) {
   );
 }
 
+// App en el móvil (PWA): botón «Instalar» donde el navegador lo permite
+// (Chrome, Android, Edge) e instrucciones en iPhone. No aparece si ya está
+// instalada o si el navegador no admite instalarla.
+function TarjetaInstalar() {
+  const { t } = useApp();
+  const [aviso, setAviso] = useState(() => window.__avisoInstalar || null);
+  useEffect(() => {
+    const actualizar = () => setAviso(window.__avisoInstalar || null);
+    window.addEventListener('finanziapp-instalable', actualizar);
+    return () => window.removeEventListener('finanziapp-instalable', actualizar);
+  }, []);
+  const instalada = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (instalada || (!aviso && !ios)) return null;
+  const instalar = async () => {
+    aviso.prompt();
+    try { await aviso.userChoice; } catch (e) { /* cerrado sin elegir */ }
+    window.__avisoInstalar = null;
+    setAviso(null);
+  };
+  return (
+    <div className="card tarjeta-instalar" style={{ alignSelf: 'start' }}>
+      <div className="chart-card-title">📱 {t.pwaTitulo}</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 220, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+          {t.pwaDesc}
+          {ios && !aviso && <div style={{ marginTop: 10, color: 'var(--text-primary)', fontWeight: 600 }}>{t.pwaIos}</div>}
+        </div>
+        {aviso && <button className="btn btn-primary" onClick={instalar}>{t.pwaBoton}</button>}
+      </div>
+    </div>
+  );
+}
+
 // Apoyo voluntario: una tarjeta discreta al final de Configuración, sin
 // avisos emergentes. La suscripción va primero; quien ya paga ve un
 // agradecimiento. Solo aparece si hay un enlace oficial configurado (marca.js).
@@ -3923,15 +3973,18 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               {['activa', 'cancelando', 'impago'].includes(sus.clave) && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>{t.susGestionarAyuda}</div>}
             </div>
             <div style={{ textAlign: 'right' }}>
-              {!user?.isAdmin && <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{t.precioMes}</div>}
+              {(!user?.isAdmin || esProbadorPagos(user)) && <div style={{ fontSize: 22, fontWeight: 900, marginBottom: 8 }}>{t.precioMes}</div>}
               <BotonesSuscripcion user={user} />
             </div>
           </div>
-          {!user?.isAdmin && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
+          {(!user?.isAdmin || esProbadorPagos(user)) && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
         </div>
 
         {/* Newsletter (siempre disponible: la baja no depende del pago) */}
         <TarjetaNewsletter user={user} />
+
+        {/* Instalar la app en el móvil (si el navegador lo admite) */}
+        <TarjetaInstalar />
 
         {/* Gestión de Secciones (oculto en solo lectura: no se podria guardar) */}
         {!soloLectura && <div className="card">
@@ -4352,7 +4405,7 @@ const estadoUsuarioAdmin = (u, ahora) => {
 };
 const COLOR_ESTADO_ADMIN = { admin: 'var(--accent)', pago: 'var(--green)', cancelando: 'var(--yellow)', impago: 'var(--red)', invitado: 'var(--accent)', prueba: 'var(--blue)', caducado: 'var(--text-muted)', bloqueado: 'var(--red)' };
 
-function UserManagementView({ ajustesAcceso }) {
+function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   const { t, tf, locale } = useApp();
   const [users, setUsers] = useState([]);
   const [logs, setLogs] = useState([]);
@@ -4373,6 +4426,9 @@ function UserManagementView({ ajustesAcceso }) {
   const [rolesSucio, setRolesSucio] = useState(false);
   const [rolesAviso, setRolesAviso] = useState(null);
   useEffect(() => { if (!rolesSucio) setRolesForm(normalizarAjustesAcceso(ajustesAcceso)); }, [ajustesAcceso, rolesSucio]);
+  // Lanzamiento de los pagos (ajustes/pagos): cada cambio se guarda al momento.
+  const [nuevoProbador, setNuevoProbador] = useState('');
+  const [pagosAviso, setPagosAviso] = useState(null);
 
   useEffect(() => {
     // Invitaciones pendientes de registro (invitaciones/{correo}).
@@ -4766,6 +4822,50 @@ function UserManagementView({ ajustesAcceso }) {
     </div>
   );
 
+  // ─── Lanzamiento de los pagos ───
+  const pagos = normalizarAjustesPagos(ajustesPagos);
+  const guardarPagos = async (cambios) => {
+    const limpio = normalizarAjustesPagos({ ...pagos, ...cambios });
+    try {
+      await setDoc(doc(db, 'ajustes', 'pagos'), { ...limpio, actualizado: Date.now(), actualizadoPor: miUid });
+      setPagosAviso({ tipo: 'ok', texto: t.admPagosGuardado });
+    } catch (err) { setPagosAviso({ tipo: 'error', texto: tf('admPagosError', { msg: err.message }) }); }
+  };
+  const anadirProbador = (correo) => {
+    const c = String(correo || '').trim().toLowerCase();
+    if (!c.includes('@') || pagos.probadores.includes(c)) return;
+    guardarPagos({ probadores: [...pagos.probadores, c] });
+    setNuevoProbador('');
+  };
+  const renderPagos = () => (
+    <div className="card adm-pagos" style={{ marginBottom: 20, borderLeft: `4px solid ${pagos.abierto ? 'var(--green)' : 'var(--yellow)'}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div className="chart-card-title" style={{ marginBottom: 0 }}>🚀 {t.admPagosTitulo}</div>
+        <span className="badge badge-ghost" style={{ color: pagos.abierto ? 'var(--green)' : 'var(--yellow)', fontWeight: 800 }}>{pagos.abierto ? t.admPagosAbiertos : t.admPagosCerrados}</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, margin: '10px 0 14px' }}>{t.admPagosDesc}</div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ flex: 2, minWidth: 220 }}>
+          <label className="login-label">{t.admPagosProbadores}</label>
+          <input type="email" className="text-input" value={nuevoProbador} onChange={e => setNuevoProbador(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') anadirProbador(nuevoProbador); }} placeholder="nombre@correo.com" />
+        </div>
+        <button className="btn btn-ghost" onClick={() => anadirProbador(nuevoProbador)}>{t.admPagosAnadir}</button>
+        {auth?.currentUser?.email && !pagos.probadores.includes(auth.currentUser.email.toLowerCase()) && <button className="btn btn-ghost" onClick={() => anadirProbador(auth.currentUser.email)}>{t.admPagosAnadirme}</button>}
+        {pagos.abierto
+          ? <button className="btn btn-ghost" onClick={() => guardarPagos({ abierto: false })}>{t.admPagosCerrar}</button>
+          : <button className="btn btn-primary" onClick={() => { if (window.confirm(t.admPagosAbrirConfirm)) guardarPagos({ abierto: true }); }}>{t.admPagosAbrir}</button>}
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
+        {pagos.probadores.length === 0 ? <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admPagosSinProbadores}</span> : pagos.probadores.map(c => (
+          <span key={c} className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>{c}
+            <button className="chip-remove" title="×" onClick={() => guardarPagos({ probadores: pagos.probadores.filter(x => x !== c) })}><Ic d="M6 18L18 6M6 6l12 12" size={11} /></button>
+          </span>
+        ))}
+      </div>
+      {pagosAviso && <div className="adm-pagos-aviso" style={{ fontSize: 12, marginTop: 10, color: pagosAviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{pagosAviso.texto}</div>}
+    </div>
+  );
+
   // ─── Newsletter: quién se ha apuntado (con fecha, idioma y origen) ───
   const suscritosNl = users.filter(u => u.newsletter === true).sort((a, b) => (b.newsletterFecha || 0) - (a.newsletterFecha || 0));
   const bajasNl = users.filter(u => u.newsletter === false && u.newsletterBaja).length;
@@ -4949,6 +5049,7 @@ function UserManagementView({ ajustesAcceso }) {
         </div>
       )}
 
+      {pestana === 'stripe' && renderPagos()}
       {pestana === 'stripe' && (
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
