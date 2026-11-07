@@ -64,8 +64,11 @@ cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
   mejor unirlas a la anterior con una pausa.
 - Retención: `T[lang].retencion` es un texto fijo arriba que deja una curiosidad
   pendiente («Espera al truco de los 2 toques»); todos los Reels lo llevan.
-- Cierre común: el muñeco caza una moneda, se la guarda en el bolsillo y saluda
-  con un bocadillo (`CIERRE`), sin eslóganes.
+- Cierre: un muñeco sin cara que cambia en cada vídeo, `cierreCon('moneda' |
+  'tarro' | 'salto')` (caza una moneda y se la guarda, llena un tarro y lo
+  celebra, o salta con confeti), y siempre acaba saludando con un bocadillo
+  (`CIERRE`), sin eslóganes. Cierres usados: cinta-de-correr → moneda,
+  dolor-de-pagar → tarro.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.

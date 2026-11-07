@@ -66,51 +66,105 @@ const bucle = (texto, revela) => ({
   }
 });
 
-// Escena de cierre: el muñeco caza una moneda al vuelo, se la guarda en el bolsillo
-// y, con un bocadillo, invita a seguir la cuenta mientras suena la última frase.
-const X0 = 440, Y0 = 600, ESC = 1.45;   // cadera del muñeco y escala
-const cierre = {
-  html: (t, lang) => `<div style="position:relative;height:900px">
+// Escena de cierre: un muñeco sin cara hace algo y, con un bocadillo, invita a seguir la
+// cuenta mientras suena la última frase. Cambia en cada vídeo (`cierreCon(variante)`):
+//   'moneda' → caza una moneda al vuelo y se la guarda en el bolsillo;
+//   'tarro'  → le caen monedas en un tarro que se llena y lo celebra con los brazos arriba;
+//   'salto'  → se agacha, pega un salto y suelta confeti.
+// Todas acaban con el saludo y el bocadillo. La animación lee la variante del HTML.
+const Y0 = 600, ESC = 1.45;   // cadera del muñeco y escala
+const SUELO = Y0 + 142 * ESC + 12;
+const POS = { moneda: 440, tarro: 330, salto: 470 };
+const moneda = (lang, clase, extra = '') => `<g class="${clase}" ${extra} transform="translate(0,-300)"><circle r="34" fill="#e9c46a" stroke="#b8902e" stroke-width="5"/><circle r="22" fill="none" stroke="#b8902e" stroke-width="3"/>
+  <text y="12" text-anchor="middle" font-size="32" font-weight="900" fill="#8a6a1f" font-family="Inter,sans-serif">${lang === 'en' ? '$' : '€'}</text></g>`;
+const cierreCon = (variante = 'moneda') => ({
+  html: (t, lang) => { const X0 = POS[variante]; return `<div class="cierre" data-variante="${variante}" data-x="${X0}" style="position:relative;height:900px">
     <svg viewBox="0 0 1080 900" width="1080" height="900" style="position:absolute;left:-84px;top:0;overflow:visible;font-family:Inter,sans-serif">
-      <ellipse cx="${X0 + 14}" cy="${Y0 + 142 * ESC + 14}" rx="120" ry="16" fill="rgba(0,0,0,.35)"/>
-      <line x1="140" y1="${Y0 + 142 * ESC + 12}" x2="940" y2="${Y0 + 142 * ESC + 12}" stroke="#24324d" stroke-width="4" stroke-linecap="round"/>
-      ${muneco(X0, Y0, ESC, `<rect x="-16" y="-20" width="34" height="30" rx="8" fill="#0b1222" stroke="${ATRAS}" stroke-width="5"/>`)}
-      <g class="chispas" opacity="0" fill="#e9c46a">${[[-70, -40], [60, -60], [-40, 50], [70, 30]].map(([dx, dy], i) => `<path class="ch ch-${i}" data-d="${dx},${dy}" d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z"/>`).join('')}</g>
-      <g class="moneda" transform="translate(0,-200)"><circle r="34" fill="#e9c46a" stroke="#b8902e" stroke-width="5"/><circle r="22" fill="none" stroke="#b8902e" stroke-width="3"/>
-        <text y="12" text-anchor="middle" font-size="32" font-weight="900" fill="#8a6a1f">${lang === 'en' ? '$' : '€'}</text></g>
+      <ellipse class="sombra" cx="${X0 + 14}" cy="${SUELO + 2}" rx="120" ry="16" fill="rgba(0,0,0,.35)"/>
+      <line x1="140" y1="${SUELO}" x2="940" y2="${SUELO}" stroke="#24324d" stroke-width="4" stroke-linecap="round"/>
+      ${variante === 'tarro' ? `<g class="tarro"><defs><clipPath id="cierre-tarro"><rect x="610" y="${SUELO - 230}" width="210" height="228" rx="38"/></clipPath></defs>
+        <rect x="638" y="${SUELO - 262}" width="154" height="34" rx="10" fill="#33415c"/>
+        <g clip-path="url(#cierre-tarro)"><rect class="nivel" x="610" y="${SUELO}" width="210" height="230" fill="${C.necesidades}"/></g>
+        <rect x="610" y="${SUELO - 230}" width="210" height="228" rx="38" fill="none" stroke="${C.acento}" stroke-width="8"/></g>
+        ${[0, 1, 2].map(i => moneda(lang, 'caida caida-' + i)).join('')}` : ''}
+      ${muneco(X0, Y0, ESC, variante === 'moneda' ? `<rect x="-16" y="-20" width="34" height="30" rx="8" fill="#0b1222" stroke="${ATRAS}" stroke-width="5"/>` : '')}
+      ${variante === 'moneda' ? moneda(lang, 'moneda') : ''}
+      ${variante === 'salto' ? `<g class="confeti">${Array.from({ length: 22 }, (_, i) => `<rect class="cf" data-i="${i}" x="-8" y="-4" width="16" height="9" rx="2" fill="${[C.acento, C.caprichos, C.ahorro, '#e66767', '#e9c46a'][i % 5]}" opacity="0"/>`).join('')}</g>` : ''}
+      <g class="chispas" opacity="0" fill="#e9c46a">${[[-70, -40], [60, -60], [-40, 50], [70, 30]].map(([dx, dy], i) => `<path class="ch" data-d="${dx},${dy}" d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z"/>`).join('')}</g>
     </svg>
-    <div class="bocadillo" style="position:absolute;left:470px;right:-30px;top:40px;opacity:0;transform-origin:10% 100%">
+    <div class="bocadillo" style="position:absolute;left:${X0 + 30}px;right:-30px;top:40px;opacity:0;transform-origin:10% 100%">
       <div style="background:#f1f5f9;color:#0f172a;border-radius:34px;padding:30px 34px;font-size:50px;font-weight:850;line-height:1.12;letter-spacing:-.02em">${t.cierre}</div>
       <svg width="70" height="50" viewBox="0 0 70 50" style="display:block;margin-left:40px;margin-top:-2px"><path d="M0 0 H60 L8 48 Z" fill="#f1f5f9"/></svg>
     </div>
-  </div>`,
+  </div>`; },
   anim: function (s, e, el) {
-    const X0 = 440, Y0 = 600, K = 1.45, rad = (g) => g * Math.PI / 180;   // mismas coordenadas que el SVG
-    const r = (sel, tr) => el.querySelector(sel).setAttribute('transform', tr);
-    // Postura de pie y brazo delantero según el momento.
-    let th, ph;
-    if (s < 0.95) { const p = sale(tramo(s, 0.2, 0.75)); th = lerp(12, -165, p); ph = lerp(-10, 0, p); }
-    else if (s < 1.6) { const p = sale(tramo(s, 0.95, 1.5)); th = lerp(-165, 25, p); ph = lerp(0, -40, p); }
-    else { const p = sale(tramo(s, 1.6, 2.0)); th = lerp(25, -100, p); ph = lerp(-40, -40 + 20 * Math.sin(s * 8), p); }   // saludo: brazo abierto y antebrazo que se mueve
-    r('.pa', 'rotate(-6)'); r('.pb', 'rotate(8)'); r('.pa2', 'translate(0,72) rotate(0)'); r('.pb2', 'translate(0,72) rotate(0)');
-    r('.bb', 'translate(6,-96) rotate(10)'); r('.bb2', 'translate(0,50) rotate(-12)');
+    const raiz = el.querySelector('.cierre'), v = raiz.dataset.variante, X0 = +raiz.dataset.x, Y0 = 600, K = 1.45, SUELO = Y0 + 142 * K + 12;
+    const rad = (g) => g * Math.PI / 180, r = (sel, tr) => { const n = el.querySelector(sel); if (n) n.setAttribute('transform', tr); };
+    // Postura base: de pie. th/ph = brazo delantero, tb/pb = trasero; y = desplazamiento vertical; agacha = 0..1.
+    let th = 12, ph = -10, tb = 10, pb = -12, y = 0, agacha = 0;
+    if (v === 'moneda') {
+      if (s < 0.95) { const p = sale(tramo(s, 0.2, 0.75)); th = lerp(12, -165, p); ph = lerp(-10, 0, p); }
+      else { const p = sale(tramo(s, 0.95, 1.5)); th = lerp(-165, 25, p); ph = lerp(0, -40, p); }
+    } else if (v === 'tarro') {
+      const p = sale(tramo(s, 1.05, 1.3)) * (1 - sale(tramo(s, 1.5, 1.75)));   // brazos arriba al caer la última moneda
+      th = lerp(12, -160, p); ph = lerp(-10, 0, p); tb = lerp(10, 160, p); pb = lerp(-12, 0, p);
+      y = -Math.max(0, Math.sin(tramo(s, 1.05, 1.55) * Math.PI)) * 30;
+    } else if (v === 'salto') {
+      agacha = Math.sin(tramo(s, 0.1, 0.45) * Math.PI / 2) * (1 - tramo(s, 0.4, 0.5)) + Math.sin(tramo(s, 1.0, 1.3) * Math.PI) * 0.7;
+      const h = Math.sin(tramo(s, 0.45, 1.0) * Math.PI) * 150;
+      y = -h + agacha * 26;
+      const p = sale(tramo(s, 0.4, 0.55)) * (1 - sale(tramo(s, 1.2, 1.6)));
+      th = lerp(12, -155, p); ph = lerp(-10, 0, p); tb = lerp(10, 155, p); pb = lerp(-12, 0, p);
+    }
+    // Saludo final, común a todas.
+    const sal = sale(tramo(s, 1.6, 2.0));
+    if (sal > 0) { th = lerp(th, -100, sal); ph = lerp(ph, -40 + 20 * Math.sin(s * 8), sal); tb = lerp(tb, 10, sal); pb = lerp(pb, -12, sal); }
+    r('.pa', 'rotate(' + (-6 - 34 * agacha) + ')'); r('.pb', 'rotate(' + (8 - 26 * agacha) + ')');
+    r('.pa2', 'translate(0,72) rotate(' + (60 * agacha) + ')'); r('.pb2', 'translate(0,72) rotate(' + (52 * agacha) + ')');
+    r('.bb', 'translate(6,-96) rotate(' + tb + ')'); r('.bb2', 'translate(0,50) rotate(' + pb + ')');
     r('.ba', 'translate(6,-96) rotate(' + th + ')'); r('.ba2', 'translate(0,50) rotate(' + ph + ')');
     const habla = s > 1.6 ? Math.abs(Math.sin(s * 9)) * 6 : 0;
-    r('.bob', 'translate(0,' + (-habla) + ')');
-    // Mano (para que la moneda la siga).
-    const mx = 6 - 50 * Math.sin(rad(th)) - 44 * Math.sin(rad(th + ph)), my = -96 - habla + 50 * Math.cos(rad(th)) + 44 * Math.cos(rad(th + ph));
-    const hx = X0 + K * mx, hy = Y0 + K * my;
-    const mon = el.querySelector('.moneda');
-    if (s < 0.95) { const p = tramo(s, 0.15, 0.95); mon.setAttribute('transform', 'translate(' + hx + ',' + lerp(-260, hy, p * p) + ') rotate(' + (s * 400) + ')'); mon.setAttribute('opacity', 1); }
-    else { mon.setAttribute('transform', 'translate(' + hx + ',' + hy + ') scale(' + (1 - 0.6 * tramo(s, 1.35, 1.55)) + ')'); mon.setAttribute('opacity', 1 - tramo(s, 1.45, 1.6)); }
-    // Destellos al entrar en el bolsillo.
-    const c = tramo(s, 1.5, 2.2), bx = X0 + K * 1, by = Y0 + K * -5;
-    el.querySelector('.chispas').setAttribute('opacity', c > 0 && c < 1 ? Math.sin(c * Math.PI) : 0);
-    el.querySelectorAll('.ch').forEach((ch) => { const [dx, dy] = ch.dataset.d.split(',').map(Number); ch.setAttribute('transform', 'translate(' + (bx + dx * (0.4 + c)) + ',' + (by + dy * (0.4 + c)) + ') scale(' + (1.2 - c * 0.6) + ')'); });
+    r('.bob', 'translate(0,' + (y - habla) + ')');
+    const sombra = el.querySelector('.sombra'); sombra.setAttribute('rx', 120 * (1 + y / 400)); sombra.setAttribute('opacity', 1 + y / 300);
+    let chispa = null;   // [inicio, x, y] de los destellos
+    if (v === 'moneda') {
+      const mx = 6 - 50 * Math.sin(rad(th)) - 44 * Math.sin(rad(th + ph)), my = -96 + 50 * Math.cos(rad(th)) + 44 * Math.cos(rad(th + ph));
+      const hx = X0 + K * mx, hy = Y0 + K * my + y - habla, mon = el.querySelector('.moneda');
+      if (s < 0.95) { const p = tramo(s, 0.15, 0.95); mon.setAttribute('transform', 'translate(' + hx + ',' + lerp(-260, hy, p * p) + ') rotate(' + (s * 400) + ')'); mon.setAttribute('opacity', 1); }
+      else { mon.setAttribute('transform', 'translate(' + hx + ',' + hy + ') scale(' + (1 - 0.6 * tramo(s, 1.35, 1.55)) + ')'); mon.setAttribute('opacity', 1 - tramo(s, 1.45, 1.6)); }
+      chispa = [1.5, X0 + K, Y0 - 5 * K];
+    } else if (v === 'tarro') {
+      let llenado = 0.12;
+      [[0.15, 0.55], [0.45, 0.85], [0.75, 1.15]].forEach(([a, b], i) => {
+        const p = tramo(s, a, b), c = el.querySelector('.caida-' + i), fondo = SUELO - 30 - 230 * llenado;
+        c.setAttribute('transform', 'translate(' + (680 + i * 36) + ',' + lerp(-260, fondo, p * p) + ') rotate(' + (s * 300 + i * 90) + ')');
+        c.setAttribute('opacity', p > 0 && p < 1 ? 1 : 0);
+        if (p >= 1) llenado += 0.26;
+      });
+      el.querySelector('.nivel').setAttribute('y', SUELO - 2 - 228 * Math.min(0.9, llenado));
+      const golpe = Math.max(...[0.55, 0.85, 1.15].map(b => Math.max(0, 1 - Math.abs(s - b - 0.05) / 0.12)));
+      el.querySelector('.tarro').setAttribute('transform', 'translate(715,' + SUELO + ') scale(' + (1 + 0.05 * golpe) + ',' + (1 - 0.05 * golpe) + ') translate(-715,' + (-SUELO) + ')');
+      chispa = [1.15, 715, SUELO - 250];
+    } else if (v === 'salto') {
+      const t0 = 0.7, cx = X0 + 17 * K, cy = Y0 - 150 * K - 150;
+      el.querySelectorAll('.cf').forEach((c) => {
+        const i = +c.dataset.i, a = (i * 137.5) % 360, vx = Math.cos(rad(a)) * (180 + (i * 53) % 160), vy = -260 - (i * 71) % 300, u = s - t0;
+        if (u < 0) { c.setAttribute('opacity', 0); return; }
+        c.setAttribute('transform', 'translate(' + (cx + vx * u) + ',' + (cy + vy * u + 450 * u * u) + ') rotate(' + (u * (200 + i * 40)) + ')');
+        c.setAttribute('opacity', 1 - tramo(u, 1.6, 2.4));
+      });
+    }
+    // Destellos.
+    if (chispa) {
+      const c = tramo(s, chispa[0], chispa[0] + 0.7);
+      el.querySelector('.chispas').setAttribute('opacity', c > 0 && c < 1 ? Math.sin(c * Math.PI) : 0);
+      el.querySelectorAll('.ch').forEach((ch) => { const [dx, dy] = ch.dataset.d.split(',').map(Number); ch.setAttribute('transform', 'translate(' + (chispa[1] + dx * (0.4 + c)) + ',' + (chispa[2] + dy * (0.4 + c)) + ') scale(' + (1.2 - c * 0.6) + ')'); });
+    }
     // Bocadillo.
     const b = rebote(tramo(s, 1.7, 2.15)), bo = el.querySelector('.bocadillo');
     bo.style.opacity = Math.min(1, b * 1.5); bo.style.transform = 'scale(' + (0.6 + 0.4 * b) + ')';
   }
-};
+});
+const cierre = cierreCon('moneda');
 
-module.exports = { C, icono, VOZ, CIERRE, CSS, bucle, cierre, muneco };
+module.exports = { C, icono, VOZ, CIERRE, CSS, bucle, cierre, cierreCon, muneco };

@@ -3,7 +3,7 @@
 // Fuentes: Prelec y Loewenstein (1998), «The Red and the Black», Marketing Science (el «dolor de pagar»);
 // Prelec y Simester (2001), «Always Leave Home Without It», Marketing Letters: en una subasta de entradas
 // de los Celtics, quienes pagarían con tarjeta pujaron casi el doble que quienes pagarían en efectivo.
-const { C, icono, VOZ, CIERRE, CSS, bucle, cierre } = require('./_comun');
+const { C, icono, VOZ, CIERRE, CSS, bucle, cierreCon } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 const N = {
@@ -201,8 +201,8 @@ module.exports = {
         aguja(el, pasos(s, [[0, 0.06], [m[1], 0.55]], 0.4) + Math.sin(golpe * Math.PI * 5) * 0.06 * (1 - golpe));
       }
     },
-    // 7 · Cierre.
-    cierre
+    // 7 · Cierre: monedas al tarro.
+    cierreCon('tarro')
   ],
   texto: {
     en: `Your card has a superpower: it makes spending not hurt. 💳💤
