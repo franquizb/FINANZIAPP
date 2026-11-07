@@ -14,8 +14,11 @@ Léelo antes de cambiar nada. Son decisiones del propietario.
   tienen que llegar a la **bandeja de entrada de cualquier proveedor**, no solo
   de Gmail: remitente con el dominio propio (finanziapp.com) y SPF, DKIM y
   DMARC correctos. Probar siempre también con Outlook.
-- Idiomas: español, inglés y alemán (`app-financiera/src/i18n/`), mismas
-  claves en los tres. Monedas: la del país del usuario, elegible en
+- Idiomas: español, inglés, alemán, francés y chino simplificado
+  (`app-financiera/src/i18n/` y `translations` en `src/context/AppContext.js`),
+  mismas claves en los cinco. Si el navegador está en otro idioma, inglés.
+  Las páginas legales están en español e inglés (el resto ve la inglesa).
+  Monedas: la del país del usuario, elegible en
   Configuración.
 
 ## Mercado
