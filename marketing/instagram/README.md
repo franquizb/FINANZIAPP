@@ -110,6 +110,10 @@ demuestra y cierre con la app), imagen 4:5 para el feed y portada 9:16.
 - Generar: `node consejos.js <n>` (o `node consejos.js <n> en`). Revisión
   rápida sin vídeos: `node consejos.js <n> en fotos consejo=3`.
 - Calendario para Google Docs: `node calendario.js <n> AAAA-MM-DD > calendario.html`.
-- Salida en `out/consejos/semana-<n>/` (no se sube a git: va a Google Drive,
-  carpeta **FinanziApp → Marketing**, junto con «Calendario y textos» y la guía
-  de TikTok en **Marketing → TikTok**).
+- Salida en `out/consejos/semana-<n>/` (no se sube a git: va a Google Drive).
+- Google Drive: **unidad compartida «FinanziApp»** del Workspace franquizb.com,
+  con la cuenta de servicio de despliegue como «Gestor de contenido» (solo ve
+  esa unidad). Estructura: Marketing → Semana N → EN / ES, más «Calendario y
+  textos» en Marketing y la guía de TikTok en Marketing → TikTok. Subida:
+  `node subir-drive.cjs <dir con node_modules/google-auth-library> <credencial.json> out/consejos/semana-<n> "Semana N (fechas)"`
+  (idempotente; usa la API de Drive del proyecto personal-franquizb).
