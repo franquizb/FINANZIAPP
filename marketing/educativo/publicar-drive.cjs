@@ -9,9 +9,10 @@
 //   node publicar-drive.cjs <…> <…> reel <out-reels/slug> "<Día…>" "<N · Reel · Título>"
 //   node publicar-drive.cjs <…> <…> doc <archivo.html> "<carpeta destino o raíz>" "<título>"   (HTML → Google Doc)
 //   node publicar-drive.cjs <…> <…> hoja <archivo.csv> "<carpeta destino o raíz>" "<título>"  (CSV → Google Sheet)
+//   Con --reemplazar al final, un doc u hoja que ya existe se actualiza (mismo enlace).
 const fs = require('fs'), path = require('path');
 const { GoogleAuth } = require(process.argv[2] + '/node_modules/google-auth-library');
-const [, , , keyFile, modo, origen, destino, titulo] = process.argv;
+const [, , , keyFile, modo, origen, destino, titulo, opcion] = process.argv;
 const API = 'https://www.googleapis.com/drive/v3/files', SUBIDA = 'https://www.googleapis.com/upload/drive/v3/files';
 const RAIZ_PUB = '1 · Por publicar';
 const TIPOS = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.png': 'image/png' };
@@ -57,8 +58,12 @@ const TIPOS = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.png': 'image/png' }
     console.log(`✓ ${destino} → ${titulo}: ${n} archivos nuevos · https://drive.google.com/drive/folders/${pub.id}`);
   } else if (modo === 'doc' || modo === 'hoja') {
     const padre = destino === 'raíz' ? { id: unidad.id } : await ruta(destino.split('/'));
-    const hecho = await subir(titulo, padre.id, fs.readFileSync(origen), modo === 'doc' ? 'text/html' : 'text/csv',
-      modo === 'doc' ? 'application/vnd.google-apps.document' : 'application/vnd.google-apps.spreadsheet');
-    console.log(hecho ? `✓ ${modo} «${titulo}» creado` : `· «${titulo}» ya existía`);
+    const tipo = modo === 'doc' ? 'text/html' : 'text/csv', datos = fs.readFileSync(origen);
+    const hecho = await subir(titulo, padre.id, datos, tipo, modo === 'doc' ? 'application/vnd.google-apps.document' : 'application/vnd.google-apps.spreadsheet');
+    if (!hecho && opcion === '--reemplazar') {
+      const { id } = await buscar(titulo, padre.id, false);
+      await pedir({ url: `${SUBIDA}/${id}?uploadType=media&supportsAllDrives=true`, method: 'PATCH', headers: { 'Content-Type': tipo }, data: datos });
+      console.log(`✓ ${modo} «${titulo}» actualizado`);
+    } else console.log(hecho ? `✓ ${modo} «${titulo}» creado` : `· «${titulo}» ya existía`);
   }
 })().catch(e => { console.log('error', e.response?.status, e.response?.data?.error?.message || e.message); process.exit(1); });

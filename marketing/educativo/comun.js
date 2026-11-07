@@ -93,4 +93,4 @@ function pagina({ F, lang, kicker, n, total, contenido, pie }) {
   </div></body></html>`;
 }
 
-module.exports = { C, icono, barra, pagina };
+module.exports = { C, icono, barra, pagina, css, firma };
