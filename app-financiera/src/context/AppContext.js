@@ -430,7 +430,9 @@ const conFallback = (lang) => new Proxy(DICCIONARIOS[lang], {
 const TEXTOS = Object.fromEntries(IDIOMAS.map(l => [l, conFallback(l)]));
 
 // Idioma inicial: el elegido por el usuario y, si nunca eligió, el del navegador
-// (si está entre los disponibles); en último caso, español.
+// (si está entre los disponibles); en último caso, inglés, porque el
+// lanzamiento principal es en EE. UU. (un navegador en francés, chino o
+// vietnamita allí debe ver la versión en inglés, no la española).
 const detectarIdioma = () => {
     try {
         const guardado = localStorage.getItem('appLanguage');
@@ -441,7 +443,7 @@ const detectarIdioma = () => {
         const codigo = String(c || '').slice(0, 2).toLowerCase();
         if (IDIOMAS.includes(codigo)) return codigo;
     }
-    return 'es';
+    return 'en';
 };
 
 // Idioma y configuración regional activos, para las funciones que viven fuera
@@ -508,6 +510,8 @@ export function AppProvider({ children }) {
 
     useEffect(() => {
         document.documentElement.lang = language;
+        // Título de la pestaña en el idioma de la página (index.html trae el inglés).
+        if (TEXTOS[language]?.tituloPagina) document.title = TEXTOS[language].tituloPagina;
     }, [language]);
 
     // Solo se guarda cuando el usuario elige un idioma a mano; así, mientras no

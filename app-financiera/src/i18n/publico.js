@@ -4,6 +4,7 @@
 // Los textos con variables usan {nombre} y se resuelven con tf('clave', { nombre }).
 export const publico = {
   es: {
+    tituloPagina: 'FinanziApp: tus finanzas personales, fáciles',
     // --- Landing: cabecera ---
     landingNavFeatures: 'Funcionalidades',
     landingNavDashboard: 'Dashboard',
@@ -150,6 +151,7 @@ export const publico = {
     loginPrivacidad: 'Política de privacidad',
   },
   en: {
+    tituloPagina: 'FinanziApp: Personal finance, simplified',
     // --- Landing: header ---
     landingNavFeatures: 'Features',
     landingNavDashboard: 'Dashboard',
@@ -296,6 +298,7 @@ export const publico = {
     loginPrivacidad: 'Privacy Policy',
   },
   de: {
+    tituloPagina: 'FinanziApp: Persönliche Finanzen, ganz einfach',
     // --- Landing: Kopfbereich ---
     landingNavFeatures: 'Funktionen',
     landingNavDashboard: 'Dashboard',
