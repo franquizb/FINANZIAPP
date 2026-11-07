@@ -37,6 +37,19 @@ Las funciones viven en `functions/` (Node 24, región `europe-west1`, codebase
 `finanziapp`, así que el despliegue no toca las funciones `searchSymbol` y
 `getLiveQuote` que ya existen en el proyecto).
 
+## Estado actual: modo real (desde el 7/11/2026)
+
+- Funciones con `STRIPE_SECRET_KEY` v2 (clave real) y `STRIPE_WEBHOOK_SECRET` v2.
+- Producto «FinanziApp», precio `price_1UZDHfAyf3HuOHhkw6TPgjGt` (2,50 USD/mes,
+  impuestos incluidos), portal `bpc_1UZDHfAyf3HuOHhkCYYUbOsq` (tarjeta, facturas,
+  baja al final del periodo) y webhook `we_1UZDHgAyf3HuOHhkR6W06Wby` (8 eventos,
+  API 2025-02-24.acacia). `functions/.env` apunta a estos IDs.
+- Las versiones v1 de los dos secretos son las del modo prueba. Para volver a
+  probar en modo prueba hay que desplegar las funciones con esas versiones y
+  los IDs de prueba; mejor probar en real con un pago propio y reembolsarlo.
+- Si un perfil guarda un cliente de Stripe que no existe en el modo actual,
+  `crearSesionCheckout` lo descarta y crea uno nuevo.
+
 ## Configuración (una sola vez)
 
 Requisitos: proyecto en plan Blaze (ya lo está: hay funciones desplegadas) y
