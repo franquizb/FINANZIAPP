@@ -791,6 +791,10 @@ label {
     font-family: var(--font);
 }
 
+/* Cinco idiomas: en pantallas estrechas pasan a dos filas en vez de apretarse. */
+.selector-idiomas { flex-wrap: wrap; }
+.selector-idiomas .settings-toggle-btn { min-width: 104px; padding: 8px 10px; }
+
 .settings-toggle-btn.active {
     background: var(--accent);
     color: white;

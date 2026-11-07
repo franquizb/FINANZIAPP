@@ -114,7 +114,8 @@ export default function Login({ onLogin, pendiente }) {
 
   // Los correos de Firebase (verificación, restablecer contraseña) salen en el
   // idioma de la app en vez de en el idioma por defecto del proyecto.
-  useEffect(() => { if (auth) auth.languageCode = language; }, [language]);
+  // Idioma de los correos de verificación y contraseña (Firebase usa zh-CN para el chino simplificado).
+  useEffect(() => { if (auth) auth.languageCode = language === 'zh' ? 'zh-CN' : language; }, [language]);
 
   useEffect(() => {
     if (!pendiente) return;

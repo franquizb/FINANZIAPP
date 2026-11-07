@@ -159,7 +159,7 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
   const trialEndsAt = Number(u.trialEndsAt) || 0;
   if (trialEndsAt > Date.now() + 48 * 3600 * 1000) subscriptionData.trial_end = Math.floor(trialEndsAt / 1000);
 
-  const locale = typeof req.data?.locale === 'string' && ['es', 'en', 'de'].includes(req.data.locale) ? req.data.locale : 'auto';
+  const locale = typeof req.data?.locale === 'string' && ['es', 'en', 'de', 'fr', 'zh'].includes(req.data.locale) ? req.data.locale : 'auto';
   const sesion = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,

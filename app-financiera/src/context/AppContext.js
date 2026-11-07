@@ -8,8 +8,12 @@ import { comunidad as textosComunidad } from '../i18n/comunidad';
 const AppContext = createContext();
 
 // Idiomas disponibles y su configuración regional para fechas y moneda.
-export const IDIOMAS = ['es', 'en', 'de'];
-export const LOCALES = { es: 'es-ES', en: 'en-US', de: 'de-DE' };
+export const IDIOMAS = ['es', 'en', 'de', 'fr', 'zh'];
+// Chino: simplificado (zh-CN); un navegador en chino tradicional (zh-TW, zh-HK)
+// también recibe esta versión, con las fechas en su propia variante.
+export const LOCALES = { es: 'es-ES', en: 'en-US', de: 'de-DE', fr: 'fr-FR', zh: 'zh-CN' };
+// Nombre de cada idioma en su propio idioma, para los selectores.
+export const NOMBRES_IDIOMA = { es: 'Español', en: 'English', de: 'Deutsch', fr: 'Français', zh: '中文' };
 // Configuración regional para fechas y números: la variante del navegador si
 // coincide con el idioma (en-GB, es-MX, de-AT…), y si no la de LOCALES. Así un
 // estadounidense ve "$1,234.50" y 12/18/2026, y un británico "£1,234.50" y 18/12/2026.
@@ -26,8 +30,17 @@ export const MESES_CLAVE = ["enero", "febrero", "marzo", "abril", "mayo", "junio
 const MESES = {
     es: MESES_CLAVE,
     en: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    de: ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+    de: ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"],
+    fr: ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
+    zh: ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"]
 };
+// Abreviaturas donde las tres primeras letras no sirven (en francés «juin» y
+// «juillet» darían las dos «jui»; en chino el nombre ya es corto).
+const MESES_CORTOS = {
+    fr: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+    zh: MESES.zh
+};
+const mesCortoDe = (lang, i) => (MESES_CORTOS[lang] ? MESES_CORTOS[lang][i] : (MESES[lang] || MESES.es)[i].slice(0, 3));
 
 export const translations = {
     es: {
@@ -418,12 +431,14 @@ export const translations = {
 const diccionario = (lang) => ({ ...translations[lang], ...(textosApp[lang] || {}), ...(textosPublico[lang] || {}), ...(textosCalculadoras[lang] || {}), ...(textosSuscripcion[lang] || {}), ...(textosComunidad[lang] || {}) });
 const DICCIONARIOS = Object.fromEntries(IDIOMAS.map(l => [l, diccionario(l)]));
 
-// Cualquier clave que falte en un idioma cae al español (el texto original) y,
-// si tampoco existe, se muestra la propia clave: así nunca aparece "undefined".
+// Cualquier clave que falte en un idioma cae al inglés (en francés, chino o
+// alemán) o al español (el texto original) y, si tampoco existe, se muestra la
+// propia clave: así nunca aparece "undefined".
 // El marcador global {moneda} (símbolo de la moneda activa) se sustituye al leer el texto.
 const conFallback = (lang) => new Proxy(DICCIONARIOS[lang], {
     get: (obj, k) => {
-        const v = (typeof k === 'string' && obj[k] !== undefined) ? obj[k] : (DICCIONARIOS.es[k] !== undefined ? DICCIONARIOS.es[k] : (typeof k === 'string' ? k : undefined));
+        const reserva = lang === 'es' ? undefined : DICCIONARIOS.en[k];
+        const v = (typeof k === 'string' && obj[k] !== undefined) ? obj[k] : (reserva !== undefined ? reserva : (DICCIONARIOS.es[k] !== undefined ? DICCIONARIOS.es[k] : (typeof k === 'string' ? k : undefined)));
         return typeof v === 'string' && v.includes('{') ? sustituirGlobales(v) : v;
     }
 });
@@ -496,7 +511,7 @@ const interpolar = (texto, vars) => String(texto).replace(/\{(\w+)\}/g, (_, k) =
 export const tx = (clave, vars) => interpolar((TEXTOS[idiomaActual] || TEXTOS.es)[clave], vars);
 // Nombre de mes (completo o de 3 letras) a partir de su clave en español, en el idioma activo.
 export const nombreMes = (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? String(clave) : (MESES[idiomaActual] || MESES.es)[i]; };
-export const nombreMesCorto = (clave) => nombreMes(clave).slice(0, 3);
+export const nombreMesCorto = (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? String(clave).slice(0, 3) : mesCortoDe(idiomaActual, i); };
 
 export function AppProvider({ children }) {
     const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'dark');
@@ -524,7 +539,7 @@ export function AppProvider({ children }) {
         setLanguage(lang);
     };
     const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    const toggleLanguage = () => setLanguageTo(language === 'es' ? 'en' : language === 'en' ? 'de' : 'es');
+    const toggleLanguage = () => setLanguageTo(IDIOMAS[(IDIOMAS.indexOf(language) + 1) % IDIOMAS.length]);
 
     const value = useMemo(() => {
         const t = TEXTOS[language] || TEXTOS.es;
@@ -535,7 +550,7 @@ export function AppProvider({ children }) {
             tf: (clave, vars) => interpolar(t[clave], vars),
             // Nombre del mes a partir de su clave en español ("enero" → "January").
             mes: (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? clave : nombres[i]; },
-            mesCorto: (clave) => { const i = MESES_CLAVE.indexOf(clave); return (i === -1 ? String(clave) : nombres[i]).slice(0, 3); }
+            mesCorto: (clave) => { const i = MESES_CLAVE.indexOf(clave); return i === -1 ? String(clave).slice(0, 3) : mesCortoDe(language, i); }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [theme, language]);

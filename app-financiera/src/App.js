@@ -5,7 +5,7 @@ import { VISTAS_ASIGNABLES, ROLES, AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustes
 import Login from './Login';
 import PaginaLegal from './Legal';
 import LandingPage from './LandingPage';
-import { AppProvider, useApp, getLocale, nombreMesCorto, tx, getMoneda, setMonedaActiva, detectarMoneda, MONEDAS, simboloMoneda, nombreMoneda } from './context/AppContext';
+import { AppProvider, useApp, getLocale, nombreMesCorto, tx, getMoneda, setMonedaActiva, detectarMoneda, MONEDAS, simboloMoneda, nombreMoneda, IDIOMAS, NOMBRES_IDIOMA } from './context/AppContext';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line,
@@ -4304,16 +4304,12 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             {/* Language */}
             <div>
               <label>{t.language}</label>
-              <div className="settings-toggle" style={{ marginTop: 6 }}>
-                <button className={`settings-toggle-btn ${language === 'es' ? 'active' : ''}`} onClick={() => setLanguageTo('es')}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Ic d={PATHS.globe} size={14} /> Español</span>
-                </button>
-                <button className={`settings-toggle-btn ${language === 'en' ? 'active' : ''}`} onClick={() => setLanguageTo('en')}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Ic d={PATHS.globe} size={14} /> English</span>
-                </button>
-                <button className={`settings-toggle-btn ${language === 'de' ? 'active' : ''}`} onClick={() => setLanguageTo('de')}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Ic d={PATHS.globe} size={14} /> Deutsch</span>
-                </button>
+              <div className="settings-toggle selector-idiomas" style={{ marginTop: 6 }}>
+                {IDIOMAS.map(l => (
+                  <button key={l} className={`settings-toggle-btn ${language === l ? 'active' : ''}`} onClick={() => setLanguageTo(l)} lang={l}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center' }}><Ic d={PATHS.globe} size={14} /> {NOMBRES_IDIOMA[l]}</span>
+                  </button>
+                ))}
               </div>
             </div>
             {/* Año con el que se abre la app: 0 = automático (año en curso) */}
