@@ -26,7 +26,7 @@ Google da `redirect_uri_mismatch` y nadie puede entrar con Google.
 Google Cloud Console → **Google Auth Platform → Branding** (antes "Pantalla
 de consentimiento de OAuth"): nombre de la app **FinanziApp**, correo de
 asistencia (una cuenta o grupo de Google tuyo: `brian@franquizb.com` hoy,
-`soporte@finanziapp.com` cuando exista), logo 120×120, página principal,
+`support@finanziapp.com` cuando exista), logo 120×120, página principal,
 dominios autorizados `finanziapp.com` y `franquizb.com`. Con el nombre puesto
 la ventana dirá "Ir a FinanziApp"; el logo aparece tras la verificación de
 marca de Google. Detalle en BRANDING-GOOGLE.md.
@@ -37,7 +37,7 @@ marca de Google. Detalle en BRANDING-GOOGLE.md.
 2. Firebase Console → Hosting → Añadir dominio personalizado → poner el TXT y
    los A que indique en el DNS.
 3. Workspace: añadir finanziapp.com como alias de dominio (gratis) →
-   no-reply@ y soporte@.
+   noreply@, support@ y hello@ (más soporte@ y hola@ como alias).
 4. Firebase Console → Authentication → Templates → Personalizar dominio del
    remitente → registros DNS → los correos de verificación y contraseña
    salen de `noreply@finanziapp.com`.

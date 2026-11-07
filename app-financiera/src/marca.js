@@ -5,7 +5,7 @@
 export const SITIO = 'https://finanziapp.com';
 
 // Buzón de soporte que se muestra a los usuarios. Cuando exista
-// soporte@finanziapp.com (pasos en CORREO.md), cambia esta línea.
+// support@finanziapp.com (pasos en CORREO.md), cambia esta línea.
 export const CORREO_SOPORTE = 'brian@franquizb.com';
 
 // Enlace OFICIAL para aportaciones voluntarias: un Payment Link de la misma

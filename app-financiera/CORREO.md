@@ -10,10 +10,12 @@ el correo de FinanziApp entre y salga por finanziapp.com** sin caer en spam.
 | Dirección | Para qué | Cómo se crea |
 |---|---|---|
 | `noreply@finanziapp.com` | Verificación del correo y «restablecer contraseña» (los envía Firebase) | Firebase → Authentication → Templates → Personalizar dominio |
-| `soporte@finanziapp.com` | Contacto de la web, páginas legales, ventana de Google | Grupo de Google en Workspace (gratis; puedes añadir a alguien más un día) |
-| `hola@finanziapp.com` | Remitente de la newsletter (las respuestas te llegan) | Alias de tu usuario en Workspace |
+| `support@finanziapp.com` | Contacto de la web, páginas legales, ventana de Google | Grupo de Google en Workspace (gratis; puedes añadir a alguien más un día) |
+| `hello@finanziapp.com` | Remitente de la newsletter (las respuestas te llegan) | Alias de tu usuario en Workspace |
+| `soporte@` y `hola@` | Para quien escriba en español | Alias de los dos anteriores: llega todo al mismo buzón |
 | `brian@finanziapp.com` | Tu correo personal de la marca | Automática con el alias de dominio |
 
+El lanzamiento es en EE. UU., así que las direcciones públicas van en inglés.
 Todo llega a tu Gmail de Workspace. No hace falta pagar más licencias.
 
 ## Registros DNS (en el registrador, una vez comprado el dominio)
@@ -42,7 +44,7 @@ que vas a ver:
 5. **DMARC**: un TXT en `_dmarc` para empezar en modo observación:
 
    ```
-   v=DMARC1; p=none; rua=mailto:soporte@finanziapp.com
+   v=DMARC1; p=none; rua=mailto:support@finanziapp.com
    ```
 
    Cuando lleves unas semanas sin problemas, cambia `p=none` por `p=quarantine`.
@@ -53,7 +55,7 @@ https://www.mail-tester.com (objetivo: 9/10 o más).
 
 ## Después, en el código (2 minutos, lo hago yo)
 
-En `src/marca.js`: `CORREO_SOPORTE = 'soporte@finanziapp.com'` y desplegar.
+En `src/marca.js`: `CORREO_SOPORTE = 'support@finanziapp.com'` y desplegar.
 Cambia a la vez el contacto de la portada, de Privacidad y de Términos.
 Los correos de Firebase ya salen en el idioma de la app (es/en/de).
 
@@ -76,7 +78,7 @@ Los correos de Firebase ya salen en el idioma de la app (es/en/de).
 Brevo es europeo (servidores en la UE, cumple el RGPD) y su plan gratuito da
 para empezar (unos 300 correos al día; comprueba los límites actuales).
 
-1. Crea la cuenta con `hola@finanziapp.com` y autentica el dominio
+1. Crea la cuenta con `hello@finanziapp.com` y autentica el dominio
    (Remitentes y dominios → registros del apartado DNS de arriba).
 2. Crea tres listas: `Newsletter ES`, `Newsletter EN`, `Newsletter DE`.
 3. Importa el CSV de Gestión → Newsletter en la lista de su idioma (filtra

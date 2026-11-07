@@ -33,9 +33,9 @@ Ya pagas Workspace para franquizb.com. Añade finanziapp.com como **dominio
 alternativo (alias)** en admin.google.com → Cuenta → Dominios → Gestionar
 dominios → «Añadir un dominio» → *Alias de dominio de usuario*. Es gratis:
 cada usuario recibe automáticamente su misma dirección en el dominio nuevo
-(brian@finanziapp.com) y puedes crear alias como `soporte@finanziapp.com` o
+(brian@finanziapp.com) y puedes crear alias como `support@finanziapp.com` o
 `no-reply@finanziapp.com` (Usuarios → tu usuario → Correos electrónicos
-alternativos, o un Grupo de Google para soporte@). Para responder desde esa
+alternativos, o un Grupo de Google para support@). Para responder desde esa
 dirección en Gmail: Configuración → Cuentas → «Enviar como».
 
 ## 3. Que los correos de la app salgan de no-reply@finanziapp.com
@@ -68,7 +68,7 @@ consentimiento de OAuth** (ahora dentro de «Google Auth Platform → Branding»
 | Campo | Valor recomendado |
 |---|---|
 | Nombre de la aplicación | **FinanziApp** |
-| Correo de asistencia | `soporte@finanziapp.com` (tiene que ser una cuenta o un Grupo de Google tuyo; mientras no exista, `brian@franquizb.com`) |
+| Correo de asistencia | `support@finanziapp.com` (tiene que ser una cuenta o un Grupo de Google tuyo; mientras no exista, `brian@franquizb.com`) |
 | Logotipo | PNG/JPG cuadrado, 120×120, fondo transparente (el isotipo FZ) |
 | Página principal | https://finanziapp.com |
 | Política de privacidad / Términos | https://finanziapp.com/privacidad y /terminos (hay que crear esas páginas; te las redacto cuando quieras) |

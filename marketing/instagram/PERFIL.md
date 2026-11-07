@@ -19,11 +19,11 @@ y los dos vídeos sirven como posts y Reels cuando se acabe este material.
 
 ## ¿Una cuenta o dos?
 
-Para empezar, **una sola cuenta, `@finanziapp`, en español**: contestarás
-comentarios y mensajes con naturalidad, y la comunidad se crea más fácil en tu
-idioma. Los anuncios en inglés llevan a la web, no al perfil, así que funcionan
-igual. El juego en inglés está listo por si más adelante abres una segunda
-cuenta (`@finanziapp.en`) o decides llevar la principal en inglés.
+**Una sola cuenta, `@finanziapp`, en inglés**, con los archivos de `out/en/`.
+El lanzamiento es en EE. UU.: quien vea un anuncio y toque el perfil tiene que
+encontrarlo en su idioma, con dólares en las capturas. El juego en español
+(`out/es/`) queda listo para una segunda cuenta (`@finanziapp.es`) cuando
+lances en España.
 
 ## Antes de publicar
 
@@ -34,7 +34,7 @@ cuenta (`@finanziapp.en`) o decides llevar la principal en inglés.
 
 ## Configurar la cuenta (15 minutos)
 
-1. Crea la cuenta con un correo tuyo (cuando exista, `hola@finanziapp.com`).
+1. Crea la cuenta con un correo tuyo (cuando exista, `hello@finanziapp.com`).
 2. Usuario: `finanziapp`. Si está cogido: `finanziapp.app` o `usefinanziapp`.
 3. Configuración → Tipo de cuenta → **Cuenta profesional → Empresa**, categoría
    **Aplicación** (*App page*). Da estadísticas, botón de contacto y permite
@@ -117,8 +117,10 @@ historias cada post nuevo y responde a lo que te pregunten en el sticker de
 
 ## Buenas costumbres
 
-- Publica siempre a una hora parecida y, tras dos semanas, mira en
-  Estadísticas cuándo está conectada tu audiencia.
+- Programa las publicaciones (Meta Business Suite o la programación de la
+  propia app) en horario de EE. UU. Para empezar, prueba las 12:00–13:00 o las
+  19:00–21:00 hora del Este (18:00–19:00 o 01:00–03:00 en España) y, tras dos
+  semanas, mira en Estadísticas cuándo está conectada tu audiencia.
 - Contesta los comentarios en la primera hora: Instagram lo premia.
 - Pon el texto alternativo de cada post (está en `textos.md`).
 - En historias y Reels, la música se añade desde la biblioteca de Instagram.
