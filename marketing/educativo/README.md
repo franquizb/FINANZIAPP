@@ -54,8 +54,18 @@ cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
   `mezcla.py` baja la música mientras se habla.
 - Revisar sin voz: `node reel-voz.js <slug> --vista --sin-voz`.
 - Con voz (necesita la credencial en FBT y SA): `node reel-voz.js <slug>`.
-- Acento en español: cada toma puede salir con seseo aunque se pida España.
-  `node revisar-acento.cjs <…> <…> <slug>` hace que Gemini escuche cada frase y
-  repite las que no suenen peninsulares. La indicación de acento va siempre en
-  positivo («acento peninsular estándar»): si menciona otro acento para
-  descartarlo, el filtro de Google bloquea las frases.
+- Revisión de la voz (obligatoria antes de renderizar):
+  `node revisar-voz.cjs <…> <…> <slug>` hace que Gemini escuche cada frase,
+  compruebe que dice exactamente el guion (a veces el modelo se inventa frases)
+  y, en español, que el acento sea peninsular (cada toma puede salir con seseo).
+  Las tomas malas se repiten solas. La indicación de acento va siempre en
+  positivo: si menciona otro acento para descartarlo, el filtro de Google
+  bloquea las frases. Las frases muy cortas («De nada») también las bloquea:
+  mejor unirlas a la anterior con una pausa.
+- Retención: `T[lang].retencion` es un texto fijo arriba que deja una curiosidad
+  pendiente («Espera al truco de los 2 toques»); todos los Reels lo llevan.
+- Cierre común: el muñeco caza una moneda, se la guarda en el bolsillo y saluda
+  con un bocadillo (`CIERRE`), sin eslóganes.
+- Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
+- Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
+  `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.

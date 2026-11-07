@@ -19,9 +19,28 @@ const VOZ = {
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO_ES, tempo: 1.1, pausaMax: 0.42 }
 };
 
+// Bocadillo del muñeco del cierre.
 const CIERRE = {
-  en: ['Money, <span class="c">honestly.</span>', 'Follow for more.'],
-  es: ['Dinero, <span class="c">sin rodeos.</span>', 'Síguenos para más.']
+  en: 'More tricks like this? <span class="c">Follow.</span>',
+  es: '¿Más trucos así? <span class="c">Síguenos.</span>'
+};
+
+const ATRAS = '#2a9d8f';
+// Muñeco sin cara de trazo grueso (cadera en el origen). Piezas animables: .pa/.pb (muslos),
+// .pa2/.pb2 (espinillas), .ba/.bb (brazos), .ba2/.bb2 (antebrazos), .bob (cuerpo entero).
+// `extra` se dibuja delante del tronco (por ejemplo, un bolsillo).
+const muneco = (x, y, escala = 1, extra = '') => {
+  const L = (x2, y2, c) => `<line x1="0" y1="0" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="20" stroke-linecap="round"/>`;
+  const pierna = (k, c) => `<g class="p${k}">${L(0, 72, c)}<g class="p${k}2" transform="translate(0,72)">${L(0, 70, c)}<line x1="0" y1="70" x2="18" y2="70" stroke="${c}" stroke-width="20" stroke-linecap="round"/></g></g>`;
+  const brazo = (k, c) => `<g class="b${k}" transform="translate(6,-96)">${L(0, 50, c)}<g class="b${k}2" transform="translate(0,50)">${L(0, 44, c)}</g></g>`;
+  return `<g class="corredor" transform="translate(${x},${y}) scale(${escala})"><g class="bob">
+    ${brazo('b', ATRAS)}${pierna('b', ATRAS)}
+    <line x1="0" y1="0" x2="10" y2="-112" stroke="${C.acento}" stroke-width="22" stroke-linecap="round"/>
+    <circle cx="17" cy="-150" r="31" fill="${C.acento}"/>
+    ${extra}
+    ${pierna('a', C.acento)}${brazo('a', C.acento)}
+    <g class="gotas" opacity="0"><path d="M58 -170 q8 12 0 18 q-8 -6 0 -18z" fill="#93c5fd"/><path d="M66 -140 q7 10 0 15 q-7 -5 0 -15z" fill="#93c5fd"/></g>
+  </g></g>`;
 };
 
 // Estilos de las escenas comunes (sello, pregunta del bucle, frase grande, dos tarjetas).
@@ -47,10 +66,51 @@ const bucle = (texto, revela) => ({
   }
 });
 
-// Escena de cierre: logo y frase de la serie.
+// Escena de cierre: el muñeco caza una moneda al vuelo, se la guarda en el bolsillo
+// y, con un bocadillo, invita a seguir la cuenta mientras suena la última frase.
+const X0 = 440, Y0 = 600, ESC = 1.45;   // cadera del muñeco y escala
 const cierre = {
-  html: (t) => `<div style="padding-top:160px;text-align:center"><div class="a" style="display:flex;justify-content:center;margin-bottom:40px"><span style="width:150px;height:150px;border-radius:40px;background:${C.necesidades};display:inline-flex;align-items:center;justify-content:center"><svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
-    <h1 class="a" style="font-size:90px">${t.cierre[0]}</h1><p class="lead a" style="margin:28px auto 0;text-align:center">${t.cierre[1]}</p></div>`
+  html: (t, lang) => `<div style="position:relative;height:900px">
+    <svg viewBox="0 0 1080 900" width="1080" height="900" style="position:absolute;left:-84px;top:0;overflow:visible;font-family:Inter,sans-serif">
+      <ellipse cx="${X0 + 14}" cy="${Y0 + 142 * ESC + 14}" rx="120" ry="16" fill="rgba(0,0,0,.35)"/>
+      <line x1="140" y1="${Y0 + 142 * ESC + 12}" x2="940" y2="${Y0 + 142 * ESC + 12}" stroke="#24324d" stroke-width="4" stroke-linecap="round"/>
+      ${muneco(X0, Y0, ESC, `<rect x="-16" y="-20" width="34" height="30" rx="8" fill="#0b1222" stroke="${ATRAS}" stroke-width="5"/>`)}
+      <g class="chispas" opacity="0" fill="#e9c46a">${[[-70, -40], [60, -60], [-40, 50], [70, 30]].map(([dx, dy], i) => `<path class="ch ch-${i}" data-d="${dx},${dy}" d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z"/>`).join('')}</g>
+      <g class="moneda" transform="translate(0,-200)"><circle r="34" fill="#e9c46a" stroke="#b8902e" stroke-width="5"/><circle r="22" fill="none" stroke="#b8902e" stroke-width="3"/>
+        <text y="12" text-anchor="middle" font-size="32" font-weight="900" fill="#8a6a1f">${lang === 'en' ? '$' : '€'}</text></g>
+    </svg>
+    <div class="bocadillo" style="position:absolute;left:470px;right:-30px;top:40px;opacity:0;transform-origin:10% 100%">
+      <div style="background:#f1f5f9;color:#0f172a;border-radius:34px;padding:30px 34px;font-size:50px;font-weight:850;line-height:1.12;letter-spacing:-.02em">${t.cierre}</div>
+      <svg width="70" height="50" viewBox="0 0 70 50" style="display:block;margin-left:40px;margin-top:-2px"><path d="M0 0 H60 L8 48 Z" fill="#f1f5f9"/></svg>
+    </div>
+  </div>`,
+  anim: function (s, e, el) {
+    const X0 = 440, Y0 = 600, K = 1.45, rad = (g) => g * Math.PI / 180;   // mismas coordenadas que el SVG
+    const r = (sel, tr) => el.querySelector(sel).setAttribute('transform', tr);
+    // Postura de pie y brazo delantero según el momento.
+    let th, ph;
+    if (s < 0.95) { const p = sale(tramo(s, 0.2, 0.75)); th = lerp(12, -165, p); ph = lerp(-10, 0, p); }
+    else if (s < 1.6) { const p = sale(tramo(s, 0.95, 1.5)); th = lerp(-165, 25, p); ph = lerp(0, -40, p); }
+    else { const p = sale(tramo(s, 1.6, 2.0)); th = lerp(25, -100, p); ph = lerp(-40, -40 + 20 * Math.sin(s * 8), p); }   // saludo: brazo abierto y antebrazo que se mueve
+    r('.pa', 'rotate(-6)'); r('.pb', 'rotate(8)'); r('.pa2', 'translate(0,72) rotate(0)'); r('.pb2', 'translate(0,72) rotate(0)');
+    r('.bb', 'translate(6,-96) rotate(10)'); r('.bb2', 'translate(0,50) rotate(-12)');
+    r('.ba', 'translate(6,-96) rotate(' + th + ')'); r('.ba2', 'translate(0,50) rotate(' + ph + ')');
+    const habla = s > 1.6 ? Math.abs(Math.sin(s * 9)) * 6 : 0;
+    r('.bob', 'translate(0,' + (-habla) + ')');
+    // Mano (para que la moneda la siga).
+    const mx = 6 - 50 * Math.sin(rad(th)) - 44 * Math.sin(rad(th + ph)), my = -96 - habla + 50 * Math.cos(rad(th)) + 44 * Math.cos(rad(th + ph));
+    const hx = X0 + K * mx, hy = Y0 + K * my;
+    const mon = el.querySelector('.moneda');
+    if (s < 0.95) { const p = tramo(s, 0.15, 0.95); mon.setAttribute('transform', 'translate(' + hx + ',' + lerp(-260, hy, p * p) + ') rotate(' + (s * 400) + ')'); mon.setAttribute('opacity', 1); }
+    else { mon.setAttribute('transform', 'translate(' + hx + ',' + hy + ') scale(' + (1 - 0.6 * tramo(s, 1.35, 1.55)) + ')'); mon.setAttribute('opacity', 1 - tramo(s, 1.45, 1.6)); }
+    // Destellos al entrar en el bolsillo.
+    const c = tramo(s, 1.5, 2.2), bx = X0 + K * 1, by = Y0 + K * -5;
+    el.querySelector('.chispas').setAttribute('opacity', c > 0 && c < 1 ? Math.sin(c * Math.PI) : 0);
+    el.querySelectorAll('.ch').forEach((ch) => { const [dx, dy] = ch.dataset.d.split(',').map(Number); ch.setAttribute('transform', 'translate(' + (bx + dx * (0.4 + c)) + ',' + (by + dy * (0.4 + c)) + ') scale(' + (1.2 - c * 0.6) + ')'); });
+    // Bocadillo.
+    const b = rebote(tramo(s, 1.7, 2.15)), bo = el.querySelector('.bocadillo');
+    bo.style.opacity = Math.min(1, b * 1.5); bo.style.transform = 'scale(' + (0.6 + 0.4 * b) + ')';
+  }
 };
 
-module.exports = { C, icono, VOZ, CIERRE, CSS, bucle, cierre };
+module.exports = { C, icono, VOZ, CIERRE, CSS, bucle, cierre, muneco };

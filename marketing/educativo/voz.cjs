@@ -94,8 +94,9 @@ async function sintetizar(frases, voz, cred) {
     const { GoogleAuth } = require(path.join(cred.fbt, 'node_modules/google-auth-library'));
     cliente = await new GoogleAuth({ keyFile: cred.sa, scopes: ['https://www.googleapis.com/auth/cloud-platform'] }).getClient();
   }
-  const out = [];
-  for (const f of frases) {
+  const out = [], intentos = {}, frasesPend = [...frases];
+  while (frasesPend.length) {
+    const f = frasesPend.shift();
     const txt = limpiar(f, !!voz.modelo);
     const clave = crypto.createHash('sha1').update([voz.modelo || '', voz.estilo || '', voz.nombre, voz.ritmo || 1, txt].join('|')).digest('hex').slice(0, 16);
     const archivo = path.join(CACHE, `${clave}.wav`);
@@ -120,6 +121,13 @@ async function sintetizar(frases, voz, cred) {
       const b = Buffer.from(r.data.audioContent, 'base64');
       fs.writeFileSync(archivo, b.toString('ascii', 0, 4) === 'RIFF' ? b : aWav(b, 24000));
       recortar(archivo);
+      // A veces el modelo se inventa frases: si la toma dura mucho más de lo que da el texto, se repite.
+      const esperado = limpiar(f).length / 15;
+      if (durWav(archivo) > esperado * 1.9 + 1.5) {
+        fs.unlinkSync(archivo);
+        if ((intentos[clave] = (intentos[clave] || 0) + 1) < 3) { frasesPend.unshift(f); continue; }
+        throw new Error(`voz «${txt}»: la toma sale demasiado larga tras 3 intentos`);
+      }
     }
     if (fs.existsSync(archivo)) {
       // Ritmo: pausas internas acortadas (voz.pausaMax) y un punto más de velocidad sin

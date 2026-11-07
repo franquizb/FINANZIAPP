@@ -1,6 +1,6 @@
 // Reel hablado: la cinta de correr del dinero (inflación del estilo de vida).
 // Estructura: gancho → intro → cuerpo 1 (algo que no sabían) → bucle → cuerpo 2 → bucle → final.
-const { C, icono, VOZ, CIERRE, CSS, bucle, cierre } = require('./_comun');
+const { C, icono, VOZ, CIERRE, CSS, bucle, cierre, muneco } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 const N = {
@@ -20,6 +20,7 @@ const T = {
   en: {
     kicker: 'MONEY, HONESTLY',
     titulo: 'Got a raise. <span class="c">Still broke.</span>',
+    retencion: 'Stay for the <span class="c">10-second fix</span>',
     l: { antes: 'Before the raise', despues: 'After the raise', sueldo: 'SALARY', gasto: 'SPENDING', ahorro: 'SAVINGS', sobra: 'Left at month end', mes: '/mo',
       felicidad: 'Happiness', tiempo: 'Time', termino: 'Hedonic treadmill', fuente: 'Brickman & Campbell, 1971', disfrutar: 'to enjoy', ahorrar: 'to savings',
       subida: 'raise', anio: 'a year', loco: 'Not the crazy part…', notar: 'Will you miss it?', mitad: 'Half of every raise' },
@@ -42,6 +43,7 @@ const T = {
   es: {
     kicker: 'DINERO, SIN RODEOS',
     titulo: 'Te subieron el sueldo. <span class="c">Y sigues sin un duro.</span>',
+    retencion: 'Quédate hasta el truco de los <span class="c">10 segundos</span>',
     l: { antes: 'Antes de la subida', despues: 'Después de la subida', sueldo: 'SUELDO', gasto: 'GASTOS', ahorro: 'AHORRO', sobra: 'Te sobra a fin de mes', mes: '/mes',
       felicidad: 'Felicidad', tiempo: 'Tiempo', termino: 'Cinta de correr hedónica', fuente: 'Brickman y Campbell, 1971', disfrutar: 'para disfrutar', ahorrar: 'al ahorro',
       subida: 'de subida', anio: 'al año', loco: 'Eso no es lo más loco…', notar: '¿Lo vas a notar?', mitad: 'La mitad de cada subida' },
@@ -64,21 +66,8 @@ const T = {
 };
 
 const din = (n, l) => (l === 'en' ? '$' + n.toLocaleString('en-US') : n.toLocaleString('de-DE') + ' €');
-const ROJO = '#e66767', ATRAS = '#2a9d8f';
+const ROJO = '#e66767';
 
-// Corredor sin cara, de trazo grueso (cadera en el origen).
-const corredor = (x, y) => {
-  const L = (x2, y2, c) => `<line x1="0" y1="0" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="20" stroke-linecap="round"/>`;
-  const pierna = (k, c) => `<g class="p${k}">${L(0, 72, c)}<g class="p${k}2" transform="translate(0,72)">${L(0, 70, c)}<line x1="0" y1="70" x2="18" y2="70" stroke="${c}" stroke-width="20" stroke-linecap="round"/></g></g>`;
-  const brazo = (k, c) => `<g class="b${k}" transform="translate(6,-96)">${L(0, 50, c)}<g class="b${k}2" transform="translate(0,50)">${L(0, 44, c)}</g></g>`;
-  return `<g class="corredor" transform="translate(${x},${y})"><g class="bob">
-    ${brazo('b', ATRAS)}${pierna('b', ATRAS)}
-    <line x1="0" y1="0" x2="10" y2="-112" stroke="${C.acento}" stroke-width="22" stroke-linecap="round"/>
-    <circle cx="17" cy="-150" r="31" fill="${C.acento}"/>
-    ${pierna('a', C.acento)}${brazo('a', C.acento)}
-    <g class="gotas" opacity="0"><path d="M58 -170 q8 12 0 18 q-8 -6 0 -18z" fill="#93c5fd"/><path d="M66 -140 q7 10 0 15 q-7 -5 0 -15z" fill="#93c5fd"/></g>
-  </g></g>`;
-};
 
 // Escena de la cinta (modo «atrapado» o «final»).
 const cinta = (t, lang, modo) => {
@@ -112,7 +101,7 @@ const cinta = (t, lang, modo) => {
       <text class="v-sueldo" x="26" y="88" font-size="42" font-weight="800" fill="${C.acento}">${din(n.sueldo[modo === 'final' ? 1 : 0], lang)}</text>
       <text x="26" y="128" font-size="22" font-weight="700" letter-spacing="2" fill="${C.suave}">${l.gasto}</text>
       <text class="v-gasto" x="26" y="168" font-size="42" font-weight="800" fill="${C.caprichos}">${din(modo === 'final' ? n.sueldo[1] - n.subida / 2 : n.sueldo[0], lang)}</text></g>
-    ${corredor(430, 548)}
+    ${muneco(430, 548)}
   </svg>`;
 };
 

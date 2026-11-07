@@ -9,7 +9,7 @@
 //   node publicar-drive.cjs <…> <…> reel <out-reels/slug> "<Día…>" "<N · Reel · Título>"
 //   node publicar-drive.cjs <…> <…> doc <archivo.html> "<carpeta destino o raíz>" "<título>"   (HTML → Google Doc)
 //   node publicar-drive.cjs <…> <…> hoja <archivo.csv> "<carpeta destino o raíz>" "<título>"  (CSV → Google Sheet)
-//   Con --reemplazar al final, un doc u hoja que ya existe se actualiza (mismo enlace).
+//   Con --reemplazar al final, lo que ya existe se actualiza (mismo enlace): docs, hojas, vídeos e imágenes.
 const fs = require('fs'), path = require('path');
 const { GoogleAuth } = require(process.argv[2] + '/node_modules/google-auth-library');
 const [, , , keyFile, modo, origen, destino, titulo, opcion] = process.argv;
@@ -31,7 +31,12 @@ const TIPOS = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.png': 'image/png' }
   const ruta = async (partes) => { let p = { id: unidad.id }; for (const x of partes.filter(Boolean)) p = await carpeta(x, p.id); return p; };
   // Subida multiparte; con `convertirA` Drive lo convierte (Doc u Hoja de cálculo).
   const subir = async (nombre, padre, datos, tipo, convertirA) => {
-    if (await buscar(nombre, padre, false)) return false;
+    const existe = await buscar(nombre, padre, false);
+    if (existe && opcion === '--reemplazar' && !convertirA) {   // vídeos e imágenes: nuevo contenido, mismo enlace
+      await pedir({ url: `${SUBIDA}/${existe.id}?uploadType=media&supportsAllDrives=true`, method: 'PATCH', headers: { 'Content-Type': tipo }, data: datos });
+      return true;
+    }
+    if (existe) return false;
     const limite = 'finanziapp' + Date.now() + Math.random().toString(16).slice(2);
     const meta = { name: nombre, parents: [padre], ...(convertirA ? { mimeType: convertirA } : {}) };
     const cuerpo = Buffer.concat([Buffer.from(`--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${limite}\r\nContent-Type: ${tipo}\r\n\r\n`), datos, Buffer.from(`\r\n--${limite}--`)]);

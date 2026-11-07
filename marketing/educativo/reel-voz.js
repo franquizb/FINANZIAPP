@@ -1,5 +1,6 @@
 // Reels hablados (9:16): voz en off, subtítulos grandes y una metáfora animada.
-// Uso: node reel-voz.js <slug> [en|es…] [--vista] [--sin-voz]
+// Uso: node reel-voz.js <slug> [en|es…] [--vista] [--escena=N] [--sin-voz]
+// --escena=N saca 8 fotogramas repartidos por la escena N (para revisar una animación).
 // Salida: out-reels/<slug>/<idioma>/reel.mp4 · portada.jpg · texto.txt
 //
 // El guion (reels-voz/<slug>.js) es una lista de frases [escena, texto]; las
@@ -10,6 +11,8 @@
 // real de la voz. Cada escena puede tener una animación anim(s, e, el) que se
 // ejecuta en la página con el tiempo local s (segundos) y e.seg = inicio y
 // duración de sus frases. Los elementos con class="a" entran uno tras otro.
+// T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
+// retención); se oculta en la última escena (el cierre).
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
 // --sin-voz, sale reel-sin-voz.mp4 con silencios de duración estimada.
 const { chromium } = require('playwright');
@@ -83,12 +86,17 @@ function pagina(reel, lang, L) {
     #sub { position: absolute; left: 70px; right: 70px; top: 1215px; height: 270px; display: flex; align-items: center; justify-content: center; text-align: center;
       font-size: 68px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #fff; text-shadow: 0 4px 22px rgba(0,0,0,.55); }
     #sub .c { color: ${C.acento}; }
+    #retencion { position: absolute; left: 60px; right: 60px; top: 150px; text-align: center; }
+    #retencion span.caja { display: inline-block; background: rgba(15,23,42,.82); border: 2px solid rgba(94,234,212,.4); border-radius: 22px; padding: 14px 28px;
+      font-size: 44px; line-height: 1.15; font-weight: 800; letter-spacing: -.01em; color: #fff; }
+    #retencion .c { color: ${C.acento}; }
     h1 { font-size: ${F.h1}px; }
     ${reel.css || ''}
   </style></head><body>
   ${reel.cabecera ? `<div class="pag"><div class="arriba"><span class="kicker">${t.kicker}</span>${firma()}</div></div>` : ''}
   ${reel.escenas.map((e, i) => `<div class="escena" data-n="${i}">${e.html(t, lang)}</div>`).join('')}
   <div id="sub"></div>
+  ${t.retencion ? `<div id="retencion"><span class="caja">${t.retencion}</span></div>` : ''}
   <script>
   const LANG = ${JSON.stringify(lang)}, D = ${JSON.stringify(reel.datos ? reel.datos(lang) : {})};
   const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg })))};
@@ -116,6 +124,8 @@ function pagina(reel, lang, L) {
       });
       if (ANIM[i]) ANIM[i](s, e, el);
     });
+    const ret = document.getElementById('retencion');
+    if (ret) ret.style.opacity = Math.min(tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
     const k = SUB.findIndex(x => t >= x.ini && t < x.fin + 0.12);
     if (k !== subActual) { sub.innerHTML = k >= 0 ? '<div>' + SUB[k].html + '</div>' : ''; subActual = k; }
     if (k >= 0) { const p = rebote(tramo(t, SUB[k].ini, SUB[k].ini + 0.18)); sub.style.transform = 'scale(' + (0.86 + 0.14 * p) + ')'; sub.style.opacity = Math.min(1, p * 1.5); }
@@ -123,7 +133,8 @@ function pagina(reel, lang, L) {
   </script></body></html>`;
 }
 
-async function grabar(browser, reel, lang, { vista, sinVoz }) {
+async function grabar(browser, reel, lang, op) {
+  const { vista, sinVoz } = op;
   const t = reel.T[lang];
   const dir = path.join(__dirname, 'out-reels', reel.slug, lang);
   fs.mkdirSync(dir, { recursive: true });
@@ -140,6 +151,15 @@ async function grabar(browser, reel, lang, { vista, sinVoz }) {
   const desborda = await page.evaluate(() => [...document.querySelectorAll('.escena')].map((c, i) => c.scrollHeight > c.clientHeight + 2 ? i + 1 : 0).filter(Boolean));
   if (desborda.length) console.log(`⚠ ${reel.slug} ${lang}: no caben las escenas ${desborda.join(', ')}`);
   for (const f of fs.readdirSync(dir)) if (f.startsWith('vista-')) fs.unlinkSync(path.join(dir, f));
+  if (op.escena != null) {
+    const e = L.escenas[op.escena];
+    for (let i = 0; i < 8; i++) {
+      await page.evaluate((x) => pintar(x), e.ini + (e.fin - e.ini) * (i + 0.5) / 8);
+      await page.screenshot({ path: path.join(dir, `vista-escena${op.escena}-${i + 1}.jpg`), type: 'jpeg', quality: 80 });
+    }
+    await page.close(); fs.unlinkSync(tmp);
+    return { total: L.total, real };
+  }
   if (vista) {
     // Un fotograma al final de cada frase y otro al final del vídeo.
     const momentos = [...L.frases.map(f => f.ini + f.dur - 0.05), L.total - 0.05];
@@ -181,7 +201,8 @@ async function grabar(browser, reel, lang, { vista, sinVoz }) {
   const args = process.argv.slice(2);
   const reel = require(`./reels-voz/${args[0]}.js`);
   const idiomas = args.filter(a => ['en', 'es'].includes(a));
-  const op = { vista: args.includes('--vista'), sinVoz: args.includes('--sin-voz') };
+  const esc = args.find(a => a.startsWith('--escena='));
+  const op = { vista: args.includes('--vista'), sinVoz: args.includes('--sin-voz'), escena: esc ? +esc.split('=')[1] : null };
   const browser = await chromium.launch();
   for (const lang of idiomas.length ? idiomas : ['en', 'es']) {
     const ini = Date.now();
