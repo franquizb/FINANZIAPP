@@ -28,7 +28,7 @@ const FORMATOS = {
       const total = tema.diapositivas.length;
       for (const [i, d] of tema.diapositivas.entries()) {
         const pie = i === 0 ? t.desliza : i === total - 1 ? 'finanziapp.com' : '';
-        const html = pagina({ F, lang, kicker: t.kicker, n: i + 1, total, contenido: d(t), pie });
+        const html = pagina({ F, lang, kicker: t.kicker, n: i + 1, total, contenido: d(t, lang), pie });
         const tmp = path.join(dir, '.tmp.html');
         fs.writeFileSync(tmp, html);
         await page.goto('file://' + tmp, { waitUntil: 'load' });
