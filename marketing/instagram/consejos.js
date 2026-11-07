@@ -41,8 +41,8 @@ function rellenar(c, lang) {
 // Gancho palabra a palabra sin romper el resaltado <em>…</em> entre palabras.
 function palabrasGancho(lineas) {
   const out = [];
-  lineas.forEach((linea, li) => {
-    if (li) out.push('<br>');
+  // Sin salto forzado entre las dos partes: el texto fluye y no deja palabras sueltas.
+  lineas.forEach((linea) => {
     let dentro = false;
     linea.split(/\s+/).forEach(w => {
       const abre = w.includes('<em>'), cierra = w.includes('</em>');
@@ -91,7 +91,7 @@ function paginaVideo(c, lang) {
   .capa { position: absolute; left: ${V.pad[3]}px; right: ${V.pad[1]}px; }
   .cab { position: absolute; left: ${V.pad[3]}px; right: ${V.pad[3]}px; top: 230px; display: flex; justify-content: space-between; align-items: center; }
   .cab .kicker { margin: 0; }
-  .gancho { top: 50%; transform: translateY(-58%); font-family: 'Inter Display', 'Inter'; font-weight: 900; font-size: 112px; line-height: 1.02; letter-spacing: -.045em; }
+  .gancho { top: 50%; transform: translateY(-58%); font-family: 'Inter Display', 'Inter'; font-weight: 900; font-size: 118px; text-wrap: balance; line-height: 1.02; letter-spacing: -.045em; }
   .gancho span { display: inline-block; margin-right: .2em; }
   .gancho em, h2 em { font-style: normal; background: linear-gradient(90deg, #2dd4bf, #38bdf8); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .titulo-pasos { top: ${V.pad[0] + 150}px; }
