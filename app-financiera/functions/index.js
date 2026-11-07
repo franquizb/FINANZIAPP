@@ -137,7 +137,20 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
     throw new HttpsError('failed-precondition', 'Los pagos todavía no están abiertos.');
   }
 
+  // Un cliente guardado que no existe en este modo de Stripe (p. ej. creado en
+  // el entorno de prueba antes de pasar a real) se descarta y se crea otro.
   let customerId = u.stripeCustomerId;
+  if (customerId) {
+    const existe = await stripe.customers.retrieve(customerId)
+      .then(c => !c.deleted)
+      .catch(e => { if (e?.code === 'resource_missing') return false; throw e; });
+    if (!existe) {
+      logger.warn('Cliente de Stripe inexistente en este modo; se crea uno nuevo', { uid });
+      customerId = null;
+      await ref.set({ stripeCustomerId: null, stripeSubscriptionId: null, stripeStatus: null, cancelAtPeriodEnd: false }, { merge: true });
+      Object.assign(u, { stripeSubscriptionId: null, stripeStatus: null });
+    }
+  }
   if (!customerId) {
     const cliente = await stripe.customers.create({
       email: req.auth.token.email || u.email || undefined,
