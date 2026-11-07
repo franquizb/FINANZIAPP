@@ -43,6 +43,11 @@ cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
 - `reels-voz/<slug>.js`: guion por frases `[escena, texto]` en EN y ES.
   `*palabra*` sale resaltada en los subtítulos, `[sarcasm]`, `[short pause]`…
   dirigen la voz (no salen en pantalla) y `§` marca momentos para la animación.
+- **Voz oficial** (aprobada por el propietario, no cambiar sin que lo pida):
+  `reels-voz/_comun.js` → `VOZ` (Gemini 3.1 Flash TTS, voz Charon, tono seco y
+  sarcástico, acento peninsular estándar en español, ritmo 1,1× con pausas de
+  0,42 s como máximo). Cada Reel nuevo usa `voz: VOZ`, más las escenas comunes
+  `bucle(…)` y `cierre`.
 - `voz.cjs`: voz de Google Cloud Text-to-Speech (Gemini TTS, dirigida con un
   `estilo`); cada frase se guarda en `cache-voz/` para no volver a pagarla.
 - `reel-voz.js`: escenas al ritmo real de la voz, subtítulos grandes y

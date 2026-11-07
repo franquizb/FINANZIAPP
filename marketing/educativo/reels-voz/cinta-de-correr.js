@@ -1,6 +1,6 @@
 // Reel hablado: la cinta de correr del dinero (inflación del estilo de vida).
 // Estructura: gancho → intro → cuerpo 1 (algo que no sabían) → bucle → cuerpo 2 → bucle → final.
-const { C, icono } = require('../comun');
+const { C, icono, VOZ, CIERRE, CSS, bucle, cierre } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 const N = {
@@ -15,11 +15,6 @@ for (const l of ['en', 'es']) {
 cuadra('anual en', N.en.subida / 2 * 12, 1800);
 cuadra('anual es', N.es.subida / 2 * 12, 1200);
 
-const ESTILO = 'You are a witty, smart friend explaining money in a short vertical video. Fast, punchy delivery like a top short-form creator: quick rhythm, short pauses. Deadpan and dry, with playful sarcasm and sharp comedic timing: let the irony live in your intonation, a tiny beat before each punchline, sound amused, never mean, never like an ad.';
-const MODELO = 'gemini-3.1-flash-tts-preview';
-// En español, la indicación va en español y pide acento peninsular estándar, siempre en positivo:
-// si se menciona otro acento para descartarlo, el filtro de Google rechaza las frases.
-const ESTILO_ES = 'Eres un amigo listo que explica dinero en un vídeo corto. Hablas español de España con el acento peninsular estándar de un locutor de radio o pódcast español: con distinción (la z y la c de «ce» y «ci» suenan como en España) y la entonación de España, sin exagerar acentos regionales. Entrega rápida y con gancho, como un buen creador de contenido: frases ágiles y pausas cortas. Tono seco y sarcástico, con buen timing cómico: la ironía se nota en la entonación y hay un mini silencio antes de cada remate; divertido, nunca borde ni con voz de anuncio.';
 
 const T = {
   en: {
@@ -42,7 +37,7 @@ const T = {
       [6, 'Enjoy the other half. You earned it. [short pause] *Literally*.'],
       [7, '[amusement] Follow. Your *future self* is already annoyed you haven’t.']
     ],
-    cierre: ['Money, <span class="c">honestly.</span>', 'Follow for more.']
+    cierre: CIERRE.en
   },
   es: {
     kicker: 'DINERO, SIN RODEOS',
@@ -64,7 +59,7 @@ const T = {
       [6, 'La otra mitad, disfrútala. Te la has ganado. [short pause] *Literalmente*.'],
       [7, 'Tu *yo del futuro* ya se está impacientando. [short pause] Síguenos.']
     ],
-    cierre: ['Dinero, <span class="c">sin rodeos.</span>', 'Síguenos para más.']
+    cierre: CIERRE.es
   }
 };
 
@@ -157,25 +152,16 @@ function correr(el, s, vel) {
 
 module.exports = {
   slug: 'cinta-de-correr',
-  voz: {
-    en: { modelo: MODELO, nombre: 'Charon', idioma: 'en-US', estilo: ESTILO + ' Natural, conversational American English.', tempo: 1.1, pausaMax: 0.42 },
-    es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO_ES, tempo: 1.1, pausaMax: 0.42 }
-  },
+  voz: VOZ,
   T,
   datos: (lang) => ({ ...N[lang] }),
   script: SCRIPT,
-  css: `
-    .gancho h1 { font-size: 76px; }
+  css: CSS + `
     .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 54px; }
     .dos .tarjeta { padding: 34px 30px; }
     .dos .eti { font-size: 28px; color: ${C.suave}; font-weight: 650; }
     .dos .grande { font-size: 64px; font-weight: 800; letter-spacing: -.03em; margin-top: 6px; font-variant-numeric: tabular-nums; }
     .dos .peq { font-size: 26px; color: ${C.suave}; font-weight: 600; margin-top: 22px; }
-    .sello { display: inline-block; border: 6px solid ${C.acento}; color: ${C.acento}; border-radius: 22px; padding: 18px 34px; font-size: 64px; font-weight: 850; letter-spacing: -.01em; text-transform: uppercase; line-height: 1.05; }
-    .pregunta { width: 380px; height: 380px; border-radius: 50%; background: rgba(94,234,212,.1); border: 6px solid ${C.acento}; display: flex; align-items: center; justify-content: center; margin: 70px auto 0; position: relative; }
-    .pregunta .q { font-size: 250px; font-weight: 850; color: ${C.acento}; line-height: 1; }
-    .pregunta .reloj { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; }
-    .frase-grande { font-size: 70px; font-weight: 800; text-align: center; letter-spacing: -.02em; margin-top: 40px; }
   `,
   escenas: [
     // 0 · Gancho: subida de sueldo y te sobra lo mismo (nada).
@@ -235,16 +221,7 @@ module.exports = {
       }
     },
     // 3 · Bucle 1: «eso no es lo más loco» → bajarse cuesta diez segundos.
-    {
-      html: (t) => `<div class="frase-grande a">${t.l.loco}</div>
-        <div class="pregunta"><span class="q">?</span><div class="reloj">${icono('reloj', C.acento, 150)}<div style="font-size:84px;font-weight:850;color:${C.acento};margin-top:8px">10 s</div></div></div>`,
-      anim: function (s, e, el) {
-        const m = e.seg[0].marcas[0], q = el.querySelector('.q'), r = el.querySelector('.reloj');
-        const cambio = sale(tramo(s, m, m + 0.4));
-        q.style.transform = 'translateY(' + (-Math.abs(Math.sin(s * 3.2)) * 26) + 'px) rotate(' + (Math.sin(s * 2.1) * 6) + 'deg) scale(' + (1 - cambio) + ')';
-        r.style.opacity = cambio; r.style.transform = 'scale(' + (0.6 + 0.4 * rebote(tramo(s, m, m + 0.5))) + ')';
-      }
-    },
+    bucle((t) => t.l.loco, () => `${icono('reloj', C.acento, 150)}<div style="font-size:84px;font-weight:850;color:${C.acento};margin-top:8px">10 s</div>`),
     // 4 · Cuerpo 2: la mitad de cada subida, al ahorro el mismo día.
     {
       html: (t, lang) => { const n = N[lang], l = t.l; return `<div style="position:relative;height:900px">
@@ -279,12 +256,7 @@ module.exports = {
       }
     },
     // 5 · Bucle 2: ¿lo vas a notar?
-    {
-      html: (t) => `<div class="frase-grande a">${t.l.notar}</div><div class="pregunta"><span class="q">?</span></div>`,
-      anim: function (s, e, el) {
-        el.querySelector('.q').style.transform = 'translateY(' + (-Math.abs(Math.sin(s * 3.2)) * 26) + 'px) rotate(' + (Math.sin(s * 2.1) * 6) + 'deg)';
-      }
-    },
+    bucle((t) => t.l.notar),
     // 6 · Final: la misma cinta, pero ahora avanzas (la ciudad se mueve y el ahorro sube).
     {
       html: (t, lang) => cinta(t, lang, 'final'),
@@ -298,10 +270,7 @@ module.exports = {
       }
     },
     // 7 · Cierre.
-    {
-      html: (t) => `<div style="padding-top:160px;text-align:center"><div class="a" style="display:flex;justify-content:center;margin-bottom:40px"><span style="width:150px;height:150px;border-radius:40px;background:${C.necesidades};display:inline-flex;align-items:center;justify-content:center"><svg width="86" height="86" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
-        <h1 class="a" style="font-size:90px">${t.cierre[0]}</h1><p class="lead a" style="margin:28px auto 0;text-align:center">${t.cierre[1]}</p></div>`
-    }
+    cierre
   ],
   texto: {
     en: `You got a raise… and you're exactly as broke as before. Congratulations. 🏃
