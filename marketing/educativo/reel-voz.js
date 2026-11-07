@@ -19,7 +19,7 @@ const fs = require('fs');
 const { C, css, firma } = require('./comun');
 const { sintetizar } = require('./voz.cjs');
 
-const FPS = 30, PAUSA = 0.3, CAMBIO = 0.18, INICIO = 0.3, COLA = 2.2, FUNDIDO = 0.3;
+const FPS = 30, PAUSA = 0.2, CAMBIO = 0.12, INICIO = 0.25, COLA = 1.8, FUNDIDO = 0.3;
 const F = { w: 1080, h: 1920, arriba: 210, abajo: 420, lado: 84, h1: 78, txt: 40, centrar: false };
 
 // Trocea una frase en golpes de subtítulo (2–4 palabras) con su parte del tiempo.
@@ -169,7 +169,8 @@ async function grabar(browser, reel, lang, { vista, sinVoz }) {
   fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })) }));
   execFileSync('python3', [path.join(__dirname, 'mezcla.py'), spec]);
   const salida = path.join(dir, real ? 'reel.mp4' : 'reel-sin-voz.mp4');
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', video, '-i', audio, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', salida]);
+  // Volumen al nivel de las redes (unos −14 LUFS).
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', video, '-i', audio, '-c:v', 'copy', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '44100', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', salida]);
   for (const f of [tmp, video, musica, audio, spec]) fs.unlinkSync(f);
   if (real && fs.existsSync(path.join(dir, 'reel-sin-voz.mp4'))) fs.unlinkSync(path.join(dir, 'reel-sin-voz.mp4'));
   fs.writeFileSync(path.join(dir, 'texto.txt'), reel.texto[lang]);

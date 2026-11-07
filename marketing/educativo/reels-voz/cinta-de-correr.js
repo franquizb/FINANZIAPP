@@ -15,7 +15,7 @@ for (const l of ['en', 'es']) {
 cuadra('anual en', N.en.subida / 2 * 12, 1800);
 cuadra('anual es', N.es.subida / 2 * 12, 1200);
 
-const ESTILO = 'You are a witty, smart friend explaining money in a short vertical video. Deliver it deadpan and dry, with playful sarcasm and perfect comedic timing: let the irony live in your intonation, take a tiny beat before each punchline, and sound amused, never mean, never like an ad.';
+const ESTILO = 'You are a witty, smart friend explaining money in a short vertical video. Fast, punchy delivery like a top short-form creator: quick rhythm, short pauses. Deadpan and dry, with playful sarcasm and sharp comedic timing: let the irony live in your intonation, a tiny beat before each punchline, sound amused, never mean, never like an ad.';
 const MODELO = 'gemini-3.1-flash-tts-preview';
 
 const T = {
@@ -27,17 +27,17 @@ const T = {
       subida: 'raise', anio: 'a year', loco: 'Not the crazy part…', notar: 'Will you miss it?', mitad: 'Half of every raise' },
     guion: [
       [0, '[sarcasm] Congratulations, you got a *raise*.'],
-      [0, 'And somehow, you’re *exactly as broke* as before. [short pause] Impressive.'],
-      [1, 'Meet the *money treadmill*. You’ve been running on it for years.'],
-      [1, 'You earn more,§ it speeds up.§ A nicer phone, because the old one was *so* slow.§ A bigger place.§ Three subscriptions you’ll *definitely* use.'],
-      [2, 'Fun fact: psychologists literally call this the §*hedonic treadmill*. You get used to every upgrade. [short pause] Fast.'],
-      [3, 'But that’s not the crazy part. [short pause] Getting off takes §*ten seconds*. And almost nobody does it.'],
-      [4, 'Next raise: §*half of it* goes to savings. The day it lands. Before you decide you deserve a treat.'],
-      [4, 'A $300 raise? *$150* saved. That’s §*$1,800* a year.'],
+      [0, 'And you’re still *exactly as broke*. [short pause] Impressive.'],
+      [1, 'Meet the *money treadmill*. You’ve been on it for years.'],
+      [1, 'You earn more,§ it speeds up.§ New phone, because the old one was *so* slow.§ Bigger place.§ Three subscriptions you’ll *definitely* use.'],
+      [2, 'Psychologists literally call this the §*hedonic treadmill*. You get used to every upgrade. [short pause] Fast.'],
+      [3, 'But that’s not the crazy part. Getting off takes §*ten seconds*. [short pause] And almost nobody does it.'],
+      [4, 'Next raise: §*half of it* goes to savings. The day it lands. Before you decide you *deserve a treat*.'],
+      [4, '$300 raise? *$150* saved. That’s §*$1,800* a year.'],
       [5, 'And you won’t even miss it. [short pause] Want to know why?'],
       [6, 'Because now the treadmill works *for you*. You get used to the new normal. Same as the phone.'],
-      [6, 'Enjoy the other half. [short pause] You earned it. *Literally*.'],
-      [7, 'Follow for money advice that *doesn’t sound like your bank*.']
+      [6, 'Enjoy the other half. You earned it. [short pause] *Literally*.'],
+      [7, '[amusement] Follow. Your *future self* is already annoyed you haven’t.']
     ],
     cierre: ['Money, <span class="c">honestly.</span>', 'Follow for more.']
   },
@@ -49,17 +49,17 @@ const T = {
       subida: 'de subida', anio: 'al año', loco: 'Eso no es lo más loco…', notar: '¿Lo vas a notar?', mitad: 'La mitad de cada subida' },
     guion: [
       [0, '[sarcasm] Enhorabuena, te han subido el *sueldo*.'],
-      [0, 'Y aun así llegas a fin de mes *igual de justo*. [short pause] Todo un logro.'],
-      [1, 'Te presento la *cinta de correr del dinero*. Llevas años corriendo en ella.'],
-      [1, 'Ganas más,§ y la cinta acelera.§ Un móvil nuevo, porque el otro tenía *dos años*, pobre.§ Un piso más grande.§ Tres suscripciones que, seguro, *vas a usar*.'],
-      [2, 'Dato curioso: los psicólogos lo llaman, literalmente, §*la cinta de correr hedónica*. Te acostumbras a cualquier mejora. [short pause] Y rápido.'],
-      [3, 'Pero eso no es lo más loco. [short pause] Bajarse cuesta §*diez segundos*. Y casi nadie lo hace.'],
-      [4, 'Próxima subida: §*la mitad* al ahorro. El mismo día que llega. Antes de que decidas que te lo mereces.'],
+      [0, 'Y sigues llegando a fin de mes *igual de justo*. [short pause] Todo un logro.'],
+      [1, '[amusement] Bienvenido a la *cinta de correr del dinero*. Llevas años subido a ella.'],
+      [1, 'Ganas más,§ y la cinta acelera.§ Móvil nuevo, porque el otro tenía *dos años*, pobre.§ Piso más grande.§ Tres suscripciones que, seguro, *vas a usar*.'],
+      [2, 'Los psicólogos lo llaman, literalmente, §*la cinta de correr hedónica*. Te acostumbras a cualquier mejora. [short pause] Y rápido.'],
+      [3, 'Pero eso no es lo más loco. Bajarse cuesta §*diez segundos*. [short pause] Y casi nadie lo hace.'],
+      [4, 'Próxima subida: §*la mitad* al ahorro. El mismo día que llega. Antes de que decidas que *te lo mereces*.'],
       [4, '¿Te suben 200 €? *100 €* al ahorro. Son §*1.200 € al año*.'],
       [5, 'Y ni lo vas a notar. [short pause] ¿Quieres saber por qué?'],
       [6, 'Porque ahora la cinta trabaja *para ti*. Te acostumbras a lo nuevo. Como al móvil.'],
-      [6, 'La otra mitad, disfrútala. [short pause] Te la has ganado. *Literalmente*.'],
-      [7, 'Síguenos para consejos de dinero que *no suenan a tu banco*.']
+      [6, 'La otra mitad, disfrútala. Te la has ganado. [short pause] *Literalmente*.'],
+      [7, '[amusement] Síguenos. Tu *yo del futuro* ya se está impacientando.']
     ],
     cierre: ['Dinero, <span class="c">sin rodeos.</span>', 'Síguenos para más.']
   }
@@ -155,8 +155,8 @@ function correr(el, s, vel) {
 module.exports = {
   slug: 'cinta-de-correr',
   voz: {
-    en: { modelo: MODELO, nombre: 'Charon', idioma: 'en-US', estilo: ESTILO + ' Natural, conversational American English, brisk pace.' },
-    es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO + ' Speak natural Castilian Spanish from Spain (Madrid accent), conversational and brisk.' }
+    en: { modelo: MODELO, nombre: 'Charon', idioma: 'en-US', estilo: ESTILO + ' Natural, conversational American English.', tempo: 1.1, pausaMax: 0.42 },
+    es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO + ' Speak natural Castilian Spanish from Spain (Madrid accent), conversational.', tempo: 1.1, pausaMax: 0.42 }
   },
   T,
   datos: (lang) => ({ ...N[lang] }),
