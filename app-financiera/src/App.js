@@ -3766,8 +3766,7 @@ function TarjetaContacto({ user }) {
 // App en el móvil (PWA): botón «Instalar» donde el navegador lo permite
 // (Chrome, Android, Edge) e instrucciones en iPhone. No aparece si ya está
 // instalada o si el navegador no admite instalarla.
-function TarjetaInstalar() {
-  const { t } = useApp();
+function useInstalable() {
   const [aviso, setAviso] = useState(() => window.__avisoInstalar || null);
   useEffect(() => {
     const actualizar = () => setAviso(window.__avisoInstalar || null);
@@ -3776,7 +3775,12 @@ function TarjetaInstalar() {
   }, []);
   const instalada = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone === true;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  if (instalada || (!aviso && !ios)) return null;
+  return { aviso, setAviso, ios, disponible: !instalada && (!!aviso || ios) };
+}
+function TarjetaInstalar() {
+  const { t } = useApp();
+  const { aviso, setAviso, ios, disponible } = useInstalable();
+  if (!disponible) return null;
   const instalar = async () => {
     aviso.prompt();
     try { await aviso.userChoice; } catch (e) { /* cerrado sin elegir */ }
@@ -3887,11 +3891,78 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
   };
 
 
+  // «Mi cuenta»: panel de tarjetas; cada una abre su apartado (?s=…) y el
+  // botón «atrás» del navegador vuelve al panel. Al volver de pagar en Stripe
+  // (?pago=…) se abre directamente la suscripción.
+  const leerSeccion = () => new URLSearchParams(window.location.search).get('s');
+  const [seccion, setSeccion] = useState(() => leerSeccion() || (avisoPago ? 'suscripcion' : null));
+  useEffect(() => {
+    const alVolver = () => setSeccion(leerSeccion());
+    window.addEventListener('popstate', alVolver);
+    return () => window.removeEventListener('popstate', alVolver);
+  }, []);
+  const abrirSeccion = (id) => {
+    window.history.pushState({}, '', id ? `${window.location.pathname}?s=${id}` : window.location.pathname);
+    setSeccion(id);
+    window.scrollTo(0, 0);
+  };
+  const ver = (id) => seccion === id;
+  const { disponible: instalable } = useInstalable();
+  const apartados = [
+    { id: 'perfil', icono: user?.avatar || '👤', titulo: t.cuentaPerfil, desc: t.cuentaPerfilDesc },
+    { id: 'seguridad', icono: '🔒', titulo: t.cuentaSeguridad, desc: t.cuentaSeguridadDesc },
+    { id: 'suscripcion', icono: '💳', titulo: t.cuentaSuscripcion, desc: t.cuentaSuscripcionDesc, estado: sus.texto, color: sus.color },
+    { id: 'preferencias', icono: '⚙️', titulo: t.cuentaPreferencias, desc: t.cuentaPreferenciasDesc },
+    { id: 'secciones', icono: '🧩', titulo: t.cuentaSecciones, desc: t.cuentaSeccionesDesc, visible: !soloLectura },
+    { id: 'categorias', icono: '🏷️', titulo: t.cuentaCategorias, desc: t.cuentaCategoriasDesc, visible: !soloLectura },
+    { id: 'newsletter', icono: '📬', titulo: t.cuentaNewsletter, desc: t.cuentaNewsletterDesc, estado: user?.newsletter ? t.cuentaNewsletterSi : null, color: 'var(--green)' },
+    { id: 'ayuda', icono: '💬', titulo: t.cuentaAyuda, desc: t.cuentaAyudaDesc },
+    { id: 'app', icono: '📱', titulo: t.cuentaApp, desc: t.cuentaAppDesc, visible: instalable },
+    { id: 'apoyo', icono: '💚', titulo: t.cuentaApoyo, desc: t.cuentaApoyoDesc, visible: !!enlaceApoyo() }
+  ];
+
   return (
     <div className="section-gap fade-in">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 24 }}>
+      {!seccion && (
+        <div className="mi-cuenta">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
+            <div style={{ fontSize: 34, width: 56, height: 56, borderRadius: 16, background: 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{user?.avatar || '👤'}</div>
+            <div>
+              <h2 style={{ margin: 0, fontSize: 24, fontWeight: 900, letterSpacing: '-0.02em' }}>{t.cuentaTitulo}</h2>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 2 }}>{tf('cuentaHola', { nombre: user?.displayName || '' })} · {user?.email}</div>
+            </div>
+          </div>
+          <div className="mi-cuenta-rejilla">
+            {apartados.filter(a => a.visible !== false).map(a => (
+              <button key={a.id} type="button" className="card mi-cuenta-tarjeta" onClick={() => abrirSeccion(a.id)}>
+                <span className="mi-cuenta-icono">{a.icono}</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="mi-cuenta-titulo">{a.titulo}</span>
+                  <span className="mi-cuenta-desc">{a.desc}</span>
+                  {a.estado && <span className="mi-cuenta-estado" style={{ color: a.color || 'var(--text-secondary)' }}>{a.estado}</span>}
+                </span>
+                <span className="mi-cuenta-flecha">›</span>
+              </button>
+            ))}
+          </div>
+          <style>{`
+            .mi-cuenta-rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; }
+            .mi-cuenta-tarjeta { display: flex; align-items: center; gap: 16px; text-align: left; cursor: pointer; padding: 18px 18px; margin: 0; font: inherit; color: inherit; transition: transform .15s, border-color .15s; }
+            .mi-cuenta-tarjeta:hover { transform: translateY(-2px); border-color: var(--accent); }
+            .mi-cuenta-icono { width: 52px; height: 52px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; background: var(--accent-light); }
+            .mi-cuenta-titulo { display: block; font-size: 15px; font-weight: 800; color: var(--text-primary); }
+            .mi-cuenta-desc { display: block; font-size: 12.5px; color: var(--text-muted); margin-top: 4px; line-height: 1.45; }
+            .mi-cuenta-estado { display: block; font-size: 12px; font-weight: 700; margin-top: 6px; }
+            .mi-cuenta-flecha { font-size: 26px; color: var(--text-muted); flex: none; }
+          `}</style>
+        </div>
+      )}
+      {seccion && (
+        <button type="button" className="btn btn-ghost" style={{ marginBottom: 16 }} onClick={() => abrirSeccion(null)}>← {t.cuentaTitulo}</button>
+      )}
+      {seccion && <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 24, maxWidth: 920 }}>
         {/* Mi Perfil - Advanced Redesign */}
-        <div className="card" style={{ gridColumn: '1 / -1', padding: 0, overflow: 'hidden', border: '1px solid var(--border)', background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%)' }}>
+        {ver('perfil') && <div className="card" style={{ gridColumn: '1 / -1', padding: 0, overflow: 'hidden', border: '1px solid var(--border)', background: 'linear-gradient(180deg, var(--bg-card) 0%, var(--bg-secondary) 100%)' }}>
           <div style={{ height: 100, background: 'linear-gradient(135deg, var(--accent) 0%, #818cf8 100%)', opacity: 0.9, position: 'relative' }}>
             <div style={{ position: 'absolute', inset: 0, background: 'url(https://www.transparenttextures.com/patterns/cubes.png)', opacity: 0.1 }}></div>
           </div>
@@ -3932,8 +4003,6 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               </div>
             </div>
 
-            {/* Contraseña: cambiarla, o crearla si la cuenta entro con Google y aun no tiene */}
-            <BloquePassword />
 
             {isEditingProfile ? (
               <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 40 }} className="fade-in">
@@ -4010,7 +4079,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               </div>
             )}
           </div>
-        </div>
+        </div>}
         <style>{`
           .avatar-select-btn:hover {
             transform: translateY(-4px) scale(1.1);
@@ -4024,8 +4093,15 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
           .avatar-grid-custom::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 10px; }
         `}</style>
 
+        {/* Inicio de sesión y seguridad: contraseña y correo verificado */}
+        {ver('seguridad') && <div className="card">
+          <div className="chart-card-title">🔒 {t.cuentaSeguridad}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{user?.email}</div>
+          <BloquePassword />
+        </div>}
+
         {/* Suscripción */}
-        <div className="card">
+        {ver('suscripcion') && <div className="card">
           <div className="chart-card-title">{t.susTitulo}</div>
           {avisoPago && (
             <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 10, fontSize: 13, background: avisoPago === 'ok' ? 'rgba(16,185,129,.10)' : 'var(--bg-secondary)', border: `1px solid ${avisoPago === 'ok' ? 'rgba(16,185,129,.45)' : 'var(--border)'}` }}>
@@ -4046,19 +4122,19 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
             </div>
           </div>
           {(!user?.isAdmin || esProbadorPagos(user)) && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 12 }}>🔒 {t.susSeguro}</div>}
-        </div>
+        </div>}
 
         {/* Newsletter (siempre disponible: la baja no depende del pago) */}
-        <TarjetaNewsletter user={user} />
+        {ver('newsletter') && <TarjetaNewsletter user={user} />}
 
         {/* Ayuda y contacto (siempre disponible) */}
-        <TarjetaContacto user={user} />
+        {ver('ayuda') && <TarjetaContacto user={user} />}
 
         {/* Instalar la app en el móvil (si el navegador lo admite) */}
-        <TarjetaInstalar />
+        {ver('app') && <TarjetaInstalar />}
 
         {/* Gestión de Secciones (oculto en solo lectura: no se podria guardar) */}
-        {!soloLectura && <div className="card">
+        {!soloLectura && ver('secciones') && <div className="card">
           <div className="chart-card-title">{t.visibilidadSecciones}</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>{t.visibilidadSeccionesDesc}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
@@ -4141,7 +4217,7 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         </div>}
 
         {/* Appearance */}
-        <div className="card">
+        {ver('preferencias') && <div className="card">
           <div className="chart-card-title">{t.generalSettings}</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Theme */}
@@ -4196,10 +4272,10 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t.monedaAyuda}</div>
             </div>
           </div>
-        </div>
+        </div>}
 
         {/* Category manager (oculto en solo lectura: no se podria guardar) */}
-        {!soloLectura && <div className="card">
+        {!soloLectura && ver('categorias') && <div className="card">
           <div className="chart-card-title">{t.categoryManager} <span style={{ color: 'var(--accent)', fontWeight: 800 }}>({selectedYear} ➝)</span></div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 16 }}>
             <Negrita texto={tf('modificaCategoriasPara', { year: selectedYear })} /> {t.usaSelectorAnio}
@@ -4238,8 +4314,8 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
         </div>}
 
         {/* Apoyo voluntario (solo con enlace oficial configurado) */}
-        <TarjetaApoyo user={user} />
-      </div>
+        {ver('apoyo') && <TarjetaApoyo user={user} />}
+      </div>}
 
       {/* Add subcategory modal */}
       {
