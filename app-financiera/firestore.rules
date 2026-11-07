@@ -17,7 +17,7 @@ service cloud.firestore {
     // Acceso de administrador). Mientras sea el valor de ejemplo, cualquier
     // administrador puede nombrar administradores (comportamiento anterior).
     function propietarioUid() {
-      return 'PON-AQUI-TU-UID';
+      return 'lK7Y5eUYmSRAiXs2M1J7NyKPSQw2';
     }
     function hayPropietario() {
       return propietarioUid() != 'PON-AQUI-TU-UID';
@@ -50,6 +50,14 @@ service cloud.firestore {
     // Cambiar el rol de administrador: solo el propietario (si esta configurado).
     function cambiaRolAdmin() {
       return request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']);
+    }
+
+    // El correo guardado en el perfil es el de la sesión (en minúsculas): nadie
+    // puede poner el de otra persona (lo usan el panel de gestión y la lista de
+    // la newsletter, que así no puede apuntar a terceros).
+    function correoDeSesion() {
+      return !request.resource.data.keys().hasAny(['email'])
+        || (request.resource.data.email is string && request.resource.data.email.lower() == emailSesion());
     }
 
     // Nunca se admite un campo password en la base de datos.
@@ -132,6 +140,32 @@ service cloud.firestore {
       return verificacionOk(perfil) && rolPuedeEscribir(rolDe(perfil));
     }
 
+    // Registro de actividad: solo los campos que escribe la app y valores
+    // razonables (un documento por usuario y día), para que nadie infle sus
+    // estadísticas ni use la colección como almacén.
+    function registroDeActividadValido() {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['uid', 'email', 'displayName', 'lastSeen', 'totalTime', 'start', 'end'])
+        && d.get('totalTime', 0) is number && d.get('totalTime', 0) >= 0 && d.get('totalTime', 0) <= 2 * 86400000
+        && d.get('lastSeen', 0) is number && d.get('lastSeen', 0) <= request.time.toMillis() + toleranciaReloj()
+        && (d.get('email', null) == null || (d.email is string && d.email.lower() == emailSesion()))
+        && (d.get('displayName', null) == null || (d.displayName is string && d.displayName.size() <= 200));
+    }
+
+    // Fecha AAAAMMDD de un instante (UTC).
+    function aaaammdd(t) {
+      return string(t.year()) + (t.month() < 10 ? '0' : '') + string(t.month()) + (t.day() < 10 ? '0' : '') + string(t.day());
+    }
+    // Solo el documento del día (la app usa su fecha local, que en cualquier
+    // zona horaria está a un día como mucho de la de UTC): nadie puede crear
+    // miles de documentos con fechas inventadas.
+    function esSuRegistroDeHoy(logId) {
+      let base = 'session_' + request.auth.uid + '_';
+      return isSignedIn() && (logId == base + aaaammdd(request.time)
+        || logId == base + aaaammdd(request.time - duration.value(1, 'd'))
+        || logId == base + aaaammdd(request.time + duration.value(1, 'd')));
+    }
+
     // Los documentos de actividad se llaman session_<uid>_<fecha>.
     function esSuRegistroDeActividad(logId) {
       return isSignedIn() && logId.matches('session_' + request.auth.uid + '(_.*)?');
@@ -147,6 +181,8 @@ service cloud.firestore {
       // a los dias configurados y como invitado solo si el admin te invito.
       allow create: if isOwner(userId)
                     && sinPassword()
+                    && correoDeSesion()
+                    && request.resource.data.get('uid', userId) == userId
                     && (!request.resource.data.keys().hasAny(['isAdmin'])
                         || request.resource.data.isAdmin == false)
                     && !request.resource.data.keys().hasAny(['plan', 'paidUntil', 'bloqueado',
@@ -171,7 +207,11 @@ service cloud.firestore {
       // el pago recibido o el bloqueo), pero solo el propietario puede dar o
       // quitar el rol de administrador cuando propietarioUid() esta configurado.
       allow update: if (isAdmin() && (!cambiaRolAdmin() || !hayPropietario() || esPropietario()))
-                    || (isOwner(userId) && sinPassword() && noTocaCamposProtegidos());
+                    || (isOwner(userId) && sinPassword() && noTocaCamposProtegidos()
+                        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['email']) || correoDeSesion())
+                        // El campo uid, si existe, es el del propio documento: el panel
+                        // de gestión no puede confundirse de cuenta al bloquear o editar.
+                        && request.resource.data.get('uid', userId) == userId);
 
       allow delete: if isAdmin();
 
@@ -202,12 +242,14 @@ service cloud.firestore {
       allow read: if isAdmin() || esSuRegistroDeActividad(logId);
       // Crear y actualizar: solo documentos propios, y siempre con el uid propio.
       // Antes cualquier usuario podia sobrescribir el registro de otro.
-      allow create: if esSuRegistroDeActividad(logId)
-                    && request.resource.data.uid == request.auth.uid;
+      allow create: if esSuRegistroDeHoy(logId)
+                    && request.resource.data.uid == request.auth.uid
+                    && registroDeActividadValido();
       allow update: if isAdmin()
-                    || (esSuRegistroDeActividad(logId)
+                    || (esSuRegistroDeHoy(logId)
                         && resource.data.uid == request.auth.uid
-                        && request.resource.data.uid == request.auth.uid);
+                        && request.resource.data.uid == request.auth.uid
+                        && registroDeActividadValido());
       allow delete: if isAdmin();
     }
 
@@ -220,7 +262,10 @@ service cloud.firestore {
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.keys().hasOnly(['context', 'error', 'timestamp', 'uid'])
                     && request.resource.data.error is string
-                    && request.resource.data.error.size() <= 2000;
+                    && request.resource.data.error.size() <= 2000
+                    && request.resource.data.get('context', '') is string
+                    && request.resource.data.get('context', '').size() <= 200
+                    && request.resource.data.timestamp is number;
       allow update, delete: if isAdmin();
     }
 
@@ -271,6 +316,10 @@ service cloud.firestore {
     // el propio usuario y el admin; solo el admin la marca resuelta o la borra.
     match /incidencias/{incidenciaId} {
       allow create: if isSignedIn()
+                    // Solo cuentas con el correo verificado (o anteriores a la
+                    // verificación obligatoria): evita spam con cuentas falsas.
+                    && (correoVerificado()
+                        || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('creado', 1) == 0)
                     && request.resource.data.keys().hasOnly(['uid', 'email', 'nombre', 'categoria', 'mensaje', 'idioma', 'tecnico', 'creada', 'estado'])
                     && request.resource.data.uid == request.auth.uid
                     && request.resource.data.email == request.auth.token.get('email', '')
@@ -285,6 +334,8 @@ service cloud.firestore {
                     && request.resource.data.get('idioma', '') is string
                     && request.resource.data.get('idioma', '').size() <= 5
                     && request.resource.data.creada is int
+                    && request.resource.data.creada >= request.time.toMillis() - toleranciaReloj()
+                    && request.resource.data.creada <= request.time.toMillis() + toleranciaReloj()
                     && request.resource.data.estado == 'abierta';
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();

@@ -109,8 +109,11 @@ const sincronizarSuscripcion = async (sub, uidPista) => {
   } else if (sub.status === 'canceled') {
     datos.plan = 'cancelado';
     datos.paidUntil = finPeriodo; // lo pagado se respeta hasta el fin del periodo
+  } else if (['incomplete', 'incomplete_expired'].includes(sub.status)) {
+    // Pago a medias o abandonado en Checkout: no cambia el acceso que ya
+    // tuviera (prueba, invitación o un pago marcado a mano por el admin).
   } else {
-    // unpaid, incomplete, incomplete_expired, paused
+    // unpaid, paused
     datos.plan = 'cancelado';
     datos.paidUntil = 0;
   }
@@ -251,7 +254,10 @@ exports.stripeWebhook = onRequest({ secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_
       case 'customer.subscription.deleted':
       case 'customer.subscription.paused':
       case 'customer.subscription.resumed':
-        uid = await sincronizarSuscripcion(obj);
+        // Se usa el estado ACTUAL de la suscripción, no la foto del evento:
+        // Stripe puede entregar los eventos desordenados y uno antiguo
+        // («incompleta») no debe pisar uno nuevo («activa»).
+        uid = await sincronizarSuscripcion(await stripe.subscriptions.retrieve(obj.id), obj.metadata?.uid);
         break;
       case 'invoice.paid':
       case 'invoice.payment_failed': {

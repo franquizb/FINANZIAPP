@@ -16,7 +16,7 @@ import { calcularResumen, estadoUsuarioAdmin } from './resumenGestion';
 import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
-import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit, where } from 'firebase/firestore';
 import { enlaceApoyo, CORREO_SOPORTE } from './marca';
 import { irAPagar, irAlPortal, cambiarRenovacion, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, AJUSTES_PAGOS_POR_DEFECTO, normalizarAjustesPagos, setAjustesPagos, esProbadorPagos, pagosAbiertos, pagoDisponiblePara } from './suscripcion';
 
@@ -4634,7 +4634,7 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   const [verResueltas, setVerResueltas] = useState(false);
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, 'incidencias'), orderBy('creada', 'desc'), limit(300)),
-      (snap) => setIncidencias(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      (snap) => setIncidencias(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
       (err) => console.warn('Incidencias no disponibles:', err?.message));
     return () => unsub();
   }, []);
@@ -4642,7 +4642,7 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   useEffect(() => {
     // Invitaciones pendientes de registro (invitaciones/{correo}).
     const unsub = onSnapshot(collection(db, 'invitaciones'),
-      (snap) => setInvitaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.creada || 0) - (a.creada || 0))),
+      (snap) => setInvitaciones(snap.docs.map(d => ({ ...d.data(), id: d.id })).sort((a, b) => (b.creada || 0) - (a.creada || 0))),
       (err) => console.warn('Invitaciones no disponibles:', err?.message));
     return () => unsub();
   }, []);
@@ -4650,7 +4650,7 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   useEffect(() => {
     // Eventos del webhook de Stripe (solo lectura; los escribe la Cloud Function).
     const unsubEventos = onSnapshot(query(collection(db, 'eventos_stripe'), orderBy('procesado', 'desc'), limit(20)),
-      (snap) => setEventosStripe(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      (snap) => setEventosStripe(snap.docs.map(d => ({ ...d.data(), id: d.id }))),
       (err) => console.warn('Eventos de Stripe no disponibles:', err?.message));
     return () => unsubEventos();
   }, []);
@@ -4658,14 +4658,16 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   useEffect(() => {
     // Usuarios en tiempo real (solo Firestore: la lista antigua de localStorage ya no existe).
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
-      setUsers(snap.docs.map(doc => ({ uid: doc.id, ...doc.data() })));
+      setUsers(snap.docs.map(doc => ({ ...doc.data(), uid: doc.id })));
     }, (err) => {
       console.error(err);
     });
 
     // Real-time logs
-    const unsubLogs = onSnapshot(collection(db, 'activity_logs'), (snap) => {
-      const list = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Solo el último año (lo que usan las estadísticas) y con tope: el panel no
+    // debe descargar la colección entera.
+    const unsubLogs = onSnapshot(query(collection(db, 'activity_logs'), where('lastSeen', '>=', Date.now() - 366 * 86400000), orderBy('lastSeen', 'desc'), limit(20000)), (snap) => {
+      const list = snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
       setLogs(list);
     }, (err) => {
       console.error("Logs sync error:", err);
@@ -4674,9 +4676,9 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
 
     // Real-time system errors
     const unsubErrors = onSnapshot(
-      query(collection(db, 'system_errors'), orderBy('timestamp', 'desc')),
+      query(collection(db, 'system_errors'), orderBy('timestamp', 'desc'), limit(200)),
       (snap) => {
-        setSystemErrors(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setSystemErrors(snap.docs.map(doc => ({ ...doc.data(), id: doc.id })));
       },
       (err) => console.error("Error fetching system errors:", err)
     );
@@ -4813,7 +4815,8 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
     ]);
     // Cada campo entrecomillado: las fechas ("3/11/2026, 10:15:30") y algunos
     // nombres llevan coma y desalineaban las columnas.
-    const campo = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    // Un valor que empiece por = + - @ se ejecutaría como fórmula al abrirlo en Excel.
+    const campo = (v) => { const x = String(v ?? ''); return `"${(/^[=+\-@\t\r]/.test(x) ? `'${x}` : x).replace(/"/g, '""')}"`; };
     const csvContent = [headers.map(campo).join(','), ...rows.map(r => r.map(campo).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);

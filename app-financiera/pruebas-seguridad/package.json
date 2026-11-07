@@ -1,0 +1,13 @@
+{
+  "name": "finanziapp-pruebas-seguridad",
+  "private": true,
+  "type": "module",
+  "description": "Ataques contra las reglas de Firestore en el emulador local (nunca contra producción).",
+  "scripts": {
+    "test": "firebase emulators:exec --only firestore --project demo-finanziapp \"node ataques.mjs ../firestore.rules\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0"
+  }
+}
