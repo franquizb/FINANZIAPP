@@ -28,7 +28,13 @@ const ICONOS = {
   barras: '<path d="M4 20h16"/><rect x="5.5" y="12" width="3" height="6" rx=".8"/><rect x="10.5" y="8" width="3" height="10" rx=".8"/><rect x="15.5" y="4.5" width="3" height="13.5" rx=".8"/>',
   menos: '<rect x="3" y="5.5" width="18" height="13" rx="2.2"/><path d="M3 10h18"/><path d="M14 14.8h4"/>',
   reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
-  lupa: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/>'
+  lupa: '<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/>',
+  brujula: '<circle cx="12" cy="12" r="9"/><path d="m15.6 8.4-2.1 5.1-5.1 2.1 2.1-5.1z"/>',
+  tarta: '<path d="M11 4.1A8 8 0 1 0 19.9 13H11z"/><path d="M14 3.2a8 8 0 0 1 6.8 6.8H14z"/>',
+  tarro: '<path d="M7.5 3.5h9"/><path d="M8.5 3.5v2.6C6.6 7.2 5.5 9.2 5.5 11.5v7A2.5 2.5 0 0 0 8 21h8a2.5 2.5 0 0 0 2.5-2.5v-7c0-2.3-1.1-4.3-3-5.4V3.5"/><path d="M9 13.5h6"/><path d="M9 17h6"/>',
+  marcador: '<path d="M6.5 3.5h11v17l-5.5-4-5.5 4z"/>',
+  bocadillo: '<path d="M4 5h16v11H10l-6 4.5z"/><path d="M8 9.5h8"/><path d="M8 12.5h5"/>',
+  calendario: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/>'
 };
 const icono = (nombre, color, tam = 40) =>
   `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${ICONOS[nombre]}</svg>`;
