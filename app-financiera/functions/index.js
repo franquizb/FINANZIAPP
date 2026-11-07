@@ -274,3 +274,40 @@ exports.resumenStripe = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => 
   suscripciones.sort((a, b) => b.creada - a.creada);
   return { modoPrueba: clave.startsWith('sk_test'), activas, mrr: Math.round(mrr * 100) / 100, suscripciones, consultado: Date.now() };
 });
+
+// ─── Correos propios: verificación y cambio de contraseña (ver correo.js) ───
+const BREVO_API_KEY = defineSecret('BREVO_API_KEY');
+const correo = require('./correo');
+
+// Reenvía el enlace de verificación de la cuenta con sesión iniciada.
+exports.enviarCorreoVerificacion = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
+  const uid = usuarioAutenticado(req);
+  const usuario = await admin.auth().getUser(uid);
+  if (!usuario.email) throw new HttpsError('failed-precondition', 'La cuenta no tiene correo.');
+  if (usuario.emailVerified) return { enviado: false, motivo: 'verificado' };
+  if (!(await correo.comprobarLimite(db, `v_${uid}`))) throw new HttpsError('resource-exhausted', 'Espera un minuto antes de pedir otro correo.');
+  const idioma = correo.idiomaValido(req.data?.idioma);
+  const enlace = correo.aDominioPropio(await admin.auth().generateEmailVerificationLink(usuario.email, { url: `${urlApp(req)}/login` }), idioma);
+  const perfil = (await db.collection('users').doc(uid).get()).data() || {};
+  const m = correo.componer('verificar', idioma, perfil.displayName || usuario.displayName || '', enlace);
+  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: usuario.email, nombre: perfil.displayName || '', asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'verificacion' });
+  logger.info('Correo de verificación enviado', { uid, idioma });
+  return { enviado: true };
+});
+
+// Enlace para cambiar la contraseña. Sin sesión: responde lo mismo exista o
+// no la cuenta, para no revelar qué correos están registrados.
+exports.enviarCorreoContrasena = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
+  const email = String(req.data?.email || '').trim().toLowerCase();
+  if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpsError('invalid-argument', 'Correo no válido.');
+  if (!(await correo.comprobarLimite(db, `r_${correo.huella(email)}`))) throw new HttpsError('resource-exhausted', 'Espera un minuto antes de pedir otro correo.');
+  let usuario;
+  try { usuario = await admin.auth().getUserByEmail(email); } catch (e) { return { enviado: true }; }
+  const idioma = correo.idiomaValido(req.data?.idioma);
+  const enlace = correo.aDominioPropio(await admin.auth().generatePasswordResetLink(email, { url: `${urlApp(req)}/login` }), idioma);
+  const perfil = (await db.collection('users').doc(usuario.uid).get()).data() || {};
+  const m = correo.componer('contrasena', idioma, perfil.displayName || usuario.displayName || '', enlace);
+  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: email, nombre: perfil.displayName || '', asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'contrasena' });
+  logger.info('Correo de contraseña enviado', { uid: usuario.uid, idioma });
+  return { enviado: true };
+});
