@@ -33,6 +33,10 @@ const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
 const STRIPE_PRICE_ID = defineString('STRIPE_PRICE_ID');
 const APP_URL = defineString('APP_URL', { default: 'https://personal-franquizb.web.app' });
+// Configuración del portal de cliente creada por API (bpc_…). Vacío = la
+// configuración por defecto que se guarda en el panel de Stripe.
+const STRIPE_PORTAL_CONFIG = defineString('STRIPE_PORTAL_CONFIG', { default: '' });
+const configPortal = () => (STRIPE_PORTAL_CONFIG.value() ? { configuration: STRIPE_PORTAL_CONFIG.value() } : {});
 
 // Dominios desde los que se usa la app. Stripe vuelve al MISMO dominio desde el
 // que se pagó (la app lo envía en `origen`): la sesión de Firebase Auth es
@@ -146,7 +150,7 @@ exports.crearSesionCheckout = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (re
 
   // Si ya tiene una suscripción viva, lo que toca es gestionarla, no crear otra.
   if (u.stripeSubscriptionId && ['active', 'trialing', 'past_due'].includes(u.stripeStatus)) {
-    const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${urlApp(req)}/settings` });
+    const portal = await stripe.billingPortal.sessions.create({ customer: customerId, return_url: `${urlApp(req)}/settings`, ...configPortal() });
     return { url: portal.url, portal: true };
   }
 
@@ -176,7 +180,7 @@ exports.crearPortalCliente = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req
   const uid = usuarioAutenticado(req);
   const u = (await db.collection('users').doc(uid).get()).data() || {};
   if (!u.stripeCustomerId) throw new HttpsError('failed-precondition', 'Todavía no tienes una suscripción.');
-  const portal = await stripeCliente().billingPortal.sessions.create({ customer: u.stripeCustomerId, return_url: `${urlApp(req)}/settings` });
+  const portal = await stripeCliente().billingPortal.sessions.create({ customer: u.stripeCustomerId, return_url: `${urlApp(req)}/settings`, ...configPortal() });
   return { url: portal.url };
 });
 
