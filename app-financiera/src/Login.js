@@ -171,10 +171,13 @@ export default function Login({ onLogin, pendiente }) {
     } catch (err) { setError(tf('loginErrAuth', { msg: err.message })); }
     setLoading(false);
   };
+  // Firebase limita los correos seguidos (auth/too-many-requests): el bloqueo
+  // es temporal, de unos minutos, y la cuenta no se ve afectada.
+  const errorDeCorreo = (err) => (err?.code === 'auth/too-many-requests' ? t.loginEsperaCorreo : tf('loginErrAuth', { msg: err?.message || '' }));
   const reenviarVerificacion = async () => {
     setError(''); setAviso('');
-    try { await sendEmailVerification(verificar.user, ajustesAccion()); setAviso(t.loginVerificarReenviado); setReenvioEn(30); }
-    catch (err) { setError(tf('loginErrAuth', { msg: err.message })); }
+    try { await sendEmailVerification(verificar.user, ajustesAccion()); setAviso(t.loginVerificarReenviado); setReenvioEn(60); }
+    catch (err) { setError(errorDeCorreo(err)); }
   };
   const usarOtraCuenta = async () => {
     try { await signOut(auth); } catch (e) { /* sin sesion */ }
@@ -190,7 +193,7 @@ export default function Login({ onLogin, pendiente }) {
     try { await sendPasswordResetEmail(auth, emailQuery, ajustesAccion()); setAviso(t.loginResetEnviado); }
     catch (err) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') setAviso(t.loginResetEnviado);
-      else setError(tf('loginErrAuth', { msg: err.message }));
+      else setError(errorDeCorreo(err));
     }
   };
 
@@ -515,6 +518,11 @@ export default function Login({ onLogin, pendiente }) {
         }
         .login-casilla input { margin-top: 2px; width: 15px; height: 15px; flex: none; accent-color: #14b8a6; cursor: pointer; }
         .login-casilla span { flex: 1; }
+        .login-info {
+          background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.3);
+          border-radius: 8px; padding: 10px 14px; margin-bottom: 16px;
+          color: #a5c8de; font-size: 12px; line-height: 1.55;
+        }
         .login-hint {
           text-align: center; font-size: 11px; color: #565d80; margin-top: 20px;
         }
@@ -563,6 +571,7 @@ export default function Login({ onLogin, pendiente }) {
           <div className="login-verificar">
             <div className="login-paso-titulo">✉️ {t.loginVerificarTitulo}</div>
             <div className="login-paso-texto">{tf('loginVerificarTexto', { email: verificar.user.email })}</div>
+            <div className="login-info">{t.loginAvisoSpam}</div>
             {error && <div className="login-error">{error}</div>}
             {aviso && <div className="login-ok">{aviso}</div>}
             <button className="login-btn" type="button" onClick={comprobarVerificacion} disabled={loading}>{loading ? t.loginLoading : t.loginVerificarComprobar}</button>
@@ -586,6 +595,7 @@ export default function Login({ onLogin, pendiente }) {
         <form onSubmit={handleSubmit}>
           {error && <div className="login-error">{error}</div>}
           {aviso && <div className="login-ok">{aviso}</div>}
+          {aviso === t.loginResetEnviado && <div className="login-info">{t.loginAvisoSpam}</div>}
           {!isLogin && (
             <div className="login-field">
               <label className="login-label">{t.loginName}</label>
