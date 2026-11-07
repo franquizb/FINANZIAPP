@@ -4,6 +4,7 @@ import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useApp } from './context/AppContext';
 import { AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso } from './acceso';
+import { CORREO_SOPORTE } from './marca';
 
 // Duracion de la prueba gratuita, en dias, si el administrador no ha fijado
 // otra en ajustes/acceso (Gestion > Roles y permisos). Las reglas de Firestore
@@ -569,6 +570,7 @@ export default function Login({ onLogin, pendiente }) {
             <div style={{ textAlign: 'center', marginTop: 18 }}>
               <button type="button" className="login-link" onClick={usarOtraCuenta}>{t.loginVerificarOtra}</button>
             </div>
+            <div className="login-hint">{t.loginAyudaVerificar} <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: '#c7cbe6' }}>{CORREO_SOPORTE}</a></div>
           </div>
         ) : (
           <>
@@ -641,6 +643,7 @@ export default function Login({ onLogin, pendiente }) {
         <div style={{ textAlign: 'center', marginTop: 24 }}>
           <a href="/" style={{ color: '#8b92b8', fontSize: 13, textDecoration: 'none' }}>{t.loginBackHome}</a>
         </div>
+        <div className="login-hint">{t.loginAyuda} <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: '#c7cbe6' }}>{CORREO_SOPORTE}</a></div>
           </>
         )}
       </div>

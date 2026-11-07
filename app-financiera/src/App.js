@@ -16,7 +16,7 @@ import Calculadoras from './components/Calculadoras';
 import { db, auth } from './firebase';
 import { onAuthStateChanged, signOut as firebaseSignOut, reauthenticateWithCredential, updatePassword, linkWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, collection, query, addDoc, increment, orderBy, limit } from 'firebase/firestore';
-import { enlaceApoyo } from './marca';
+import { enlaceApoyo, CORREO_SOPORTE } from './marca';
 import { irAPagar, irAlPortal, resumenStripe, stripeNoConfigurado, PRECIO_MENSUAL, MONEDA_PRECIO, AJUSTES_PAGOS_POR_DEFECTO, normalizarAjustesPagos, setAjustesPagos, esProbadorPagos, pagosAbiertos, pagoDisponiblePara } from './suscripcion';
 
 // Modo demo para capturas de marketing: solo existe en builds locales hechos
@@ -3695,6 +3695,74 @@ function TarjetaNewsletter({ user }) {
   );
 }
 
+// Ayuda y contacto: el usuario envía una incidencia o consulta (colección
+// incidencias) y la ve el administrador en Gestión → Incidencias, que responde
+// por correo. Funciona con cualquier tipo de cuenta, también bloqueada o con la
+// prueba terminada. El correo de soporte queda visible para quien lo prefiera.
+const CATEGORIAS_INCIDENCIA = ['tecnico', 'pago', 'cuenta', 'sugerencia', 'otro'];
+const etiquetaCategoria = (t, c) => ({ tecnico: t.contCatTecnico, pago: t.contCatPago, cuenta: t.contCatCuenta, sugerencia: t.contCatSugerencia, otro: t.contCatOtro }[c] || c);
+function TarjetaContacto({ user }) {
+  const { t, tf, language } = useApp();
+  const [categoria, setCategoria] = useState('tecnico');
+  const [mensaje, setMensaje] = useState('');
+  const [tecnicos, setTecnicos] = useState(true);
+  const [aviso, setAviso] = useState(null);
+  const [enviando, setEnviando] = useState(false);
+  const correo = auth?.currentUser?.email || user?.email || '';
+  const enviar = async (e) => {
+    e.preventDefault();
+    const texto = mensaje.trim();
+    if (texto.length < 10) { setAviso({ tipo: 'error', texto: t.contMuyCorto }); return; }
+    if (!auth?.currentUser) return;
+    setEnviando(true); setAviso(null);
+    try {
+      await addDoc(collection(db, 'incidencias'), {
+        uid: auth.currentUser.uid,
+        email: auth.currentUser.email || '',
+        nombre: String(user?.displayName || '').slice(0, 200),
+        categoria,
+        mensaje: texto.slice(0, 2000),
+        idioma: language,
+        tecnico: tecnicos ? `${navigator.userAgent} · ${window.innerWidth}×${window.innerHeight} · ${window.location.pathname}`.slice(0, 500) : '',
+        creada: Date.now(),
+        estado: 'abierta'
+      });
+      setMensaje('');
+      setAviso({ tipo: 'ok', texto: tf('contEnviado', { email: correo }) });
+    } catch (err) {
+      setAviso({ tipo: 'error', texto: tf('contError', { msg: err?.message || '' }) });
+    }
+    setEnviando(false);
+  };
+  return (
+    <div className="card tarjeta-contacto" style={{ alignSelf: 'start' }}>
+      <div className="chart-card-title">💬 {t.contTitulo}</div>
+      <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, marginBottom: 14 }}>{t.contDesc}</div>
+      <form onSubmit={enviar} style={{ display: 'grid', gap: 10 }}>
+        <div>
+          <label className="login-label">{t.contCategoria}</label>
+          <select className="text-input" value={categoria} onChange={e => setCategoria(e.target.value)}>
+            {CATEGORIAS_INCIDENCIA.map(c => <option key={c} value={c}>{etiquetaCategoria(t, c)}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="login-label">{t.contMensaje}</label>
+          <textarea className="text-input" rows={4} maxLength={2000} value={mensaje} onChange={e => setMensaje(e.target.value)} placeholder={t.contPlaceholder} style={{ resize: 'vertical', minHeight: 96, fontFamily: 'inherit' }} />
+        </div>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, cursor: 'pointer' }}>
+          <input type="checkbox" checked={tecnicos} onChange={e => setTecnicos(e.target.checked)} style={{ marginTop: 2 }} />
+          <span>{t.contTecnicos}</span>
+        </label>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.contCorreo} <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: 'var(--accent)' }}>{CORREO_SOPORTE}</a></span>
+          <button type="submit" className="btn btn-primary" disabled={enviando}>{t.contEnviar}</button>
+        </div>
+        {aviso && <div className="tarjeta-contacto-aviso" style={{ fontSize: 12, color: aviso.tipo === 'ok' ? 'var(--green)' : 'var(--red)' }}>{aviso.texto}</div>}
+      </form>
+    </div>
+  );
+}
+
 // App en el móvil (PWA): botón «Instalar» donde el navegador lo permite
 // (Chrome, Android, Edge) e instrucciones en iPhone. No aparece si ya está
 // instalada o si el navegador no admite instalarla.
@@ -3982,6 +4050,9 @@ function SettingsView({ config, selectedYear, onUpdate, financialData, onUpdateF
 
         {/* Newsletter (siempre disponible: la baja no depende del pago) */}
         <TarjetaNewsletter user={user} />
+
+        {/* Ayuda y contacto (siempre disponible) */}
+        <TarjetaContacto user={user} />
 
         {/* Instalar la app en el móvil (si el navegador lo admite) */}
         <TarjetaInstalar />
@@ -4429,6 +4500,15 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
   // Lanzamiento de los pagos (ajustes/pagos): cada cambio se guarda al momento.
   const [nuevoProbador, setNuevoProbador] = useState('');
   const [pagosAviso, setPagosAviso] = useState(null);
+  // Incidencias y consultas enviadas desde Configuración → Ayuda y contacto.
+  const [incidencias, setIncidencias] = useState([]);
+  const [verResueltas, setVerResueltas] = useState(false);
+  useEffect(() => {
+    const unsub = onSnapshot(query(collection(db, 'incidencias'), orderBy('creada', 'desc'), limit(300)),
+      (snap) => setIncidencias(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      (err) => console.warn('Incidencias no disponibles:', err?.message));
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     // Invitaciones pendientes de registro (invitaciones/{correo}).
@@ -4822,6 +4902,58 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
     </div>
   );
 
+  // ─── Incidencias ───
+  const abiertas = incidencias.filter(i => i.estado !== 'resuelta');
+  const cambiarEstadoIncidencia = async (inc, estado) => {
+    try { await setDoc(doc(db, 'incidencias', inc.id), { estado, [estado === 'resuelta' ? 'resuelta' : 'reabierta']: Date.now(), atendidaPor: miUid }, { merge: true }); }
+    catch (err) { alert(tf('admErrError', { msg: err.message })); }
+  };
+  const borrarIncidencia = async (inc) => {
+    if (!window.confirm(t.admIncBorrarConfirm)) return;
+    try { await deleteDoc(doc(db, 'incidencias', inc.id)); } catch (err) { alert(tf('admErrError', { msg: err.message })); }
+  };
+  const enlaceRespuesta = (inc) => {
+    const asunto = `Re: FinanziApp · ${etiquetaCategoria(t, inc.categoria)}`;
+    const cita = String(inc.mensaje || '').split('\n').map(l => '> ' + l).join('\n');
+    return `mailto:${inc.email}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(`${inc.nombre ? inc.nombre + ',' : ''}\n\n\n\n—\n${cita}`)}`;
+  };
+  const renderIncidencias = () => {
+    const lista = verResueltas ? incidencias : abiertas;
+    return (
+      <div className="card fade-in adm-incidencias">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div className="chart-card-title" style={{ marginBottom: 0 }}>💬 {t.admIncTitulo}</div>
+          <div className="settings-toggle">
+            <button className={`settings-toggle-btn ${!verResueltas ? 'active' : ''}`} onClick={() => setVerResueltas(false)}>{t.admIncAbiertas} ({abiertas.length})</button>
+            <button className={`settings-toggle-btn ${verResueltas ? 'active' : ''}`} onClick={() => setVerResueltas(true)}>{t.admIncTodas} ({incidencias.length})</button>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.55, margin: '10px 0 16px' }}>{t.admIncDesc}</div>
+        {lista.length === 0 ? <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t.admIncVacio}</div> : lista.map(inc => (
+          <div key={inc.id} style={{ padding: '14px 0', borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{ fontSize: 13 }}>
+                <b>{inc.nombre || '—'}</b> <span style={{ color: 'var(--text-secondary)' }}>{inc.email}</span>
+                <span className="badge badge-ghost" style={{ marginLeft: 8 }}>{etiquetaCategoria(t, inc.categoria)}</span>
+                <span className="badge badge-ghost" style={{ marginLeft: 6, color: inc.estado === 'resuelta' ? 'var(--green)' : 'var(--yellow)' }}>{inc.estado === 'resuelta' ? t.admIncEstadoResuelta : t.admIncEstadoAbierta}</span>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{inc.creada ? new Date(inc.creada).toLocaleString(locale) : ''} · {String(inc.idioma || '').toUpperCase()}</span>
+            </div>
+            <div style={{ fontSize: 13, whiteSpace: 'pre-wrap', margin: '8px 0', lineHeight: 1.5 }}>{inc.mensaje}</div>
+            {inc.tecnico && <div style={{ fontSize: 10, color: 'var(--text-muted)', wordBreak: 'break-all', marginBottom: 8 }}>{t.admIncTecnico}: {inc.tecnico}</div>}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {inc.email && <a className="btn btn-primary" style={{ fontSize: 12 }} href={enlaceRespuesta(inc)}>{t.admIncResponder}</a>}
+              {inc.estado === 'resuelta'
+                ? <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => cambiarEstadoIncidencia(inc, 'abierta')}>{t.admIncReabrir}</button>
+                : <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={() => cambiarEstadoIncidencia(inc, 'resuelta')}>{t.admIncResolver}</button>}
+              <button className="btn btn-ghost" style={{ fontSize: 12, color: 'var(--red)' }} onClick={() => borrarIncidencia(inc)}>{t.admIncBorrar}</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // ─── Lanzamiento de los pagos ───
   const pagos = normalizarAjustesPagos(ajustesPagos);
   const guardarPagos = async (cambios) => {
@@ -4924,15 +5056,16 @@ function UserManagementView({ ajustesAcceso, ajustesPagos }) {
     <div className="section-gap fade-in" style={{ width: '100%', maxWidth: 1600, margin: '0 auto' }}>
       {/* Pestañas del panel de gestión */}
       <div className="settings-toggle adm-tabs">
-        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['newsletter', t.admPestNewsletter], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
+        {[['usuarios', t.admPestUsuarios], ['roles', t.admPestRoles], ['invitaciones', t.admPestInvitaciones], ['incidencias', t.admPestIncidencias], ['newsletter', t.admPestNewsletter], ['actividad', t.admPestActividad], ['stripe', t.admPestStripe], ['errores', t.admPestErrores]].map(([id, label]) => (
           <button key={id} className={`settings-toggle-btn ${pestana === id ? 'active' : ''}`} onClick={() => setPestana(id)}>
-            {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'newsletter' && suscritosNl.length ? ` (${suscritosNl.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
+            {label}{id === 'invitaciones' && invitaciones.length ? ` (${invitaciones.length})` : ''}{id === 'newsletter' && suscritosNl.length ? ` (${suscritosNl.length})` : ''}{id === 'incidencias' && abiertas.length ? ` (${abiertas.length})` : ''}{id === 'errores' && systemErrors.length ? ` (${systemErrors.length})` : ''}
           </button>
         ))}
       </div>
 
       {pestana === 'roles' && renderRoles()}
       {pestana === 'invitaciones' && renderInvitaciones()}
+      {pestana === 'incidencias' && renderIncidencias()}
       {pestana === 'newsletter' && renderNewsletter()}
 
       {pestana === 'actividad' && (<>

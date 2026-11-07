@@ -264,6 +264,32 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // ─── INCIDENCIAS (Configuracion > Ayuda y contacto) ───────────────────────
+    // Cualquier usuario identificado puede enviar una, tambien con la cuenta
+    // bloqueada o la prueba terminada (pedir ayuda no depende del pago). Solo
+    // con su uid y su correo de sesion, campos fijos y tamanos acotados. La lee
+    // el propio usuario y el admin; solo el admin la marca resuelta o la borra.
+    match /incidencias/{incidenciaId} {
+      allow create: if isSignedIn()
+                    && request.resource.data.keys().hasOnly(['uid', 'email', 'nombre', 'categoria', 'mensaje', 'idioma', 'tecnico', 'creada', 'estado'])
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.email == request.auth.token.get('email', '')
+                    && request.resource.data.categoria in ['tecnico', 'pago', 'cuenta', 'sugerencia', 'otro']
+                    && request.resource.data.mensaje is string
+                    && request.resource.data.mensaje.size() > 0
+                    && request.resource.data.mensaje.size() <= 2000
+                    && request.resource.data.get('nombre', '') is string
+                    && request.resource.data.get('nombre', '').size() <= 200
+                    && request.resource.data.get('tecnico', '') is string
+                    && request.resource.data.get('tecnico', '').size() <= 500
+                    && request.resource.data.get('idioma', '') is string
+                    && request.resource.data.get('idioma', '').size() <= 5
+                    && request.resource.data.creada is int
+                    && request.resource.data.estado == 'abierta';
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
     // ─── TODO LO DEMAS: DENEGADO ──────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
