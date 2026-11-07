@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword, linkWithCredential, EmailAuthProvider, sendEmailVerification, sendPasswordResetEmail, signOut } from 'firebase/auth';
 import { auth, db } from './firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { useApp } from './context/AppContext';
 import { AJUSTES_ACCESO_POR_DEFECTO, normalizarAjustesAcceso } from './acceso';
 import { CORREO_SOPORTE } from './marca';
-import { enviarVerificacionPropia, enviarContrasenaPropia, esLimiteCorreo } from './correo';
+import { enviarCodigoVerificacion, verificarCodigo, enviarCodigoContrasena, cambiarContrasenaConCodigo, motivoCodigo, esLimiteCorreo } from './correo';
 
 // Duracion de la prueba gratuita, en dias, si el administrador no ha fijado
 // otra en ajustes/acceso (Gestion > Roles y permisos). Las reglas de Firestore
@@ -112,27 +112,43 @@ export default function Login({ onLogin, pendiente }) {
   const [verificar, setVerificar] = useState(null);
   const [reenvioEn, setReenvioEn] = useState(0);
   const [newsletter, setNewsletter] = useState(false);
+  // Código de 6 cifras (verificación o cambio de contraseña).
+  const [codigo, setCodigo] = useState('');
+  // «¿Has olvidado tu contraseña?»: { email } mientras se escribe el código.
+  const [recuperar, setRecuperar] = useState(null);
+  const entrando = useRef(false);
 
   // Los correos de Firebase (verificación, restablecer contraseña) salen en el
   // idioma de la app en vez de en el idioma por defecto del proyecto.
   useEffect(() => { if (auth) auth.languageCode = language; }, [language]);
 
-  // Verificación: primero el correo propio (noreply@finanziapp.com, enlace en
-  // finanziapp.com); si la función falla, el de Firebase, para que el registro
-  // no dependa nunca de un servicio externo.
+  // Verificación: primero el código de 6 cifras (correo propio desde
+  // noreply@finanziapp.com); si la función falla, el enlace de Firebase, para
+  // que el registro no dependa nunca de un servicio externo. Devuelve el modo.
   const enviarVerificacion = async (usuario) => {
-    try { await enviarVerificacionPropia(language); }
+    try { await enviarCodigoVerificacion(language); return 'codigo'; }
     catch (e) {
       if (esLimiteCorreo(e)) throw e;
-      console.warn('Correo propio no disponible, se usa el de Firebase:', e?.message);
+      console.warn('Código por correo no disponible, se usa el enlace de Firebase:', e?.message);
       await sendEmailVerification(usuario, ajustesAccion());
+      return 'enlace';
     }
+  };
+  // Traduce el motivo de un código rechazado.
+  const errorDeCodigo = (err) => {
+    const m = motivoCodigo(err);
+    if (m === 'incorrecto') return tf('loginCodigoMal', { n: err.details?.restantes ?? '' });
+    if (m === 'intentos') return t.loginCodigoBloqueado;
+    if (m === 'caducado') return t.loginCodigoCaducado;
+    if (m === 'contrasena') return t.loginErrPasswordLength;
+    if (esLimiteCorreo(err)) return t.loginEsperaCorreo;
+    return tf('loginErrAuth', { msg: err?.message || '' });
   };
 
   useEffect(() => {
     if (!pendiente) return;
     setError(''); setAviso('');
-    if (pendiente.tipo === 'verificar') setVerificar({ user: pendiente.fbUser });
+    if (pendiente.tipo === 'verificar') setVerificar({ user: pendiente.fbUser, modo: 'codigo' });
     if (pendiente.tipo === 'completar') { setCompletar({ user: pendiente.fbUser }); setName(pendiente.fbUser.displayName || ''); }
   }, [pendiente]);
 
@@ -146,6 +162,11 @@ export default function Login({ onLogin, pendiente }) {
   // Entra en la app con un usuario de Firebase que ya puede hacerlo: lee (o
   // crea) el perfil, apunta el acceso y construye la sesion.
   const entrarConUsuario = async (fbUser) => {
+    if (entrando.current) return;
+    entrando.current = true;
+    try { await entrarConUsuarioSinGuardia(fbUser); } catch (e) { entrando.current = false; throw e; }
+  };
+  const entrarConUsuarioSinGuardia = async (fbUser) => {
     // Tras verificar el correo, el token de sesion sigue diciendo "sin
     // verificar" hasta que se renueva; las reglas de Firestore lo leen de ahi
     // y denegarian las escrituras durante casi una hora. Se fuerza la renovacion.
@@ -186,30 +207,75 @@ export default function Login({ onLogin, pendiente }) {
   };
   const reenviarVerificacion = async () => {
     setError(''); setAviso('');
-    try { await enviarVerificacion(verificar.user); setAviso(t.loginVerificarReenviado); setReenvioEn(60); }
-    catch (err) { setError(esLimiteCorreo(err) ? t.loginEsperaCorreo : tf('loginErrAuth', { msg: err.message })); }
+    try {
+      const modo = await enviarVerificacion(verificar.user);
+      setVerificar(v => ({ ...v, modo }));
+      setAviso(modo === 'codigo' ? t.loginCodigoEnviado : t.loginVerificarReenviado);
+      setReenvioEn(60);
+    } catch (err) { setError(esLimiteCorreo(err) ? t.loginEsperaCorreo : tf('loginErrAuth', { msg: err.message })); }
+  };
+  // Comprueba el código de verificación y entra.
+  const confirmarCodigo = async (e) => {
+    e.preventDefault(); setError(''); setAviso('');
+    const limpio = codigo.replace(/\D/g, '');
+    if (limpio.length !== 6) { setError(t.loginCodigoFormato); return; }
+    setLoading(true);
+    try {
+      await verificarCodigo(limpio);
+      await verificar.user.getIdToken(true);
+      await verificar.user.reload();
+      await entrarConUsuario(verificar.user);
+    } catch (err) { setError(errorDeCodigo(err)); }
+    setLoading(false);
   };
   const usarOtraCuenta = async () => {
     try { await signOut(auth); } catch (e) { /* sin sesion */ }
-    setVerificar(null); setCompletar(null); setError(''); setAviso(''); setPassword(''); setConfirmPassword('');
+    setVerificar(null); setCompletar(null); setRecuperar(null); setCodigo(''); setError(''); setAviso(''); setPassword(''); setConfirmPassword('');
   };
 
-  // Enlace para restablecer la contraseña. El mensaje es el mismo exista o no
-  // la cuenta, para no revelar que correos estan registrados.
+  // «¿Has olvidado tu contraseña?»: código de 6 cifras por correo y nueva
+  // contraseña en la misma pantalla. El mensaje es el mismo exista o no la
+  // cuenta, para no revelar qué correos están registrados. Si la función no
+  // está disponible, enlace de Firebase como antes.
   const handleOlvide = async () => {
     setError(''); setAviso('');
     const emailQuery = email.trim().toLowerCase();
     if (!emailQuery) { setError(t.loginResetSinCorreo); return; }
-    try { await enviarContrasenaPropia(emailQuery, language); setAviso(t.loginResetEnviado); return; }
-    catch (err) {
+    try {
+      await enviarCodigoContrasena(emailQuery, language);
+      setRecuperar({ email: emailQuery }); setCodigo(''); setPassword(''); setConfirmPassword(''); setReenvioEn(60);
+      return;
+    } catch (err) {
       if (esLimiteCorreo(err)) { setError(t.loginEsperaCorreo); return; }
-      console.warn('Correo propio no disponible, se usa el de Firebase:', err?.message);
+      if (motivoCodigo(err) === 'correo') { setError(t.loginResetSinCorreo); return; }
+      console.warn('Código por correo no disponible, se usa el enlace de Firebase:', err?.message);
     }
     try { await sendPasswordResetEmail(auth, emailQuery, ajustesAccion()); setAviso(t.loginResetEnviado); }
     catch (err) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-email') setAviso(t.loginResetEnviado);
       else setError(tf('loginErrAuth', { msg: err.message }));
     }
+  };
+
+  const reenviarCodigoContrasena = async () => {
+    setError(''); setAviso('');
+    try { await enviarCodigoContrasena(recuperar.email, language); setAviso(t.loginCodigoEnviado); setReenvioEn(60); }
+    catch (err) { setError(errorDeCodigo(err)); }
+  };
+  const guardarNuevaContrasena = async (e) => {
+    e.preventDefault(); setError(''); setAviso('');
+    const limpio = codigo.replace(/\D/g, '');
+    if (limpio.length !== 6) { setError(t.loginCodigoFormato); return; }
+    if (password.length < 8) { setError(t.loginErrPasswordLength); return; }
+    if (password !== confirmPassword) { setError(t.loginErrPasswordMismatch); return; }
+    setLoading(true);
+    try {
+      await cambiarContrasenaConCodigo(recuperar.email, limpio, password);
+      setEmail(recuperar.email); setRecuperar(null); setIsLogin(true);
+      setCodigo(''); setPassword(''); setConfirmPassword('');
+      setAviso(t.loginRecuperarOk);
+    } catch (err) { setError(errorDeCodigo(err)); }
+    setLoading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -313,8 +379,9 @@ export default function Login({ onLogin, pendiente }) {
           // Verificacion del correo: se envia el enlace y la cuenta no entra
           // hasta que lo abra (evita correos falsos). Las reglas tampoco dejan
           // escribir datos a una cuenta nueva sin verificar.
-          try { await enviarVerificacion(userCredential.user); } catch (e) { console.warn('No se pudo enviar la verificación:', e?.message); }
-          setVerificar({ user: userCredential.user });
+          let modo = 'codigo';
+          try { modo = await enviarVerificacion(userCredential.user); } catch (e) { console.warn('No se pudo enviar la verificación:', e?.message); }
+          setVerificar({ user: userCredential.user, modo });
           setReenvioEn(30);
           setLoading(false);
           return;
@@ -526,6 +593,7 @@ export default function Login({ onLogin, pendiente }) {
         .login-btn-secundario:hover { background: #2d3148; }
         .login-paso-titulo { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 8px; }
         .login-paso-texto { font-size: 13px; color: #8b92b8; line-height: 1.55; margin-bottom: 20px; }
+        .login-codigo { text-align: center; font-size: 26px; letter-spacing: 10px; font-family: 'Courier New', monospace; font-weight: 700; }
         .login-casilla {
           display: flex; gap: 10px; align-items: flex-start; cursor: pointer;
           font-size: 11px; line-height: 1.5; color: #8b92b8; margin: 4px 0 14px;
@@ -577,14 +645,49 @@ export default function Login({ onLogin, pendiente }) {
             <button className="login-btn" type="submit" disabled={loading}>{loading ? t.loginLoading : t.loginCompletarBtn}</button>
             <button className="login-btn login-btn-secundario" type="button" onClick={cancelarCompletar} disabled={loading}>{t.loginCancelar}</button>
           </form>
+        ) : recuperar ? (
+          <form onSubmit={guardarNuevaContrasena} className="login-recuperar">
+            <div className="login-paso-titulo">🔑 {t.loginRecuperarTitulo}</div>
+            <div className="login-paso-texto">{tf('loginRecuperarTexto', { email: recuperar.email })}</div>
+            {error && <div className="login-error">{error}</div>}
+            {aviso && <div className="login-ok">{aviso}</div>}
+            <div className="login-field">
+              <label className="login-label">{t.loginCodigoEtiqueta}</label>
+              <input className="login-input login-codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={12} placeholder="••••••" value={codigo} onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))} required autoFocus />
+            </div>
+            <div className="login-field">
+              <label className="login-label">{t.loginPassword}</label>
+              <input className="login-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
+            </div>
+            <div className="login-field">
+              <label className="login-label">{t.loginRepeatPassword}</label>
+              <input className="login-input" type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required minLength={8} autoComplete="new-password" />
+            </div>
+            <button className="login-btn" type="submit" disabled={loading}>{loading ? t.loginLoading : t.loginRecuperarGuardar}</button>
+            <button className="login-btn login-btn-secundario" type="button" onClick={reenviarCodigoContrasena} disabled={loading || reenvioEn > 0}>{reenvioEn > 0 ? `${t.loginCodigoReenviar} (${reenvioEn})` : t.loginCodigoReenviar}</button>
+            <div style={{ textAlign: 'center', marginTop: 18 }}>
+              <button type="button" className="login-link" onClick={() => { setRecuperar(null); setCodigo(''); setError(''); setAviso(''); }}>{t.loginCancelar}</button>
+            </div>
+            <div className="login-hint">{t.loginAyudaVerificar} <a href={`mailto:${CORREO_SOPORTE}`} style={{ color: '#c7cbe6' }}>{CORREO_SOPORTE}</a></div>
+          </form>
         ) : verificar ? (
           <div className="login-verificar">
             <div className="login-paso-titulo">✉️ {t.loginVerificarTitulo}</div>
-            <div className="login-paso-texto">{tf('loginVerificarTexto', { email: verificar.user.email })}</div>
+            <div className="login-paso-texto">{tf(verificar.modo === 'enlace' ? 'loginVerificarTexto' : 'loginCodigoTexto', { email: verificar.user.email })}</div>
             {error && <div className="login-error">{error}</div>}
             {aviso && <div className="login-ok">{aviso}</div>}
-            <button className="login-btn" type="button" onClick={comprobarVerificacion} disabled={loading}>{loading ? t.loginLoading : t.loginVerificarComprobar}</button>
-            <button className="login-btn login-btn-secundario" type="button" onClick={reenviarVerificacion} disabled={loading || reenvioEn > 0}>{reenvioEn > 0 ? `${t.loginVerificarReenviar} (${reenvioEn})` : t.loginVerificarReenviar}</button>
+            {verificar.modo === 'enlace' ? (
+              <button className="login-btn" type="button" onClick={comprobarVerificacion} disabled={loading}>{loading ? t.loginLoading : t.loginVerificarComprobar}</button>
+            ) : (
+              <form onSubmit={confirmarCodigo}>
+                <div className="login-field">
+                  <label className="login-label">{t.loginCodigoEtiqueta}</label>
+                  <input className="login-input login-codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={12} placeholder="••••••" value={codigo} onChange={e => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))} required autoFocus />
+                </div>
+                <button className="login-btn" type="submit" disabled={loading}>{loading ? t.loginLoading : t.loginCodigoVerificar}</button>
+              </form>
+            )}
+            <button className="login-btn login-btn-secundario" type="button" onClick={reenviarVerificacion} disabled={loading || reenvioEn > 0}>{(verificar.modo === 'enlace' ? t.loginVerificarReenviar : t.loginCodigoReenviar) + (reenvioEn > 0 ? ` (${reenvioEn})` : '')}</button>
             <div style={{ textAlign: 'center', marginTop: 18 }}>
               <button type="button" className="login-link" onClick={usarOtraCuenta}>{t.loginVerificarOtra}</button>
             </div>

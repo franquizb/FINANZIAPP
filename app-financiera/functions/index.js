@@ -279,35 +279,68 @@ exports.resumenStripe = onCall({ secrets: [STRIPE_SECRET_KEY] }, async (req) => 
 const BREVO_API_KEY = defineSecret('BREVO_API_KEY');
 const correo = require('./correo');
 
-// Reenvía el enlace de verificación de la cuenta con sesión iniciada.
-exports.enviarCorreoVerificacion = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
+// Lanza el error de un código que no vale, con el motivo para la app.
+const errorCodigo = (r) => {
+  if (r.motivo === 'incorrecto') throw new HttpsError('invalid-argument', 'Código incorrecto.', { motivo: 'incorrecto', restantes: r.restantes });
+  if (r.motivo === 'intentos') throw new HttpsError('resource-exhausted', 'Demasiados intentos.', { motivo: 'intentos' });
+  throw new HttpsError('deadline-exceeded', 'Código caducado.', { motivo: 'caducado' });
+};
+const limiteAlcanzado = () => new HttpsError('resource-exhausted', 'Espera un minuto antes de pedir otro correo.', { motivo: 'limite' });
+const nombreDe = async (uid, usuario) => ((await db.collection('users').doc(uid).get()).data() || {}).displayName || usuario.displayName || '';
+
+// Envía un código de 6 cifras para confirmar el correo de la cuenta con sesión iniciada.
+exports.enviarCodigoVerificacion = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
   const uid = usuarioAutenticado(req);
   const usuario = await admin.auth().getUser(uid);
   if (!usuario.email) throw new HttpsError('failed-precondition', 'La cuenta no tiene correo.');
   if (usuario.emailVerified) return { enviado: false, motivo: 'verificado' };
-  if (!(await correo.comprobarLimite(db, `v_${uid}`))) throw new HttpsError('resource-exhausted', 'Espera un minuto antes de pedir otro correo.');
+  if (!(await correo.comprobarLimite(db, `cv_${uid}`))) throw limiteAlcanzado();
   const idioma = correo.idiomaValido(req.data?.idioma);
-  const enlace = correo.aDominioPropio(await admin.auth().generateEmailVerificationLink(usuario.email, { url: `${urlApp(req)}/login` }), idioma);
-  const perfil = (await db.collection('users').doc(uid).get()).data() || {};
-  const m = correo.componer('verificar', idioma, perfil.displayName || usuario.displayName || '', enlace);
-  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: usuario.email, nombre: perfil.displayName || '', asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'verificacion' });
-  logger.info('Correo de verificación enviado', { uid, idioma });
+  const codigo = await correo.crearCodigo(db, `v_${uid}`, { uid, tipo: 'verificar' });
+  const nombre = await nombreDe(uid, usuario);
+  const m = correo.componer('verificar', idioma, nombre, codigo);
+  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: usuario.email, nombre, asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'verificacion' });
+  logger.info('Código de verificación enviado', { uid, idioma });
   return { enviado: true };
 });
 
-// Enlace para cambiar la contraseña. Sin sesión: responde lo mismo exista o
-// no la cuenta, para no revelar qué correos están registrados.
-exports.enviarCorreoContrasena = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
+// Comprueba el código y marca el correo como verificado.
+exports.verificarCodigo = onCall(async (req) => {
+  const uid = usuarioAutenticado(req);
+  const r = await correo.comprobarCodigo(db, `v_${uid}`, req.data?.codigo);
+  if (!r.ok) errorCodigo(r);
+  await admin.auth().updateUser(uid, { emailVerified: true });
+  logger.info('Correo verificado con código', { uid });
+  return { verificado: true };
+});
+
+// Código para cambiar la contraseña. Sin sesión: responde lo mismo exista o no
+// la cuenta, para no revelar qué correos están registrados.
+exports.enviarCodigoContrasena = onCall({ secrets: [BREVO_API_KEY] }, async (req) => {
   const email = String(req.data?.email || '').trim().toLowerCase();
-  if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpsError('invalid-argument', 'Correo no válido.');
-  if (!(await correo.comprobarLimite(db, `r_${correo.huella(email)}`))) throw new HttpsError('resource-exhausted', 'Espera un minuto antes de pedir otro correo.');
+  if (email.length > 254 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new HttpsError('invalid-argument', 'Correo no válido.', { motivo: 'correo' });
+  if (!(await correo.comprobarLimite(db, `cr_${correo.huella(email)}`))) throw limiteAlcanzado();
   let usuario;
   try { usuario = await admin.auth().getUserByEmail(email); } catch (e) { return { enviado: true }; }
   const idioma = correo.idiomaValido(req.data?.idioma);
-  const enlace = correo.aDominioPropio(await admin.auth().generatePasswordResetLink(email, { url: `${urlApp(req)}/login` }), idioma);
-  const perfil = (await db.collection('users').doc(usuario.uid).get()).data() || {};
-  const m = correo.componer('contrasena', idioma, perfil.displayName || usuario.displayName || '', enlace);
-  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: email, nombre: perfil.displayName || '', asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'contrasena' });
-  logger.info('Correo de contraseña enviado', { uid: usuario.uid, idioma });
+  const codigo = await correo.crearCodigo(db, `r_${correo.huella(email)}`, { uid: usuario.uid, tipo: 'contrasena' });
+  const nombre = await nombreDe(usuario.uid, usuario);
+  const m = correo.componer('contrasena', idioma, nombre, codigo);
+  await correo.enviarConBrevo(BREVO_API_KEY.value(), { para: email, nombre, asunto: m.asunto, html: m.html, texto: m.texto, etiqueta: 'contrasena' });
+  logger.info('Código de contraseña enviado', { uid: usuario.uid, idioma });
   return { enviado: true };
+});
+
+// Cambia la contraseña con el código. Quien demuestra que recibe el correo
+// también lo deja verificado, y se cierran las sesiones abiertas.
+exports.cambiarContrasenaConCodigo = onCall(async (req) => {
+  const email = String(req.data?.email || '').trim().toLowerCase();
+  const nueva = String(req.data?.nueva || '');
+  if (nueva.length < 8 || nueva.length > 128) throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 8 caracteres.', { motivo: 'contrasena' });
+  const r = await correo.comprobarCodigo(db, `r_${correo.huella(email)}`, req.data?.codigo);
+  if (!r.ok) errorCodigo(r);
+  await admin.auth().updateUser(r.datos.uid, { password: nueva, emailVerified: true });
+  await admin.auth().revokeRefreshTokens(r.datos.uid);
+  logger.info('Contraseña cambiada con código', { uid: r.datos.uid });
+  return { cambiada: true };
 });
