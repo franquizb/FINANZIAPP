@@ -351,7 +351,7 @@ const Header = () => {
 
 // --- Componente: Sección Hero ---
 const HeroSection = () => {
-    const { t } = useApp();
+    const { t, language } = useApp();
     return (
         <section className="relative min-h-screen flex items-center justify-center p-4 text-center bg-slate-900 overflow-hidden">
             {/* Fondo animado sutil con gradientes y blurs */}
@@ -364,7 +364,7 @@ const HeroSection = () => {
 
             <div className="relative z-10 max-w-6xl mx-auto flex flex-col items-center pt-24">
                 <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-white animate-fade-in-up drop-shadow-2xl">
-                    {t.landingHeroTitle1} <span className="text-teal-400">{t.landingHeroTitle2}</span>
+                    {t.landingHeroTitle1}{language === 'zh' ? '' : ' '}<span className="text-teal-400">{t.landingHeroTitle2}</span>
                 </h1>
                 <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl animate-fade-in-down" style={{ animationDelay: '0.3s' }}>
                     {t.landingHeroText}
@@ -418,7 +418,7 @@ const FeaturesSection = () => {
 
 // --- Componente: Vista Previa del Dashboard (Más Realista) ---
 const DashboardPreviewSection = () => {
-    const { t, tf, mesCorto, locale } = useApp();
+    const { t, tf, mesCorto, locale, language } = useApp();
     const [selectedYearOffset, setSelectedYearOffset] = useState(0); // 0 = current year, 1 = current year + 1, etc.
     const currentYear = new Date().getFullYear(); // dynamic current year
 
@@ -430,7 +430,7 @@ const DashboardPreviewSection = () => {
     return (
         <section id="dashboard" className="py-20 bg-slate-800/50">
             <div className="container mx-auto px-6 text-center">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingPreviewTitle1} <span className="text-teal-400">{t.landingPreviewTitle2}</span></h2>
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingPreviewTitle1}{language === 'zh' ? '' : ' '}<span className="text-teal-400">{t.landingPreviewTitle2}</span></h2>
                 <p className="text-xl text-gray-400 mb-12 max-w-3xl mx-auto">{t.landingPreviewText}</p>
 
                 {/* Maqueta del dashboard con elementos reales de la app */}
