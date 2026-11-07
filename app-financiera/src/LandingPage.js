@@ -391,11 +391,11 @@ const FeatureCard = ({ icon, title, children }) => (
 
 // --- Componente: Sección de Funcionalidades Clave ---
 const FeaturesSection = () => {
-    const { t } = useApp();
+    const { t, language } = useApp();
     return (
         <section id="features" className="py-20 bg-slate-900">
             <div className="container mx-auto px-6 text-center">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingFeaturesTitle1} <span className="text-teal-400">{t.landingFeaturesTitle2}</span></h2>
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingFeaturesTitle1}{language === 'zh' ? '' : ' '}<span className="text-teal-400">{t.landingFeaturesTitle2}</span></h2>
                 <p className="text-xl text-gray-400 mb-16 max-w-3xl mx-auto">{t.landingFeaturesText}</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                     <FeatureCard icon={<CalculatorIcon className="w-12 h-12" />} title={t.landingFeat1Title}>
@@ -524,11 +524,11 @@ const DashboardPreviewSection = () => {
 
 // --- NUEVA SECCIÓN: Cómo Funciona ---
 const HowItWorksSection = () => {
-    const { t } = useApp();
+    const { t, language } = useApp();
     return (
         <section id="how-it-works" className="py-20 bg-slate-900">
             <div className="container mx-auto px-6 text-center">
-                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingHowTitle1} <span className="text-teal-400">{t.landingHowTitle2}</span></h2>
+                <h2 className="text-4xl md:text-5xl font-bold mb-4 text-white">{t.landingHowTitle1}{language === 'zh' ? '' : ' '}<span className="text-teal-400">{t.landingHowTitle2}</span></h2>
                 <p className="text-xl text-gray-400 mb-16 max-w-3xl mx-auto">{t.landingHowText}</p>
                 <div className="relative">
                     {/* Línea de conexión con efecto de gradiente */}

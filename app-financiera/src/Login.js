@@ -630,7 +630,8 @@ export default function Login({ onLogin, pendiente }) {
           )}
           {!isLogin && (
             <div style={{ fontSize: 11, color: '#8b92b8', lineHeight: 1.5, marginBottom: 14 }}>
-              {t.loginAceptas} <a href="/terminos" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginTerminos}</a> {t.loginYLa} <a href="/privacidad" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginPrivacidad}</a>.
+              {/* En chino las piezas van sin espacios y con punto chino. */}
+              {t.loginAceptas}{language === 'zh' ? '' : ' '}<a href="/terminos" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginTerminos}</a>{language === 'zh' ? '' : ' '}{t.loginYLa}{language === 'zh' ? '' : ' '}<a href="/privacidad" target="_blank" rel="noreferrer" style={{ color: '#c7cbe6' }}>{t.loginPrivacidad}</a>{language === 'zh' ? '。' : '.'}
             </div>
           )}
           <button className="login-btn" type="submit" disabled={loading}>
