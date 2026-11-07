@@ -28,7 +28,7 @@ textos `precioMes` / `susIncluye` de `src/i18n/`.
    facturas, cancelar). `resumenStripe` da al administrador el estado de todas
    las suscripciones desde el panel de Gestión.
 
-Las funciones viven en `functions/` (Node 20, región `europe-west1`, codebase
+Las funciones viven en `functions/` (Node 24, región `europe-west1`, codebase
 `finanziapp`, así que el despliegue no toca las funciones `searchSymbol` y
 `getLiveQuote` que ya existen en el proyecto).
 

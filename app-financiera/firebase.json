@@ -6,7 +6,7 @@
     {
       "source": "functions",
       "codebase": "finanziapp",
-      "runtime": "nodejs20",
+      "runtime": "nodejs24",
       "ignore": [
         "node_modules",
         ".git",
