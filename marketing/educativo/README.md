@@ -49,3 +49,8 @@ cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
   `mezcla.py` baja la música mientras se habla.
 - Revisar sin voz: `node reel-voz.js <slug> --vista --sin-voz`.
 - Con voz (necesita la credencial en FBT y SA): `node reel-voz.js <slug>`.
+- Acento en español: cada toma puede salir con seseo aunque se pida España.
+  `node revisar-acento.cjs <…> <…> <slug>` hace que Gemini escuche cada frase y
+  repite las que no suenen peninsulares. La indicación de acento va siempre en
+  positivo («acento peninsular estándar»): si menciona otro acento para
+  descartarlo, el filtro de Google bloquea las frases.

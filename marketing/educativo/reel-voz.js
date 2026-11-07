@@ -86,7 +86,7 @@ function pagina(reel, lang, L) {
     h1 { font-size: ${F.h1}px; }
     ${reel.css || ''}
   </style></head><body>
-  <div class="pag"><div class="arriba"><span class="kicker">${t.kicker}</span>${firma()}</div></div>
+  ${reel.cabecera ? `<div class="pag"><div class="arriba"><span class="kicker">${t.kicker}</span>${firma()}</div></div>` : ''}
   ${reel.escenas.map((e, i) => `<div class="escena" data-n="${i}">${e.html(t, lang)}</div>`).join('')}
   <div id="sub"></div>
   <script>

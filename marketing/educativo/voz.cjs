@@ -110,8 +110,13 @@ async function sintetizar(frases, voz, cred) {
             audioConfig: { audioEncoding: 'LINEAR16', sampleRateHertz: SR, ...(voz.ritmo ? { speakingRate: voz.ritmo } : {}) } }
       });
       const filtro = (e) => /usage guidelines/.test(e.response?.data?.error?.message || '');
-      const r = await pedir(txt).catch((e) => (voz.modelo && filtro(e) && !/^\[/.test(txt) ? pedir('[amusement] ' + txt) : Promise.reject(e)))
-        .catch((e) => { throw new Error(`voz «${txt}»: ${e.response?.data?.error?.message || e.message}`); });
+      // Reintentos: el mismo texto otra vez (el filtro no es determinista) y luego empezando con [amusement].
+      const alternativas = [txt, txt, /^\[[^\]]*\]/.test(txt) ? txt.replace(/^\[[^\]]*\]/, '[amusement]') : '[amusement] ' + txt];
+      let r = null, ultimo = null;
+      for (const alt of alternativas) {
+        try { r = await pedir(alt); break; } catch (e) { ultimo = e; if (!(voz.modelo && filtro(e))) break; }
+      }
+      if (!r) throw new Error(`voz «${txt}»: ${ultimo.response?.data?.error?.message || ultimo.message}`);
       const b = Buffer.from(r.data.audioContent, 'base64');
       fs.writeFileSync(archivo, b.toString('ascii', 0, 4) === 'RIFF' ? b : aWav(b, 24000));
       recortar(archivo);

@@ -17,11 +17,14 @@ cuadra('anual es', N.es.subida / 2 * 12, 1200);
 
 const ESTILO = 'You are a witty, smart friend explaining money in a short vertical video. Fast, punchy delivery like a top short-form creator: quick rhythm, short pauses. Deadpan and dry, with playful sarcasm and sharp comedic timing: let the irony live in your intonation, a tiny beat before each punchline, sound amused, never mean, never like an ad.';
 const MODELO = 'gemini-3.1-flash-tts-preview';
+// En español, la indicación va en español y pide acento peninsular estándar, siempre en positivo:
+// si se menciona otro acento para descartarlo, el filtro de Google rechaza las frases.
+const ESTILO_ES = 'Eres un amigo listo que explica dinero en un vídeo corto. Hablas español de España con el acento peninsular estándar de un locutor de radio o pódcast español: con distinción (la z y la c de «ce» y «ci» suenan como en España) y la entonación de España, sin exagerar acentos regionales. Entrega rápida y con gancho, como un buen creador de contenido: frases ágiles y pausas cortas. Tono seco y sarcástico, con buen timing cómico: la ironía se nota en la entonación y hay un mini silencio antes de cada remate; divertido, nunca borde ni con voz de anuncio.';
 
 const T = {
   en: {
     kicker: 'MONEY, HONESTLY',
-    titulo: 'You got a raise. <span class="c">So why are you still broke?</span>',
+    titulo: 'Got a raise. <span class="c">Still broke.</span>',
     l: { antes: 'Before the raise', despues: 'After the raise', sueldo: 'SALARY', gasto: 'SPENDING', ahorro: 'SAVINGS', sobra: 'Left at month end', mes: '/mo',
       felicidad: 'Happiness', tiempo: 'Time', termino: 'Hedonic treadmill', fuente: 'Brickman & Campbell, 1971', disfrutar: 'to enjoy', ahorrar: 'to savings',
       subida: 'raise', anio: 'a year', loco: 'Not the crazy part…', notar: 'Will you miss it?', mitad: 'Half of every raise' },
@@ -43,7 +46,7 @@ const T = {
   },
   es: {
     kicker: 'DINERO, SIN RODEOS',
-    titulo: 'Te subieron el sueldo. <span class="c">¿Y por qué sigues igual?</span>',
+    titulo: 'Te subieron el sueldo. <span class="c">Y sigues sin un duro.</span>',
     l: { antes: 'Antes de la subida', despues: 'Después de la subida', sueldo: 'SUELDO', gasto: 'GASTOS', ahorro: 'AHORRO', sobra: 'Te sobra a fin de mes', mes: '/mes',
       felicidad: 'Felicidad', tiempo: 'Tiempo', termino: 'Cinta de correr hedónica', fuente: 'Brickman y Campbell, 1971', disfrutar: 'para disfrutar', ahorrar: 'al ahorro',
       subida: 'de subida', anio: 'al año', loco: 'Eso no es lo más loco…', notar: '¿Lo vas a notar?', mitad: 'La mitad de cada subida' },
@@ -59,7 +62,7 @@ const T = {
       [5, 'Y ni lo vas a notar. [short pause] ¿Quieres saber por qué?'],
       [6, 'Porque ahora la cinta trabaja *para ti*. Te acostumbras a lo nuevo. Como al móvil.'],
       [6, 'La otra mitad, disfrútala. Te la has ganado. [short pause] *Literalmente*.'],
-      [7, '[amusement] Síguenos. Tu *yo del futuro* ya se está impacientando.']
+      [7, 'Tu *yo del futuro* ya se está impacientando. [short pause] Síguenos.']
     ],
     cierre: ['Dinero, <span class="c">sin rodeos.</span>', 'Síguenos para más.']
   }
@@ -156,7 +159,7 @@ module.exports = {
   slug: 'cinta-de-correr',
   voz: {
     en: { modelo: MODELO, nombre: 'Charon', idioma: 'en-US', estilo: ESTILO + ' Natural, conversational American English.', tempo: 1.1, pausaMax: 0.42 },
-    es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO + ' Speak natural Castilian Spanish from Spain (Madrid accent), conversational.', tempo: 1.1, pausaMax: 0.42 }
+    es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO_ES, tempo: 1.1, pausaMax: 0.42 }
   },
   T,
   datos: (lang) => ({ ...N[lang] }),
