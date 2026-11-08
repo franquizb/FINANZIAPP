@@ -41,3 +41,6 @@ Léelo antes de cambiar nada. Son decisiones del propietario.
 - Guías: `PENDIENTE.md` (lo que hace el propietario), `STRIPE.md`,
   `CORREO.md`, `ACCESO.md`, `BRANDING-GOOGLE.md`.
 - `marketing/instagram/`: anuncios, perfil, posts e historias (`PERFIL.md`).
+- Panel de redes en https://franquizb.com (solo el Google del propietario):
+  web en `estadisticas-web/`, funciones en `app-financiera/panel-funciones/`
+  (codebase `panel`), guía en `marketing/educativo/README.md`.
