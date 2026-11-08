@@ -1,6 +1,7 @@
 // La voz oficial de los Reels hablados de FinanziApp y las piezas que comparten.
 //
-// VOZ APROBADA por el propietario (7 nov 2026): «ahora sí suena bien y engancha».
+// VOZ APROBADA por el propietario (7 nov 2026): «ahora sí suena bien y engancha»;
+// el 8 nov pidió más carisma (sobre todo en inglés) → VOZ es la versión 2 y VOZ_V1 la primera.
 // No cambiarla sin que lo pida: es la misma en todos los vídeos para que la
 // cuenta tenga una voz reconocible. Gemini TTS no clona voces: la voz es el
 // nombre (Charon) + estas indicaciones + el ritmo; con los mismos valores suena igual.
@@ -14,9 +15,24 @@ const ESTILO = 'You are a witty, smart friend explaining money in a short vertic
 // si se menciona otro acento para descartarlo, el filtro de Google rechaza las frases.
 const ESTILO_ES = 'Eres un amigo listo que explica dinero en un vídeo corto. Hablas español de España con el acento peninsular estándar de un locutor de radio o pódcast español: con distinción (la z y la c de «ce» y «ci» suenan como en España) y la entonación de España, sin exagerar acentos regionales. Entrega rápida y con gancho, como un buen creador de contenido: frases ágiles y pausas cortas. Tono seco y sarcástico, con buen timing cómico: la ironía se nota en la entonación y hay un mini silencio antes de cada remate; divertido, nunca borde ni con voz de anuncio.';
 
-const VOZ = {
+// Versión 1 (7 nov 2026): la de los dos primeros Reels. Se mantiene para que su audio no cambie.
+const VOZ_V1 = {
   en: { modelo: MODELO, nombre: 'Charon', idioma: 'en-US', estilo: ESTILO + ' Natural, conversational American English.', tempo: 1.1, pausaMax: 0.42 },
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO_ES, tempo: 1.1, pausaMax: 0.42 }
+};
+
+// Versión 2 (8 nov 2026), la de por defecto: con CARISMA. El propietario vio que el Reel en
+// inglés rendía peor «por poco carisma»: el «deadpan» seco suena plano en inglés. Ahora:
+// presentador con energía, entonación muy viva, sonrisa en la voz y sarcasmo con media sonrisa.
+const CARISMA = 'You are the charismatic, quick-witted host of a viral money channel, talking to a friend. High energy and expressive: big pitch variation, a smile in your voice, punchy emphasis on key words, and playful sarcasm delivered with a grin. Never flat or monotone. Short, snappy rhythm with quick comedic beats.';   // «never mean, never like an ad» hacía saltar el filtro de Google
+// En español, el acento va lo primero y en inglés: con la indicación «de presentador viral» en
+// español, Charon salía con acento latino casi siempre; así sale de España 3 de cada 4 veces
+// (las demás las corrige revisar-voz.cjs). Siempre en positivo, sin mencionar otros acentos.
+const CARISMA_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. You are a charismatic, quick-witted host talking to a friend: high energy, big pitch variation, a smile in your voice, punchy emphasis on key words, witty humor with light irony. Never flat or monotone. Short, snappy rhythm.';
+const VOZ = {
+  // En inglés, Puck (voz animada) en lugar de Charon: más chispa para el público de EE. UU.
+  en: { modelo: MODELO, nombre: 'Puck', idioma: 'en-US', estilo: CARISMA + ' Natural, conversational American English.', tempo: 1.15, pausaMax: 0.38 },
+  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: CARISMA_ES, tempo: 1.15, pausaMax: 0.38 }   // con carisma habla más despacio: algo más de ritmo
 };
 
 // Bocadillo del muñeco del cierre.
@@ -93,7 +109,7 @@ const cierreCon = (variante = 'moneda') => ({
       <g class="chispas" opacity="0" fill="#e9c46a">${[[-70, -40], [60, -60], [-40, 50], [70, 30]].map(([dx, dy], i) => `<path class="ch" data-d="${dx},${dy}" d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z"/>`).join('')}</g>
     </svg>
     <div class="bocadillo" style="position:absolute;left:${X0 + 30}px;right:-30px;top:40px;opacity:0;transform-origin:10% 100%">
-      <div style="background:#f1f5f9;color:#0f172a;border-radius:34px;padding:30px 34px;font-size:50px;font-weight:850;line-height:1.12;letter-spacing:-.02em">${t.cierre}</div>
+      <div style="background:#f1f5f9;color:#0f172a;border-radius:34px;padding:30px 34px;font-size:${t.cierre.replace(/<[^>]+>/g, '').length > 38 ? 42 : 50}px;font-weight:850;line-height:1.12;letter-spacing:-.02em">${t.cierre}</div>
       <svg width="70" height="50" viewBox="0 0 70 50" style="display:block;margin-left:40px;margin-top:-2px"><path d="M0 0 H60 L8 48 Z" fill="#f1f5f9"/></svg>
     </div>
   </div>`; },
@@ -167,4 +183,4 @@ const cierreCon = (variante = 'moneda') => ({
 });
 const cierre = cierreCon('moneda');
 
-module.exports = { C, icono, VOZ, CIERRE, CSS, bucle, cierre, cierreCon, muneco };
+module.exports = { C, icono, VOZ, VOZ_V1, CIERRE, CSS, bucle, cierre, cierreCon, muneco };

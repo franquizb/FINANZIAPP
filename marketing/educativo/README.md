@@ -36,17 +36,25 @@ Metricool puede publicarlos solo).
 
 # Reels hablados (voz en off + metáfora animada)
 
-Estructura de cada guion: gancho → intro → cuerpo 1 (algo útil que no
-sabían) → bucle («eso no es lo más loco…», deja una pregunta abierta) →
-cuerpo 2 → bucle → final. Tono: amigo listo, seco y sarcástico.
+**Formato actual: píldoras de 20–30 s** (el propietario vio que en los Reels de
+~65 s solo el 2 % llegaba al final): gancho → dato → remate → una pregunta
+abierta de otro tema («¿Y por qué casi todo cuesta 9,99? Si te lo has
+preguntado alguna vez, síguenos para no perdértelo»), sin numerar partes. Cada
+pregunta se apunta en `reels-voz/REGISTRO.md` (y en la hoja «Registro de Reels
+hablados» de Drive) y se responde en una píldora posterior.
+Los dos primeros Reels (largos) siguen la estructura gancho → intro → cuerpo →
+bucle → cuerpo → bucle → final.
+Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
 
 - `reels-voz/<slug>.js`: guion por frases `[escena, texto]` en EN y ES.
   `*palabra*` sale resaltada en los subtítulos, `[sarcasm]`, `[short pause]`…
   dirigen la voz (no salen en pantalla) y `§` marca momentos para la animación.
-- **Voz oficial** (aprobada por el propietario, no cambiar sin que lo pida):
-  `reels-voz/_comun.js` → `VOZ` (Gemini 3.1 Flash TTS, voz Charon, tono seco y
-  sarcástico, acento peninsular estándar en español, ritmo 1,1× con pausas de
-  0,42 s como máximo). Cada Reel nuevo usa `voz: VOZ`, más las escenas comunes
+- **Voz oficial** (no cambiar sin que lo pida el propietario):
+  `reels-voz/_comun.js` → `VOZ`, versión con carisma: Gemini 3.1 Flash TTS,
+  Puck en inglés y Charon en español (acento peninsular pedido lo primero),
+  ritmo 1,15×. `VOZ_V1` (más seca) se conserva para los dos primeros Reels.
+  Palabras que hacen saltar el filtro de Google: «never mean, never like an
+  ad», «sarcasmo juguetón», «como un adulto», frases muy cortas. Cada Reel nuevo usa `voz: VOZ`, más las escenas comunes
   `bucle(…)` y `cierre`.
 - `voz.cjs`: voz de Google Cloud Text-to-Speech (Gemini TTS, dirigida con un
   `estilo`); cada frase se guarda en `cache-voz/` para no volver a pagarla.

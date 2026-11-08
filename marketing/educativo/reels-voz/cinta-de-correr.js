@@ -1,6 +1,6 @@
 // Reel hablado: la cinta de correr del dinero (inflación del estilo de vida).
 // Estructura: gancho → intro → cuerpo 1 (algo que no sabían) → bucle → cuerpo 2 → bucle → final.
-const { C, icono, VOZ, CIERRE, CSS, bucle, cierre, muneco } = require('./_comun');
+const { C, icono, VOZ_V1: VOZ, CIERRE, CSS, bucle, cierre, muneco } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 const N = {
