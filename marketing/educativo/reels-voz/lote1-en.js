@@ -161,7 +161,7 @@ Next up: renting isn’t throwing money away. Agree or disagree? Follow so you d
       retencion: 'Invested, it gets <span class="c">way bigger</span>',
       guion: [
         [0, 'Five bucks a day. §Coffee, a snack, an app. §{pop}*Let’s do the math*.'],
-        [1, '$5 times 365 days: §{caja}*$1,825 a year*.'],
+        [1, 'Five dollars a day, every day of the year, §{caja}adds up to *$1,825*.'],
         [2, 'Invest it instead, at 7% a year, §and in 10 years §{ding}that’s about *$26,000*.'],
         [3, 'Not saying skip everything. §Just pick *one* $5 habit §{pop}and point it at your future.'],
         [4, 'Next: why “was $199, now $99” works on everyone. [short pause] *Follow* so you don’t miss it.']

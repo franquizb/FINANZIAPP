@@ -79,6 +79,33 @@
           "estado": "listo",
           "slug": "es-cafe-hormiga",
           "nota": "Programado en Instagram y Facebook · 29.35 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "¿Cobras y a final de mes no sabes dónde ha ido el dinero? Prueba esto.",
+          "estado": "listo",
+          "slug": "es-regla-50-30-20",
+          "nota": "Programado en Instagram y Facebook · 33.39 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Tu contrato dice 2.000 euros al mes. Pero en tu cuenta entra bastante menos.",
+          "estado": "listo",
+          "slug": "es-nomina-bruto-neto",
+          "nota": "Programado en Instagram y Facebook · 30.73 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "¿Pagas extra prorrateadas o en junio y diciembre? ¿Cuál te da más dinero?",
+          "estado": "listo",
+          "slug": "es-pagas-extra",
+          "nota": "Programado en Instagram y Facebook · 28.49 s"
         }
       ],
       "pendientes": [
@@ -150,6 +177,42 @@
           "estado": "por hacer",
           "nota": "Segundo de la serie de hitos · Test: Friday evening (7:00 PM New York)",
           "hora": "00:00"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Your boss is offering you free money, and it’s easy to leave it on the table.",
+          "estado": "listo",
+          "slug": "en-401k-match",
+          "nota": "Programado en Instagram y Facebook · 38.78 s"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "“Don’t check your credit score, it’ll drop.” Total myth.",
+          "estado": "listo",
+          "slug": "en-credit-check-myth",
+          "nota": "Programado en Instagram y Facebook · 25.67 s"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "21:30",
+          "tipo": "Reel",
+          "tema": "Want to know when your money doubles? There’s a one-second trick.",
+          "estado": "listo",
+          "slug": "en-rule-of-72",
+          "nota": "Programado en Instagram y Facebook · 26.73 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "00:30",
+          "tipo": "Reel",
+          "tema": "You’ve saved $10,000. Here are three things that change.",
+          "estado": "listo",
+          "slug": "en-hito-10000",
+          "nota": "Programado en Instagram y Facebook · 30.47 s"
         }
       ],
       "pendientes": [
