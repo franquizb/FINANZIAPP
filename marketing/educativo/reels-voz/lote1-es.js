@@ -89,7 +89,7 @@ Y la siguiente: ¿por qué el paquete grande no siempre sale más barato? Sígue
       guion: [
         [0, 'El paquete grande sale más barato, ¿no? §{pop}*No siempre*.'],
         [1, 'Por ley, la etiqueta tiene que darte el §{ding}*precio por kilo o por litro*. Es esa cifra pequeñita.'],
-        [2, 'Ejemplo: 500 gramos a 2 euros §sale a *4 euros el kilo*. §{pop}El kilo a 4,50… *sale a 4,50*.'],
+        [2, 'Mira: un paquete de medio kilo por 2 euros §te sale a *4 euros el kilo*. §{pop}Y el de un kilo por 4,50, *a 4,50 el kilo*.'],
         [3, 'Así que no compares paquetes: §compara §{pop}*el precio por kilo*.'],
         [4, '¿Y sabes cuánto te cuesta al año el café de cada mañana? [short pause] Si te pica, *síguenos*.']
       ],

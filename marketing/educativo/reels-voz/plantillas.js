@@ -169,8 +169,11 @@ const contador = ({ titulo, hasta, desde = 0, prefijo = '', sufijo = '', tarro, 
     const p = tramo(s, 0.2, fin);
     for (let i = 0; i < 6; i++) { const q = tramo(p, i / 6, i / 6 + 0.25), g = el.querySelector('.mon-' + i);
       g.setAttribute('opacity', q > 0 && q < 1 ? 1 : 0); g.setAttribute('transform', 'translate(' + (680 + (i % 3) * 20) + ',' + lerp(380, 700, q * q) + ')'); }
-    const v = s >= fin ? c.hasta : c.desde + (c.hasta - c.desde) * sale(p), paso = Math.abs(c.hasta) >= 1000 ? 10 : 1;
-    const txt = String(Math.round(v / paso) * paso).replace(/\B(?=(\d{3})+(?!\d))/g, c.sep);
+    // Al final, el valor exacto (con sus decimales); mientras cuenta, redondeado para que no tiemble.
+    const dec = (String(c.hasta).split('.')[1] || '').length, paso = Math.abs(c.hasta) >= 1000 ? 10 : 1;
+    const v = s >= fin ? c.hasta : c.desde + (c.hasta - c.desde) * sale(p), mostrado = s >= fin || dec ? v : Math.round(v / paso) * paso;
+    const [ent, dd] = Math.abs(mostrado).toFixed(dec).split('.');
+    const txt = (mostrado < 0 ? '−' : '') + ent.replace(/\B(?=(\d{3})+(?!\d))/g, c.sep) + (dd ? (c.sep === '.' ? ',' : '.') + dd : '');
     const t = el.querySelector('.cuenta'); t.textContent = c.prefijo + txt + c.sufijo; t.setAttribute('fill', s >= fin ? '#5eead4' : '#f1f5f9');
     el.querySelector('.tr .nivel').setAttribute('y', lerp(-45, -150, sale(p)));
     posar(el.querySelector('.m1'), s >= fin ? POSES.alegre : mezclaPose(POSES.pie, POSES.cartel, 0.35 * Math.abs(Math.sin(s * 3))));
