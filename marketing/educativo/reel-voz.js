@@ -241,6 +241,9 @@ async function grabar(browser, reel, lang, op) {
   await page.evaluate((x) => pintar(x), L.frases[0].ini + L.frases[0].dur - 0.1);
   await page.screenshot({ path: path.join(dir, 'portada.jpg'), type: 'jpeg', quality: 92 });
   await page.close();
+  // Datos para programar: duración y el momento de la portada (Instagram la toma de ese fotograma).
+  fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ slug: reel.slug, cuenta: lang, total: +L.total.toFixed(2), portada_ms: Math.round((L.frases[0].ini + L.frases[0].dur - 0.1) * 1000),
+    tema: (t.titulo || t.guion[0][1]).replace(/<[^>]+>/g, '').replace(/\[[^\]]*\]\s*/g, '').replace(/[*§]|\{\w*\}/g, '').trim() }));
   execFileSync('python3', [path.join(__dirname, 'musica.py'), String(L.total), musica]);
   // Efectos de sonido (sfx.py, se generan una vez en cache-voz/).
   const dirSfx = path.join(__dirname, 'cache-voz');
@@ -260,7 +263,7 @@ async function grabar(browser, reel, lang, op) {
 
 (async () => {
   const args = process.argv.slice(2);
-  const reel = require(`./reels-voz/${args[0]}.js`);
+  const reel = require('./reels-voz/cargar.js')(args[0]);
   const idiomas = args.filter(a => ['en', 'es'].includes(a));
   const esc = args.find(a => a.startsWith('--escena='));
   const op = { vista: args.includes('--vista'), sinVoz: args.includes('--sin-voz'), escena: esc ? +esc.split('=')[1] : null };

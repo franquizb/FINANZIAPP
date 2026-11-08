@@ -1,6 +1,6 @@
 // Deja un Reel en la cola de publicación de Instagram: se publica solo a la hora indicada (la función panelPublicar
-// mira la cola cada 15 minutos). El vídeo espera en el bucket privado finanziapp-publicar, que lo borra a las 24 h:
-// la hora tiene que estar dentro de las próximas 23 horas. Solo cuando el propietario pide publicar algo concreto.
+// mira la cola cada 15 minutos). El vídeo espera en el bucket privado finanziapp-publicar (carpeta cola/, se borra a los 9 días)
+// y la hora tiene que estar dentro de los próximos 6,5 días (la URL firmada dura 7 días como mucho). Solo cuando el propietario pide publicar algo concreto.
 // Con --ensayo, Instagram lo prepara y lo procesa pero no lo publica (para comprobar que todo funciona).
 // Uso: node encolar-instagram.cjs <dir google-auth-library> <credencial.json> es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms 3500] [--ensayo]
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -8,7 +8,7 @@ const [, , fbt, sa, cuenta, video, textoArchivo, cuando] = process.argv;
 const op = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 if (!['es', 'en'].includes(cuenta) || !video || !textoArchivo || !cuando) { console.error('Uso: … es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms N] [--ensayo]'); process.exit(1); }
 const hora = Date.parse(cuando);
-if (isNaN(hora) || hora < Date.now() - 60e3 || hora > Date.now() + 23 * 3600e3) { console.error('La fecha tiene que estar entre ahora y dentro de 23 horas.'); process.exit(1); }
+if (isNaN(hora) || hora < Date.now() - 60e3 || hora > Date.now() + 6.8 * 864e5) { console.error('La fecha tiene que estar entre ahora y dentro de 6 días y medio (la URL firmada dura 7 días como mucho).'); process.exit(1); }
 
 // URL firmada V4 de Cloud Storage (GET), igual que en publicar-instagram.cjs.
 function urlFirmada(sa, bucket, objeto, seg) {

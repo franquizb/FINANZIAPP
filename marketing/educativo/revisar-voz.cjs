@@ -9,7 +9,7 @@ const { sintetizar, limpiar } = require('./voz.cjs');
 const [, , fbt, sa, slug, ...resto] = process.argv;
 const idiomas = resto.filter(x => ['es', 'en'].includes(x));
 const intentos = +resto.find(x => /^\d+$/.test(x)) || 4;
-const reel = require(path.join(__dirname, 'reels-voz', slug + '.js'));
+const reel = require(path.join(__dirname, 'reels-voz', 'cargar.js'))(slug);
 const JUEZ = {
   es: (txt) => `Texto del guion: «${txt}»
 Escucha esta frase de una locución en español y responde SOLO con JSON:
