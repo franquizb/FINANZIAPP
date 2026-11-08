@@ -50,7 +50,10 @@ const finde = (dia, zona) => ['Sat', 'Sun'].includes(new Intl.DateTimeFormat('en
         if (t - Date.now() > 20 * 60e3 && !ocupados.has(t.toISOString().slice(0, 16)) && huecos.length < slugs.length) huecos.push(t);
       }
     }
-    slugs.forEach((slug, i) => plan.push({ cuenta, slug, cuando: huecos[i] }));
+    // Nunca dos veces el mismo vídeo: si ya está pendiente en la cola, se salta.
+    const yaEnCola = new Set(cola.items.filter(x => x.cuenta === cuenta && ['pendiente', 'publicando'].includes(x.estado)).map(x => x.slug));
+    slugs.filter(s => { if (yaEnCola.has(s)) console.log(`· ${s} ya está en la cola: no se repite`); return !yaEnCola.has(s); })
+      .forEach((slug, i) => plan.push({ cuenta, slug, cuando: huecos[i] }));
   }
   for (const p of plan) {
     const dir = path.join(__dirname, 'out-reels', p.slug, p.cuenta), meta = JSON.parse(fs.readFileSync(path.join(dir, 'meta.json'), 'utf8'));

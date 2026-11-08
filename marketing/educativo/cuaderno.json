@@ -106,6 +106,33 @@
           "estado": "listo",
           "slug": "es-pagas-extra",
           "nota": "Programado en Instagram y Facebook · 28.49 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "20:30",
+          "tipo": "Reel",
+          "tema": "Todo el mundo habla de las Letras del Tesoro. Te lo explico en treinta segundos.",
+          "estado": "listo",
+          "slug": "es-letras-tesoro",
+          "nota": "Programado en Instagram y Facebook · 26.13 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
+          "estado": "listo",
+          "slug": "es-fondo-emergencia",
+          "nota": "Programado en Instagram y Facebook · 27.54 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
+          "estado": "listo",
+          "slug": "es-reduflacion",
+          "nota": "Programado en Instagram y Facebook · 26.78 s"
         }
       ],
       "pendientes": [
@@ -213,6 +240,60 @@
           "estado": "listo",
           "slug": "en-hito-10000",
           "nota": "Programado en Instagram y Facebook · 30.47 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "00:30",
+          "tipo": "Reel",
+          "tema": "Five bucks a day. Coffee, a snack, an app. Let’s do the math.",
+          "estado": "listo",
+          "slug": "en-5-dollars-a-day",
+          "nota": "Programado en Instagram y Facebook · 34.03 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "“Renting is throwing money away.” Is it, though?",
+          "estado": "listo",
+          "slug": "en-renting-agree",
+          "nota": "Programado en Instagram y Facebook · 32.91 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "Roth or traditional? It comes down to one question.",
+          "estado": "listo",
+          "slug": "en-roth-vs-traditional",
+          "nota": "Programado en Instagram y Facebook · 28.53 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "21:30",
+          "tipo": "Reel",
+          "tema": "It costs the U.S. almost 4 cents to make one penny.",
+          "estado": "listo",
+          "slug": "en-penny-cost",
+          "nota": "Programado en Instagram y Facebook · 27.73 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "00:30",
+          "tipo": "Reel",
+          "tema": "You pay your card in full every month and your score still isn’t great? Look at this number.",
+          "estado": "listo",
+          "slug": "en-credit-utilization",
+          "nota": "Programado en Instagram y Facebook · 30.98 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Car breaks down, rent is due, and your card is maxed out. Sound familiar?",
+          "estado": "listo",
+          "slug": "en-emergency-fund",
+          "nota": "Programado en Instagram y Facebook · 35.56 s"
         }
       ],
       "pendientes": [
