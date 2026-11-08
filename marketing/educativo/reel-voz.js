@@ -11,6 +11,7 @@
 // real de la voz. Cada escena puede tener una animación anim(s, e, el) que se
 // ejecuta en la página con el tiempo local s (segundos) y e.seg = inicio y
 // duración de sus frases. Los elementos con class="a" entran uno tras otro.
+// reel.suelo: suelo común a 900 px de la escena (1190 en pantalla) que llena la parte de abajo.
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
 // retención); se oculta en la última escena (el cierre).
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
@@ -94,6 +95,7 @@ function pagina(reel, lang, L) {
     ${reel.css || ''}
   </style></head><body>
   ${reel.cabecera ? `<div class="pag"><div class="arriba"><span class="kicker">${t.kicker}</span>${firma()}</div></div>` : ''}
+  ${reel.suelo ? `<div style="position:absolute;left:0;right:0;top:1190px;bottom:0;background:linear-gradient(#131c30,#0b1222);border-top:4px solid #24324d"></div>` : ''}
   ${reel.escenas.map((e, i) => `<div class="escena" data-n="${i}">${e.html(t, lang)}</div>`).join('')}
   <div id="sub"></div>
   ${t.retencion ? `<div id="retencion"><span class="caja">${t.retencion}</span></div>` : ''}

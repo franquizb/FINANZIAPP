@@ -77,6 +77,10 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   celebra, o salta con confeti), y siempre acaba saludando con un bocadillo
   (`CIERRE`), sin eslóganes. Cierres usados: cinta-de-correr → moneda,
   dolor-de-pagar → tarro.
+- Estilo visual (petición del propietario): escenas a **pantalla completa con
+  muñecos que hacen la historia** (cartel, rotulador, coches…), no gráficos ni
+  tarjetas arriba. `suelo: true` pone un suelo común que llena la parte de abajo;
+  `SCRIPT_MUNECO` (`posar`, `mano`, `POSES`) anima muñecos y lo que llevan en la mano.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.

@@ -3,7 +3,7 @@
 // La pregunta final queda apuntada en reels-voz/REGISTRO.md y la responde la píldora de los 9,99.
 // Fuentes: Huber, Payne y Puto (1982); Dan Ariely (2008): con estudiantes del MIT, papel + web 84 % con
 // la opción señuelo y 32 % sin ella (elección hipotética).
-const { C, VOZ, CSS, cierreCon } = require('./_comun');
+const { C, VOZ_V2: VOZ, CSS, cierreCon } = require('./_comun');
 const largo = require('./efecto-senuelo.js');
 
 const T = {

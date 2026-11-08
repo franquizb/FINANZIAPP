@@ -4,7 +4,7 @@
 // Fuentes: Huber, Payne y Puto (1982), Journal of Consumer Research (efecto de dominancia asimétrica, «señuelo»);
 // Dan Ariely, «Predictably Irrational» / «Las trampas del deseo» (2008): con estudiantes del MIT, web 59 $ (16 %),
 // papel 125 $ (0 %), papel + web 125 $ (84 %); sin la opción de papel: web 68 %, papel + web 32 % (elección hipotética).
-const { C, icono, VOZ, CIERRE, CSS, bucle, cierreCon } = require('./_comun');
+const { C, icono, VOZ_V2: VOZ, CIERRE, CSS, bucle, cierreCon } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 const EXP = { con: [16, 0, 84], sin: [68, 32] };

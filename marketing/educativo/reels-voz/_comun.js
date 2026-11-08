@@ -21,7 +21,7 @@ const VOZ_V1 = {
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: ESTILO_ES, tempo: 1.1, pausaMax: 0.42 }
 };
 
-// Versión 2 (8 nov 2026), la de por defecto: con CARISMA. El propietario vio que el Reel en
+// Versión 2 (8 nov 2026): con CARISMA (la de la primera píldora; resultó demasiado sarcástica). El propietario vio que el Reel en
 // inglés rendía peor «por poco carisma»: el «deadpan» seco suena plano en inglés. Ahora:
 // presentador con energía, entonación muy viva, sonrisa en la voz y sarcasmo con media sonrisa.
 const CARISMA = 'You are the charismatic, quick-witted host of a viral money channel, talking to a friend. High energy and expressive: big pitch variation, a smile in your voice, punchy emphasis on key words, and playful sarcasm delivered with a grin. Never flat or monotone. Short, snappy rhythm with quick comedic beats.';   // «never mean, never like an ad» hacía saltar el filtro de Google
@@ -29,11 +29,49 @@ const CARISMA = 'You are the charismatic, quick-witted host of a viral money cha
 // español, Charon salía con acento latino casi siempre; así sale de España 3 de cada 4 veces
 // (las demás las corrige revisar-voz.cjs). Siempre en positivo, sin mencionar otros acentos.
 const CARISMA_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. You are a charismatic, quick-witted host talking to a friend: high energy, big pitch variation, a smile in your voice, punchy emphasis on key words, witty humor with light irony. Never flat or monotone. Short, snappy rhythm.';
-const VOZ = {
+const VOZ_V2 = {
   // En inglés, Puck (voz animada) en lugar de Charon: más chispa para el público de EE. UU.
   en: { modelo: MODELO, nombre: 'Puck', idioma: 'en-US', estilo: CARISMA + ' Natural, conversational American English.', tempo: 1.15, pausaMax: 0.38 },
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: CARISMA_ES, tempo: 1.15, pausaMax: 0.38 }   // con carisma habla más despacio: algo más de ritmo
 };
+
+// Versión 3 (8 nov 2026), la de por defecto: carisma CERCANO. La v2 le pareció al propietario
+// «excesivamente sarcástica»: misma energía, pero humor amable y tono de amigo, sin pullas.
+const CERCANO = 'You are a charismatic, warm host talking to a friend about money: high energy, big pitch variation, a smile in your voice, punchy emphasis on key words and light, friendly humor. Genuinely enthusiastic and helpful, never snarky. Never flat or monotone. Short, snappy rhythm.';
+const CERCANO_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. You are a charismatic, warm host talking to a friend about money: high energy, big pitch variation, a smile in your voice, punchy emphasis on key words and light, friendly humor. Genuinely enthusiastic and helpful. Never flat or monotone. Short, snappy rhythm.';
+const VOZ = {
+  en: { modelo: MODELO, nombre: 'Puck', idioma: 'en-US', estilo: CERCANO + ' Natural, conversational American English.', tempo: 1.15, pausaMax: 0.38 },
+  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: CERCANO_ES, tempo: 1.15, pausaMax: 0.38 }
+};
+
+// Ayudas de página para animar muñecos en cualquier escena (incluir en `script` del Reel):
+//   posar(g, { pa, pb, pa2, pb2, ba, bb, ba2, bb2, y, x })  ángulos en grados (0 = colgando);
+//     brazos: negativo = hacia delante/arriba (derecha), positivo = hacia atrás (izquierda).
+//   mano(g, P, 'a'|'b') → posición de la mano en coordenadas del SVG.
+//   POSES: de pie, pensando (mano en la barbilla), cartel (brazo arriba), encogerse.
+const SCRIPT_MUNECO = `
+const POSES = {
+  pie: { pa: -6, pb: 8, pa2: 0, pb2: 0, ba: 12, ba2: -10, bb: 10, bb2: -12, y: 0 },
+  pensando: { pa: -6, pb: 8, pa2: 0, pb2: 0, ba: -60, ba2: -146, bb: 10, bb2: -12, y: 0 },
+  cartel: { pa: -6, pb: 8, pa2: 0, pb2: 0, ba: -172, ba2: 6, bb: 10, bb2: -12, y: 0 },
+  encoge: { pa: -6, pb: 8, pa2: 0, pb2: 0, ba: -70, ba2: -70, bb: 70, bb2: 70, y: 0 }
+};
+function mezclaPose(A, B, p) { const r = {}; for (const k in A) r[k] = A[k] + ((B[k] == null ? A[k] : B[k]) - A[k]) * p; return r; }
+function posar(g, P) {
+  const r = (sel, tr) => { const n = g.querySelector(sel); if (n) n.setAttribute('transform', tr); };
+  r('.pa', 'rotate(' + P.pa + ')'); r('.pb', 'rotate(' + P.pb + ')');
+  r('.pa2', 'translate(0,72) rotate(' + P.pa2 + ')'); r('.pb2', 'translate(0,72) rotate(' + P.pb2 + ')');
+  r('.ba', 'translate(6,-96) rotate(' + P.ba + ')'); r('.ba2', 'translate(0,50) rotate(' + P.ba2 + ')');
+  r('.bb', 'translate(6,-96) rotate(' + P.bb + ')'); r('.bb2', 'translate(0,50) rotate(' + P.bb2 + ')');
+  r('.bob', 'translate(' + (P.x || 0) + ',' + (P.y || 0) + ')');
+}
+function mano(g, P, lado) {
+  const rad = (d) => d * Math.PI / 180, th = lado === 'b' ? P.bb : P.ba, ph = lado === 'b' ? P.bb2 : P.ba2;
+  const x = 6 - 50 * Math.sin(rad(th)) - 44 * Math.sin(rad(th + ph)), y = -96 + 50 * Math.cos(rad(th)) + 44 * Math.cos(rad(th + ph));
+  const X = +g.dataset.x, Y = +g.dataset.y, K = +g.dataset.k;
+  return [X + K * (x + (P.x || 0)), Y + K * (y + (P.y || 0))];
+}
+`;
 
 // Bocadillo del muñeco del cierre.
 const CIERRE = {
@@ -45,11 +83,11 @@ const ATRAS = '#2a9d8f';
 // Muñeco sin cara de trazo grueso (cadera en el origen). Piezas animables: .pa/.pb (muslos),
 // .pa2/.pb2 (espinillas), .ba/.bb (brazos), .ba2/.bb2 (antebrazos), .bob (cuerpo entero).
 // `extra` se dibuja delante del tronco (por ejemplo, un bolsillo).
-const muneco = (x, y, escala = 1, extra = '') => {
+const muneco = (x, y, escala = 1, extra = '', clase = '') => {
   const L = (x2, y2, c) => `<line x1="0" y1="0" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="20" stroke-linecap="round"/>`;
   const pierna = (k, c) => `<g class="p${k}">${L(0, 72, c)}<g class="p${k}2" transform="translate(0,72)">${L(0, 70, c)}<line x1="0" y1="70" x2="18" y2="70" stroke="${c}" stroke-width="20" stroke-linecap="round"/></g></g>`;
   const brazo = (k, c) => `<g class="b${k}" transform="translate(6,-96)">${L(0, 50, c)}<g class="b${k}2" transform="translate(0,50)">${L(0, 44, c)}</g></g>`;
-  return `<g class="corredor" transform="translate(${x},${y}) scale(${escala})"><g class="bob">
+  return `<g class="corredor ${clase}" data-x="${x}" data-y="${y}" data-k="${escala}" transform="translate(${x},${y}) scale(${escala})"><g class="bob">
     ${brazo('b', ATRAS)}${pierna('b', ATRAS)}
     <line x1="0" y1="0" x2="10" y2="-112" stroke="${C.acento}" stroke-width="22" stroke-linecap="round"/>
     <circle cx="17" cy="-150" r="31" fill="${C.acento}"/>
@@ -88,7 +126,7 @@ const bucle = (texto, revela) => ({
 //   'tarro'  → le caen monedas en un tarro que se llena y lo celebra con los brazos arriba;
 //   'salto'  → se agacha, pega un salto y suelta confeti.
 // Todas acaban con el saludo y el bocadillo. La animación lee la variante del HTML.
-const Y0 = 600, ESC = 1.45;   // cadera del muñeco y escala
+const Y0 = 682, ESC = 1.45;   // cadera del muñeco y escala (pies sobre el suelo común, a 900 px de la escena)
 const SUELO = Y0 + 142 * ESC + 12;
 const POS = { moneda: 440, tarro: 330, salto: 470 };
 const moneda = (lang, clase, extra = '') => `<g class="${clase}" ${extra} transform="translate(0,-300)"><circle r="34" fill="#e9c46a" stroke="#b8902e" stroke-width="5"/><circle r="22" fill="none" stroke="#b8902e" stroke-width="3"/>
@@ -108,13 +146,13 @@ const cierreCon = (variante = 'moneda') => ({
       ${variante === 'salto' ? `<g class="confeti">${Array.from({ length: 22 }, (_, i) => `<rect class="cf" data-i="${i}" x="-8" y="-4" width="16" height="9" rx="2" fill="${[C.acento, C.caprichos, C.ahorro, '#e66767', '#e9c46a'][i % 5]}" opacity="0"/>`).join('')}</g>` : ''}
       <g class="chispas" opacity="0" fill="#e9c46a">${[[-70, -40], [60, -60], [-40, 50], [70, 30]].map(([dx, dy], i) => `<path class="ch" data-d="${dx},${dy}" d="M0 -14 L4 -4 L14 0 L4 4 L0 14 L-4 4 L-14 0 L-4 -4Z"/>`).join('')}</g>
     </svg>
-    <div class="bocadillo" style="position:absolute;left:${X0 + 30}px;right:-30px;top:40px;opacity:0;transform-origin:10% 100%">
+    <div class="bocadillo" style="position:absolute;left:${X0 + 30}px;right:-30px;top:110px;opacity:0;transform-origin:10% 100%">
       <div style="background:#f1f5f9;color:#0f172a;border-radius:34px;padding:30px 34px;font-size:${t.cierre.replace(/<[^>]+>/g, '').length > 38 ? 42 : 50}px;font-weight:850;line-height:1.12;letter-spacing:-.02em">${t.cierre}</div>
       <svg width="70" height="50" viewBox="0 0 70 50" style="display:block;margin-left:40px;margin-top:-2px"><path d="M0 0 H60 L8 48 Z" fill="#f1f5f9"/></svg>
     </div>
   </div>`; },
   anim: function (s, e, el) {
-    const raiz = el.querySelector('.cierre'), v = raiz.dataset.variante, X0 = +raiz.dataset.x, Y0 = 600, K = 1.45, SUELO = Y0 + 142 * K + 12;
+    const raiz = el.querySelector('.cierre'), v = raiz.dataset.variante, X0 = +raiz.dataset.x, Y0 = 682, K = 1.45, SUELO = Y0 + 142 * K + 12;
     const rad = (g) => g * Math.PI / 180, r = (sel, tr) => { const n = el.querySelector(sel); if (n) n.setAttribute('transform', tr); };
     // Postura base: de pie. th/ph = brazo delantero, tb/pb = trasero; y = desplazamiento vertical; agacha = 0..1.
     let th = 12, ph = -10, tb = 10, pb = -12, y = 0, agacha = 0;
@@ -183,4 +221,4 @@ const cierreCon = (variante = 'moneda') => ({
 });
 const cierre = cierreCon('moneda');
 
-module.exports = { C, icono, VOZ, VOZ_V1, CIERRE, CSS, bucle, cierre, cierreCon, muneco };
+module.exports = { C, icono, VOZ, VOZ_V1, VOZ_V2, CIERRE, CSS, bucle, cierre, cierreCon, muneco, SCRIPT_MUNECO };
