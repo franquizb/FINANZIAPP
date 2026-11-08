@@ -104,6 +104,11 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   `node publicar-instagram.cjs <…> <…> es|en reel <video.mp4> <texto.txt> [--portada portada.jpg]`
   hace un ensayo; con `--publicar` publica. Los archivos pasan un momento por el
   bucket privado `finanziapp-publicar` (us-central1, se vacía solo a 1 día).
+  En Facebook: `node publicar-facebook.cjs es|en <video.mp4> <texto.txt> [--publicar] [--programar fecha ISO]`
+  (página «FinanziApp» = en, «Finanziapp ES» = es). El ensayo lo sube como borrador y lo borra;
+  `--programar` deja que Facebook lo publique a esa hora (los de EE. UU., por la tarde de allí).
+  Los dos scripts anotan en `publicados.json` qué vídeo es cada publicación.
 - **Token de Meta**: lo inyecta el proxy del entorno en `graph.facebook.com`
-  (formulario seguro, nunca en el código). Generado en el Explorador de la API
-  Graph y ampliado a 60 días: hay que renovarlo hacia principios de enero de 2027.
+  (formulario seguro, nunca en el código) y está también en Secret Manager como `META_TOKEN`.
+  Es un token del usuario del sistema del negocio: no caduca. Tiene las dos cuentas de
+  Instagram y las dos páginas de Facebook asignadas.
