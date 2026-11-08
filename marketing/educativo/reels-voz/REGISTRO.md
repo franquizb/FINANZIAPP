@@ -16,10 +16,16 @@ Voz: `VOZ` de `_comun.js` (v3: carisma cercano; la v2 era demasiado sarcástica)
 | 2 | Reel largo | El dolor de pagar (`dolor-de-pagar`) | 63 / 65 s | tarro | — | — |
 | 3 | Píldora · Trampas de precio | Las palomitas medianas: efecto señuelo (`trampa-01-senuelo`) | 32 / 30 s | salto | ¿Por qué casi todo cuesta 9,99? | #4 |
 | 4 | Píldora · Trampas de precio | Por qué casi todo cuesta 9,99 (`precio-999`): **no publicada**, sustituida por las versiones por cuenta (#5 y #6) | 59 / 57 s | moneda | — | — |
-| 5 | Píldora · solo ES | La milésima de la gasolinera (`es-gasolina-1499`) · publicada 8 nov 2026 en @finanziapp.es y en la página de Facebook Finanziapp ES | 46 s | tarro | ¿Por qué funciona el «antes 199 €, ahora 99 €» aunque sepas que es inventado? | pendiente: precio tachado (ES) |
+| 5 | Píldora · solo ES | La milésima de la gasolinera (`es-gasolina-1499`) · publicada 8 nov 2026 en @finanziapp.es y en la página de Facebook Finanziapp ES | 46 s | tarro | ¿Por qué funciona el «antes 199 €, ahora 99 €» aunque sepas que es inventado? | #7 |
 | 6 | Píldora · solo EN | 79,900 vs 80,000 miles (`en-millas-79900`) · publicada 8 nov 2026 en @finanziapp y programada en la página de Facebook FinanziApp (8 nov, 19:30 de Nueva York) | 39,5 s | tarro | Why does “was $199, now $99” work even when you know it’s made up? | pendiente: anchoring (EN) |
+
+| 7 | Píldora · solo ES | Black Friday: el «antes 199 €» (`es-precio-tachado`): efecto ancla y la regla de los 30 días · programada 8 nov 2026, 20:30, en Instagram y Facebook | 60 s | moneda | ¿Qué parte de lo que pagas en el súper le llega al agricultor? | pendiente: desmontar un precio del súper (ES) |
+| 8 | Píldora · solo EN | Your first $1,000 changes 3 things (`en-hito-1000`): 1.ª de la serie de hitos · Instagram 8 nov 19:00 NY, Facebook 9 nov 19:00 NY | 38 s | salto | Why your 401(k) match might be the best return you’ll ever get | pendiente: 401(k) match (EN) |
+
+Desde el #7: **subtítulos palabra a palabra** (alinear.py con Whisper) y **efectos de sonido** (sfx.py; en el guion, `§{pop}`, `§{caja}`, `§{ding}`, `§{tic}`; los cambios de escena llevan «whoosh»).
 
 ## Pendientes (preguntas abiertas)
 
-- ES: ¿Por qué funciona el «antes 199 €, ahora 99 €» aunque sepas que es inventado? (anclaje) ← abierta en el #5.
-- EN: Why does “was $199, now $99” work even when you know it’s made up? (anchoring) ← abierta en el #6.
+- ES: ¿Qué parte de lo que pagas en el súper le llega de verdad al agricultor? ← abierta en el #7.
+- EN: Why does “was $199, now $99” work even when you know it’s made up? (anchoring) ← abierta en el #6; para la semana del Black Friday (27 nov).
+- EN: Why your 401(k) match might be the best return you’ll ever get ← abierta en el #8.

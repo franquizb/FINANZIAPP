@@ -1,7 +1,9 @@
 // Panel de redes de FinanziApp (franquizb.com), codebase «panel»:
 // - panelActualizar: cada hora lee Instagram y Facebook de las dos cuentas y lo guarda en Firestore (colección estadisticas,
 //   que solo puede leer el propietario según firestore.rules; aquí se escribe con el SDK de administración).
-// - panelAccion: acciones desde el panel (actualizar ya, responder u ocultar comentarios, editar el cuaderno y los referentes).
+// - panelPublicar: cada 15 minutos publica en Instagram lo que toque de la cola (estadisticas/cola).
+// - panelAccion: acciones desde el panel (actualizar ya, responder u ocultar comentarios, cancelar un vídeo de la cola,
+//   editar el cuaderno y los referentes).
 //   Solo el propietario.
 // El token de Meta (usuario del sistema del negocio, no caduca) está en Secret Manager como META_TOKEN.
 'use strict';
@@ -46,6 +48,48 @@ async function actualizar({ forzarReferentes = false } = {}) {
   return estado;
 }
 
+// Cola de publicación de Instagram (estadisticas/cola): los vídeos esperan en el bucket privado finanziapp-publicar
+// (se borran solos a las 24 h) y se publican cuando llega su hora. Facebook usa su propia programación.
+const BUCKET = 'finanziapp-publicar';
+async function publicarCola() {
+  const cola = await leerJson('cola', { items: [] });
+  let hechos = 0;
+  for (const it of cola.items) {
+    if (it.estado !== 'pendiente' || Date.parse(it.cuando) > Date.now() + 5 * 60e3) continue;
+    it.estado = 'publicando'; it.intento = new Date().toISOString();
+    await guardarJson('cola', cola);
+    try {
+      const [datos] = it.url ? [null] : await admin.storage().bucket(BUCKET).file(it.objeto).download();
+      const r = await meta.publicarReelIg(META_TOKEN.value(), it, datos);
+      if (r.ensayo) Object.assign(it, { estado: 'ensayo ok', hecho: new Date().toISOString() });
+      else {
+        Object.assign(it, { estado: 'publicado', hecho: new Date().toISOString(), enlace: r.permalink, media: r.id });
+        // Se anota qué vídeo es, para que las estadísticas lo reconozcan.
+        const codigo = meta.codigoDe(r.permalink);
+        if (codigo && it.slug) {
+          const config = await leerJson('config', {});
+          config.publicados = config.publicados || {}; config.publicados.reels = config.publicados.reels || {};
+          config.publicados.reels[codigo] = it.slug;
+          await guardarJson('config', config);
+        }
+      }
+      await admin.storage().bucket(BUCKET).file(it.objeto).delete().catch(() => {});
+      logger.info('Cola: ' + it.estado, { id: it.id, cuenta: it.cuenta, enlace: it.enlace });
+    } catch (e) {
+      Object.assign(it, { estado: 'error', error: e.message });
+      logger.error('Cola: error al publicar', { id: it.id, error: e.message });
+    }
+    hechos++;
+    await guardarJson('cola', cola);
+  }
+  return hechos;
+}
+
+exports.panelPublicar = onSchedule({ schedule: 'every 15 minutes', timeZone: 'Europe/Madrid', secrets: [META_TOKEN], timeoutSeconds: 540, memory: '1GiB', retryCount: 0 }, async () => {
+  const n = await publicarCola();
+  if (n) await actualizar();   // que el panel lo enseñe enseguida
+});
+
 exports.panelActualizar = onSchedule({ schedule: 'every 60 minutes', timeZone: 'Europe/Madrid', secrets: [META_TOKEN], timeoutSeconds: 540, memory: '512MiB', retryCount: 0 }, async () => {
   const e = await actualizar();
   logger.info('Panel actualizado', { ok: e.ok, llamadas: e.llamadas, segundos: e.duracion_s, errores: e.errores });
@@ -86,6 +130,16 @@ exports.panelAccion = onCall({ secrets: [META_TOKEN], timeoutSeconds: 540, memor
         }
         await guardarJson(p.cuenta, d);
         return { ok: true, comentario: com };
+      }
+
+      case 'cancelarCola': {
+        const cola = await leerJson('cola', { items: [] });
+        const it = cola.items.find(x => x.id === p.id);
+        if (!it || it.estado !== 'pendiente') throw new HttpsError('failed-precondition', 'Ese vídeo ya no está pendiente.');
+        it.estado = 'cancelado'; it.hecho = new Date().toISOString();
+        await admin.storage().bucket(BUCKET).file(it.objeto).delete().catch(() => {});
+        await guardarJson('cola', cola);
+        return { ok: true };
       }
 
       case 'cuaderno': {

@@ -1,7 +1,8 @@
 # Mezcla la voz en off con la música de fondo para los Reels hablados.
 # La música baja mientras se habla (ducking suave) y sube en los silencios.
 # Uso: python3 mezcla.py <spec.json>
-#   spec = { "total": s, "frases": [{"archivo": wav, "ini": s}], "musica": wav, "salida": wav }
+#   spec = { "total": s, "frases": [{"archivo": wav, "ini": s}], "musica": wav, "salida": wav,
+#            "sonidos": [{"archivo": wav, "ini": s, "vol": 0.3}] }
 import json, sys, wave
 import numpy as np
 
@@ -38,9 +39,16 @@ k = int(0.35 * SR)
 ventana = np.ones(k) / k
 ganancia = np.convolve(np.pad(ganancia, (k, k), mode='edge'), ventana, mode='same')[k:-k]
 
+# Efectos de sonido: encima de todo, sin bajar la música.
+efectos = np.zeros(n)
+for e in spec.get('sonidos', []):
+    x = leer(e['archivo']) * e.get('vol', 0.3)
+    a = int(round(e['ini'] * SR)); b = min(n, a + len(x))
+    if a < n: efectos[a:b] += x[:b - a]
+
 m = leer(spec['musica'])
 musica = np.zeros(n); musica[:min(n, len(m))] = m[:n]
-mezcla = voz + musica * ganancia
+mezcla = voz + musica * ganancia + efectos
 mezcla /= max(1.0, np.max(np.abs(mezcla)) / 0.95)
 pcm = (mezcla * 32767).astype(np.int16)
 with wave.open(spec['salida'], 'wb') as w:

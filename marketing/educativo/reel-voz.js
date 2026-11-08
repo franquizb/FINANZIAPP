@@ -28,43 +28,75 @@ const { sintetizar } = require('./voz.cjs');
 const FPS = 30, PAUSA = 0.2, CAMBIO = 0.12, INICIO = 0.25, COLA = 1.8, FUNDIDO = 0.3;
 const F = { w: 1080, h: 1920, arriba: 210, abajo: 420, lado: 84, h1: 78, txt: 40, centrar: false };
 
-// Trocea una frase en golpes de subtítulo (2–4 palabras) con su parte del tiempo.
-function trozos(texto, ini, dur) {
-  texto = texto.replace(/\[[^\]]*\]\s*/g, '').replace(/§/g, '');
-  const palabras = [];
+// Palabras de una frase (sin [etiquetas]; *resaltadas*) y marcas § («§» o «§{sonido}») con la palabra a la que preceden.
+function partes(texto) {
+  const limpio = texto.replace(/\[[^\]]*\]\s*/g, '');
+  const palabras = [], marcas = [];
   let resaltada = false;
-  for (const p of texto.split(/\s+/).filter(Boolean)) {
-    const abre = p.startsWith('*'), cierra = p.replace(/[.,!?¿¡:;]+$/, '').endsWith('*');
-    if (abre) resaltada = true;
-    palabras.push({ txt: p.replace(/\*/g, ''), res: resaltada });
-    if (cierra) resaltada = false;
+  // Se separa por § para saber delante de qué palabra va cada marca.
+  const trozosM = limpio.split(/§(?:\{(\w*)\})?/);
+  for (let i = 0; i < trozosM.length; i += 2) {
+    for (const p of trozosM[i].split(/\s+/).filter(Boolean)) {
+      const abre = p.startsWith('*'), cierra = p.replace(/[.,!?¿¡:;»”"…]+$/, '').endsWith('*');
+      if (abre) resaltada = true;
+      const txt = p.replace(/\*/g, '');
+      if (txt) palabras.push({ txt, res: resaltada });
+      if (cierra) resaltada = false;
+    }
+    if (i + 1 < trozosM.length) marcas.push({ idx: palabras.length, sonido: trozosM[i + 1] || null });
   }
-  const grupos = [];
-  let g = [];
-  for (const w of palabras) {
-    g.push(w);
-    const largo = g.map(x => x.txt).join(' ').length;
-    if (largo >= 15 || /[.,!?:;]$/.test(w.txt) || g.length === 4) { grupos.push(g); g = []; }
+  return { palabras, marcas };
+}
+
+// Tiempos de cada palabra dentro de su toma: alineados con la voz (alinear.py) o, si no se puede, por su largo.
+function tiemposPalabras(voces, frases, lang) {
+  const spec = path.join(__dirname, 'cache-voz', `.alinear-${process.pid}.json`);
+  const clips = frases.map((p, i) => ({ archivo: voces[i].archivo, palabras: p.palabras.map(w => w.txt) })).filter((c, i) => voces[i].real);
+  let ok = false;
+  if (clips.length) {
+    fs.writeFileSync(spec, JSON.stringify({ idioma: lang, modelo: process.env.WHISPER_MODELO || 'small', clips }));
+    try { execFileSync(process.env.WHISPER_PY || 'python3', [path.join(__dirname, 'alinear.py'), spec], { stdio: ['ignore', 'inherit', 'inherit'] }); ok = true; }
+    catch (e) { console.log(`· sin alineación con la voz (${e.status === 3 ? 'falta faster-whisper: define WHISPER_PY' : e.message.split('\n')[0]}): reparto por largo`); }
+    fs.rmSync(spec, { force: true });
   }
-  if (g.length) grupos.push(g);
-  const peso = grupos.map(x => x.map(w => w.txt).join(' ').length + 3), suma = peso.reduce((a, b) => a + b, 0);
-  let t = ini;
-  return grupos.map((x, i) => {
-    const d = dur * peso[i] / suma, s = { ini: t, fin: t + d, html: x.map(w => w.res ? `<span class="c">${w.txt}</span>` : w.txt).join(' ') };
-    t += d; return s;
+  return frases.map((p, i) => {
+    const j = voces[i].archivo + '.palabras.json';
+    if (ok && voces[i].real && fs.existsSync(j)) { const t = JSON.parse(fs.readFileSync(j, 'utf8')); if (t.length === p.palabras.length) return t; }
+    const peso = p.palabras.map(w => w.txt.length + 1.5), suma = peso.reduce((a, b) => a + b, 0) || 1;
+    let t = 0.05; const dur = voces[i].dur - 0.1;
+    return peso.map(x => { const d = dur * x / suma, r = [t, t + d * 0.92]; t += d; return r; });
   });
+}
+
+// Golpes de subtítulo de 1–3 palabras (cortando en la puntuación), con el momento de cada palabra.
+function golpes(p, tiempos, ini, finFrase) {
+  const out = [];
+  let g = [];
+  p.palabras.forEach((w, k) => {
+    g.push({ txt: w.txt, res: w.res, ini: ini + tiempos[k][0], fin: ini + tiempos[k][1] });
+    const largo = g.map(x => x.txt).join(' ').length;
+    if (largo >= 13 || /[.,!?:;…»”]$/.test(w.txt) || g.length === 3) { out.push(g); g = []; }
+  });
+  if (g.length) out.push(g);
+  return out.map((ws, i) => ({ ini: ws[0].ini, fin: i < out.length - 1 ? out[i + 1][0].ini : finFrase, palabras: ws }));
 }
 
 function linea(reel, lang, voces) {
   const t = reel.T[lang];
+  const ps = t.guion.map(([, texto]) => partes(texto));
+  const tiempos = tiemposPalabras(voces, ps, lang);
   let tt = reel.inicio != null ? reel.inicio : INICIO;
+  const sonidos = [];
   const frases = t.guion.map(([esc, texto], i) => {
     if (i > 0 && esc !== t.guion[i - 1][0]) tt += CAMBIO;
-    // Marcas §: posición en el texto hablado → momento aproximado dentro de la frase.
-    const limpio = texto.replace(/\[[^\]]*\]\s*/g, '').replace(/\*/g, ''), largo = limpio.replace(/§/g, '').length;
-    const marcas = [];
-    limpio.split('§').slice(0, -1).reduce((pos, trozo) => { pos += trozo.length; marcas.push(tt + voces[i].dur * pos / largo); return pos; }, 0);
-    const f = { esc, texto, ini: tt, dur: voces[i].dur, marcas };
+    const p = ps[i], tw = tiempos[i];
+    // Marcas §: el momento en que empieza la palabra que sigue (o el final de la frase).
+    const marcas = p.marcas.map(m => {
+      const at = tt + (m.idx < tw.length ? tw[m.idx][0] : voces[i].dur);
+      if (m.sonido) sonidos.push({ sonido: m.sonido, t: at });
+      return at;
+    });
+    const f = { esc, texto, ini: tt, dur: voces[i].dur, marcas, p, tw };
     tt += voces[i].dur + PAUSA;
     return f;
   });
@@ -76,9 +108,12 @@ function linea(reel, lang, voces) {
   escenas.forEach((e, k) => {
     e.fin = k < escenas.length - 1 ? escenas[k + 1].ini + FUNDIDO : total;
     e.seg = e.seg.map(f => ({ ini: f.ini - e.ini, dur: f.dur, marcas: f.marcas.map(m => m - e.ini) }));
+    // Cambio de escena: «whoosh» (salvo que el Reel diga otra cosa).
+    const s_ = (reel.sonidos || {}).escena === undefined ? 'whoosh' : reel.sonidos.escena;
+    if (k > 0 && s_) sonidos.push({ sonido: s_, t: Math.max(0, e.ini - 0.12) });
   });
-  const subs = frases.flatMap(f => trozos(f.texto, f.ini, f.dur));
-  return { frases, escenas, subs, total };
+  const subs = frases.flatMap(f => golpes(f.p, f.tw, f.ini, f.ini + f.dur + 0.12));
+  return { frases, escenas, subs, total, sonidos };
 }
 
 function pagina(reel, lang, L) {
@@ -86,9 +121,12 @@ function pagina(reel, lang, L) {
   return `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><style>${css(F)}
     .escena { position: absolute; left: 0; right: 0; top: 290px; height: 900px; padding: 0 ${F.lado}px; }
     .arriba .firma { font-size: 24px; color: ${C.suave}; }
-    #sub { position: absolute; left: 70px; right: 70px; top: 1215px; height: 270px; display: flex; align-items: center; justify-content: center; text-align: center;
-      font-size: 68px; line-height: 1.12; font-weight: 800; letter-spacing: -.02em; color: #fff; text-shadow: 0 4px 22px rgba(0,0,0,.55); }
-    #sub .c { color: ${C.acento}; }
+    #sub { position: absolute; left: 60px; right: 60px; top: 1215px; height: 270px; display: flex; align-items: center; justify-content: center; text-align: center;
+      font-size: 80px; line-height: 1.12; font-weight: 900; letter-spacing: -.025em; color: #fff; text-shadow: 0 4px 22px rgba(0,0,0,.55); }
+    #sub .w { display: inline-block; padding: 0 10px; margin: 2px -1px; border-radius: 16px; transition: none; }
+    #sub .w.c { color: ${C.acento}; }
+    #sub .w.luego { opacity: .5; }
+    #sub .w.act { background: ${C.acento}; color: #0b1222; text-shadow: none; }
     #retencion { position: absolute; left: 60px; right: 60px; top: 150px; text-align: center; }
     #retencion span.caja { display: inline-block; background: rgba(15,23,42,.82); border: 2px solid rgba(94,234,212,.4); border-radius: 22px; padding: 14px 28px;
       font-size: 44px; line-height: 1.15; font-weight: 800; letter-spacing: -.01em; color: #fff; }
@@ -130,10 +168,23 @@ function pagina(reel, lang, L) {
     });
     const ret = document.getElementById('retencion');
     if (ret) ret.style.opacity = Math.min(LLENO ? 1 : tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
-    let k = SUB.findIndex(x => t >= x.ini && t < x.fin + 0.12);
+    // Subtítulos palabra a palabra: el golpe entero a la vista, la palabra que suena resaltada y las que vienen, más tenues.
+    let k = SUB.findIndex(x => t >= x.ini - 0.04 && t < x.fin);
     if (LLENO && k < 0 && t < SUB[0].ini) k = 0;   // la primera frase ya se lee en el fotograma 0
-    if (k !== subActual) { sub.innerHTML = k >= 0 ? '<div>' + SUB[k].html + '</div>' : ''; subActual = k; }
-    if (k >= 0) { const p = LLENO && k === 0 && t <= SUB[0].ini + 0.18 ? 1 : rebote(tramo(t, SUB[k].ini, SUB[k].ini + 0.18)); sub.style.transform = 'scale(' + (0.86 + 0.14 * p) + ')'; sub.style.opacity = Math.min(1, p * 1.5); }
+    if (k !== subActual) {
+      sub.innerHTML = k >= 0 ? '<div>' + SUB[k].palabras.map(w => '<span class="w' + (w.res ? ' c' : '') + '">' + w.txt + '</span>').join(' ') + '</div>' : '';
+      subActual = k;
+    }
+    if (k >= 0) {
+      const g = SUB[k], ws = sub.querySelectorAll('.w');
+      g.palabras.forEach((w, j) => {
+        const sig = j < g.palabras.length - 1 ? g.palabras[j + 1].ini : g.fin;
+        ws[j].classList.toggle('act', t >= w.ini - 0.03 && t < sig - 0.03 && !(LLENO && k === 0 && t < g.ini));
+        ws[j].classList.toggle('luego', t < w.ini - 0.03 && !(LLENO && k === 0 && t < g.ini));
+      });
+      const p = LLENO && k === 0 && t <= g.ini + 0.15 ? 1 : rebote(tramo(t, g.ini - 0.04, g.ini + 0.12));
+      sub.style.transform = 'scale(' + (0.88 + 0.12 * p) + ')'; sub.style.opacity = Math.min(1, p * 1.6);
+    }
   }
   </script></body></html>`;
 }
@@ -167,7 +218,7 @@ async function grabar(browser, reel, lang, op) {
   }
   if (vista) {
     // Un fotograma al final de cada frase y otro al final del vídeo.
-    const momentos = [0, ...L.frases.map(f => f.ini + f.dur - 0.05), L.total - 0.05];   // el 1.º es el fotograma 0 (el arranque)
+    const momentos = [0, ...L.frases.map(f => f.ini + f.dur * 0.6), L.total - 0.05];   // el 1.º es el fotograma 0 (el arranque)
     for (const [i, m] of momentos.entries()) {
       await page.evaluate((x) => pintar(x), m);
       await page.screenshot({ path: path.join(dir, `vista-${String(i + 1).padStart(2, '0')}.jpg`), type: 'jpeg', quality: 85 });
@@ -191,7 +242,12 @@ async function grabar(browser, reel, lang, op) {
   await page.screenshot({ path: path.join(dir, 'portada.jpg'), type: 'jpeg', quality: 92 });
   await page.close();
   execFileSync('python3', [path.join(__dirname, 'musica.py'), String(L.total), musica]);
-  fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })) }));
+  // Efectos de sonido (sfx.py, se generan una vez en cache-voz/).
+  const dirSfx = path.join(__dirname, 'cache-voz');
+  if (!fs.existsSync(path.join(dirSfx, 'sfx-whoosh.wav'))) execFileSync('python3', [path.join(__dirname, 'sfx.py'), dirSfx]);
+  const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3 };
+  const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: VOL[x.sonido] }));
+  fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })), sonidos }));
   execFileSync('python3', [path.join(__dirname, 'mezcla.py'), spec]);
   const salida = path.join(dir, real ? 'reel.mp4' : 'reel-sin-voz.mp4');
   // Volumen al nivel de las redes (unos −14 LUFS).

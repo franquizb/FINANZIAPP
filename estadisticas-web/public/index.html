@@ -273,6 +273,7 @@
   const publicaciones = (d = D()) => [...((d.ig && d.ig.publicaciones) || []), ...((d.fb && d.fb.publicaciones) || [])];
   const comentarios = (d = D()) => [...((d.ig && d.ig.comentarios) || []), ...((d.fb && d.fb.comentarios) || [])].filter(c => !c.nuestro);
   const pendientes = (d = D()) => comentarios(d).filter(c => !c.respondido && !c.oculto);
+  const colaCuenta = (k = S.cuenta) => (((S.cola || {}).items) || []).filter(x => x.cuenta === k && !x.ensayo);
   const sumaSerie = (arr, dias) => { if (!arr || !arr.length) return null; const corte = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10); return arr.filter(v => v.fecha >= corte && typeof v.valor === 'number').reduce((a, v) => a + v.valor, 0); };
 
   // ——— pintado ———
@@ -304,7 +305,7 @@
     $('vista').innerHTML = `
       <div class="perfil">
         ${ig ? `<div class="tarjeta"><span class="plat" style="background:var(--ig)">IG</span><div><b>@${esc(ig.perfil.username)}</b>${d.ig_antiguo ? ' <span class="chip neutro">lectura anterior</span>' : ''}
-          <div class="met">${num(igSeg)} seguidores · ${num(ig.perfil.media_count)} publicaciones · cuota ${ig.cuota ? `${ig.cuota.usada}/${ig.cuota.total}` : '—'} en 24 h</div></div>
+          <div class="met">${num(igSeg)} seguidores · ${num(ig.perfil.media_count)} publicaciones · ${colaCuenta().filter(x => x.estado === 'pendiente').length} programados · cuota ${ig.cuota ? `${ig.cuota.usada}/${ig.cuota.total}` : '—'} en 24 h</div></div>
           <a class="boton" style="margin-left:auto" href="https://www.instagram.com/${esc(ig.perfil.username)}/" target="_blank" rel="noopener noreferrer">Abrir</a></div>` : ''}
         ${fb ? `<div class="tarjeta"><span class="plat" style="background:var(--fb)">FB</span><div><b>${esc((fb.perfil.name || '').trim())}</b>${d.fb_antiguo ? ' <span class="chip neutro">lectura anterior</span>' : ''}
           <div class="met">${num(fbSeg)} seguidores · ${reelsFb.length} Reels · ${(fb.programados || []).length} programados</div></div>
@@ -412,12 +413,18 @@
     // Preguntas abiertas.
     const ab = ((S.config.abiertas || {})[k]) || [];
     if (ab.length) add('❓', 'Pregunta abierta en un vídeo', ab.map(esc).join('<br>') + '<br><span style="color:var(--suave)">Hay que responderla en una píldora: quien siguió la cuenta por ella la espera.</span>');
-    // Programados.
+    // Programados: Instagram (cola del panel) y Facebook.
+    for (const it of colaCuenta().filter(x => x.estado === 'pendiente' || x.estado === 'publicando'))
+      add('🗓️', it.estado === 'publicando' ? 'Publicándose ahora en Instagram' : 'Programado en Instagram', `${esc(nombreTema({ tema: it.slug }))} · ${fechaZona(it.cuando, c.zona)} (${c.zonaTxt})`,
+        it.estado === 'pendiente' ? `<button class="mini peligro" data-cancelar="${esc(it.id)}">Cancelar</button>` : '');
+    for (const it of colaCuenta().filter(x => x.estado === 'error' && Date.now() - Date.parse(x.intento || x.creado) < 3 * 864e5))
+      add('⛔', 'No se pudo publicar en Instagram', `${esc(nombreTema({ tema: it.slug }))}: ${esc(it.error || '')}`);
     for (const p of ((d.fb || {}).programados || [])) add('🗓️', 'Programado en Facebook', `${esc(nombreTema(p))} · ${fechaZona(p.cuando, c.zona)} (${c.zonaTxt})`);
     if (d.ig && d.ig.cuota && d.ig.cuota.usada >= d.ig.cuota.total * 0.8) add('🚦', 'Cuota de publicación casi agotada', `${d.ig.cuota.usada} de ${d.ig.cuota.total} publicaciones por API en 24 h.`);
     $('toca').innerHTML = avisos.join('') || '<div class="tarjeta aviso"><span class="ic">✅</span><div><b>Todo al día</b><p>No hay nada pendiente en esta cuenta.</p></div></div>';
     $('toca').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => $(b.dataset.ir).scrollIntoView({ behavior: 'smooth', block: 'start' }));
     $('toca').querySelectorAll('[data-pub]').forEach(b => b.onclick = () => abrirDetalle(b.dataset.pub));
+    $('toca').querySelectorAll('[data-cancelar]').forEach(b => b.onclick = () => { if (confirm('¿Cancelar esta publicación programada en Instagram?')) accion({ accion: 'cancelarCola', id: b.dataset.cancelar }, 'Cancelando…', 'Publicación cancelada ✓'); });
   }
 
   function pintarGraficas() {
@@ -650,6 +657,7 @@
     if (nombre === 'en' || nombre === 'es') S.datos[nombre] = valor;
     else if (nombre.startsWith('historial_')) S.hist[nombre.slice(10)] = valor;
     else if (nombre === 'estado') S.estado = valor;
+    else if (nombre === 'cola') S.cola = valor;
     else if (nombre === 'config') { S.config = valor || {}; if (!(S.refConf && S.refConf.sucio)) S.refConf = null; }
     else if (nombre === 'cuaderno') { S.cuaderno = valor; if (!S.sucio) S.borrador = null; }
     if (!$('detalle').classList.contains('oculto')) return;   // no repintar con el detalle abierto
@@ -657,12 +665,12 @@
     pintar();
   }
   function pintarCabecera() { const e = S.estado; if (e) $('actualizado').textContent = `Actualizado ${hace(e.ultima)}`; }
-  const DOCS = ['en', 'es', 'historial_en', 'historial_es', 'estado', 'config', 'cuaderno'];
+  const DOCS = ['en', 'es', 'historial_en', 'historial_es', 'estado', 'config', 'cuaderno', 'cola'];
 
   if (['localhost', '127.0.0.1'].includes(location.hostname) && location.search.includes('demo')) {
     const d = await (await fetch('/datos-demo.json')).json();
     S.demo = true; $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto');
-    for (const k of DOCS) if (d[k] !== undefined) { const v = d[k]; if (k === 'en' || k === 'es') S.datos[k] = v; else if (k.startsWith('historial_')) S.hist[k.slice(10)] = v; else if (k === 'estado') S.estado = v; else if (k === 'config') S.config = v; else if (k === 'cuaderno') S.cuaderno = v; }
+    for (const k of DOCS) if (d[k] !== undefined) { const v = d[k]; if (k === 'en' || k === 'es') S.datos[k] = v; else if (k.startsWith('historial_')) S.hist[k.slice(10)] = v; else if (k === 'estado') S.estado = v; else if (k === 'config') S.config = v; else if (k === 'cuaderno') S.cuaderno = v; else if (k === 'cola') S.cola = v; }
     const m = location.search.match(/cuenta=(\w+)/); if (m) S.cuenta = m[1];
     pintar();
     const p = location.search.match(/detalle=([\w]+)/); if (p) abrirDetalle(p[1]);

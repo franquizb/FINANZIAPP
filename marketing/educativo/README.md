@@ -81,6 +81,16 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   muñecos que hacen la historia** (cartel, rotulador, coches…), no gráficos ni
   tarjetas arriba. `suelo: true` pone un suelo común que llena la parte de abajo;
   `SCRIPT_MUNECO` (`posar`, `mano`, `POSES`) anima muñecos y lo que llevan en la mano.
+- **Subtítulos palabra a palabra**: golpes de 1–3 palabras con la que suena
+  resaltada. Los tiempos salen de la voz real con `alinear.py` (Whisper en local,
+  gratis; se guardan junto a cada toma en `cache-voz/`). Hace falta
+  `pip install faster-whisper` en un entorno de Python y decir cuál con
+  `WHISPER_PY=/ruta/al/python`; sin él, el tiempo se reparte por el largo de las
+  palabras. Las marcas § caen ahora en el momento exacto de la palabra.
+- **Efectos de sonido** (`sfx.py`, sintetizados aquí, sin licencias): cada cambio
+  de escena lleva «whoosh» y en el guion se ponen con `§{pop}`, `§{caja}`,
+  `§{ding}` o `§{tic}` (la marca sigue sirviendo a la animación). La voz nunca
+  lee el nombre del efecto.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.
@@ -121,6 +131,10 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   (página «FinanziApp» = en, «Finanziapp ES» = es). El ensayo lo sube como borrador y lo borra;
   `--programar` deja que Facebook lo publique a esa hora (los de EE. UU., por la tarde de allí).
   Los dos scripts anotan en `publicados.json` qué vídeo es cada publicación.
+  **Programar en Instagram** (la API no programa): `node encolar-instagram.cjs <…> <…> es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms N]`
+  deja el vídeo en la cola (`estadisticas/cola`, bucket privado, URL firmada) y la función `panelPublicar`
+  lo publica a esa hora (mira cada 15 min). Máximo 23 h antes, porque el bucket borra a las 24 h.
+  `--ensayo` lo deja procesado sin publicar. En el panel se ve en «Qué toca ahora» y se puede cancelar.
 - **Token de Meta**: lo inyecta el proxy del entorno en `graph.facebook.com`
   (formulario seguro, nunca en el código) y está también en Secret Manager como `META_TOKEN`.
   Es un token del usuario del sistema del negocio: no caduca. Tiene las dos cuentas de

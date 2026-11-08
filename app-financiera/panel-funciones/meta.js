@@ -246,4 +246,34 @@ function actualizarHistorial(hist, d) {
   return hist;
 }
 
-module.exports = { CUENTAS, cliente, recoger, actualizarHistorial, duracionMp4, codigoDe };
+// Publica un Reel en Instagram: desde una URL firmada del bucket privado o, si no la hay, con subida reanudable.
+// ensayo = true: prepara y sube el vídeo, espera a que Instagram lo procese y no publica.
+async function publicarReelIg(token, it, datos) {
+  const cli = cliente(token), c = CUENTAS[it.cuenta];
+  if (!c) throw new Error('Cuenta desconocida: ' + it.cuenta);
+  const params = { media_type: 'REELS', caption: it.texto || '', share_to_feed: 'true' };
+  if (it.thumb_ms != null) params.thumb_offset = String(Math.round(it.thumb_ms));
+  // Con URL firmada (la crea encolar-instagram.cjs y caduca sola), Instagram descarga el vídeo del bucket privado.
+  if (it.url) params.video_url = it.url; else params.upload_type = 'resumable';
+  const cont = await cli.pedir(`${c.ig}/media`, params, 'POST');
+  if (!it.url) {
+    const cab = { offset: '0', file_size: String(datos.length), 'Content-Type': 'application/octet-stream' };
+    if (token) cab.Authorization = `OAuth ${token}`;
+    const r = await fetch(cont.uri, { method: 'POST', headers: cab, body: datos });
+    const j = await r.json().catch(() => ({}));
+    if (!j.success) throw new Error('Instagram no acepta el archivo: ' + JSON.stringify(j).slice(0, 300));
+  }
+  for (let i = 0; ; i++) {
+    const st = await cli.pedir(cont.id, { fields: 'status_code,status' });
+    if (st.status_code === 'FINISHED') break;
+    if (st.status_code === 'ERROR' || st.status_code === 'EXPIRED') throw new Error('Instagram no ha podido procesar el vídeo: ' + (st.status || st.status_code));
+    if (i >= 60) throw new Error('Instagram tarda demasiado en procesar el vídeo');
+    await new Promise(ok => setTimeout(ok, 5000));
+  }
+  if (it.ensayo) return { ensayo: true, contenedor: cont.id };
+  const pub = await cli.pedir(`${c.ig}/media_publish`, { creation_id: cont.id }, 'POST');
+  const info = await cli.pedir(pub.id, { fields: 'permalink' });
+  return { id: pub.id, permalink: info.permalink };
+}
+
+module.exports = { CUENTAS, cliente, recoger, actualizarHistorial, duracionMp4, codigoDe, publicarReelIg };
