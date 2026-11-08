@@ -1,0 +1,12 @@
+{
+  "nota": "Qué vídeo nuestro es cada Reel publicado (código del enlace de Instagram → slug). publicar-instagram.cjs lo rellena al publicar; estadisticas-instagram.cjs lo usa antes que el texto o la duración.",
+  "reels": {
+    "DfdCx22AxPV": "inflacion",
+    "DfdCEXGNaV7": "inflacion",
+    "DfdN_naMPx8": "cinta-de-correr",
+    "DfeHWRyMjky": "dolor-de-pagar",
+    "DfeLXAOtW4j": "trampa-01-senuelo",
+    "DfeWrfRCRzb": "es-gasolina-1499",
+    "DfeWv4NFcFF": "en-millas-79900"
+  }
+}

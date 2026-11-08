@@ -82,6 +82,13 @@ function urlFirmada(objeto, seg = 3600) {
     const pub = await ig(`${igId}/media_publish`, { creation_id: contenedor });
     const info = await ig(`${pub.id}?fields=permalink`, null, 'GET');
     console.log(`✓ Publicado: ${info.permalink}`);
+    // Anota qué vídeo es (out-reels/<slug>/<idioma>/reel.mp4) para que las estadísticas no lo confundan con otro.
+    const codigo = ((info.permalink || '').match(/\/(?:reel|p)\/([^/]+)/) || [])[1];
+    if (tipo === 'reel' && codigo) {
+      const reg = path.join(__dirname, 'publicados.json'), j = JSON.parse(fs.readFileSync(reg, 'utf8'));
+      j.reels[codigo] = path.basename(path.dirname(path.dirname(path.resolve(origen))));
+      fs.writeFileSync(reg, JSON.stringify(j, null, 2) + '\n');
+    }
   } finally {
     await borrar();
   }

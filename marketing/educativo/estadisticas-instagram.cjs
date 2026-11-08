@@ -28,6 +28,8 @@ const pedir = async (url) => {
   return j;
 };
 
+const REGISTRADOS = (() => { try { return JSON.parse(fs.readFileSync(path.join(__dirname, 'publicados.json'), 'utf8')).reels; } catch { return {}; } })();
+
 // Nuestros vídeos: primera línea del texto → { slug, idioma, duración }.
 function nuestrosReels() {
   const base = path.join(__dirname, 'out-reels'), mapa = [];
@@ -56,7 +58,10 @@ function nuestrosReels() {
           try { datos[met] = (await pedir(`${G}/${m.id}/insights?metric=${met}`)).data[0].values[0].value; } catch { /* métrica no disponible */ }
         }
         // ¿Es uno de nuestros vídeos? Por el texto o, si se publicó sin texto, por la duración del vídeo.
-        let nuestro = propios.find(p => (m.caption || '').startsWith(p.inicio));
+        // Primero el registro de lo publicado (publicados.json), que no se equivoca entre vídeos de duración parecida.
+        const lang = nombre.includes('ES') ? 'es' : 'en', codigo = ((m.permalink || '').match(/\/(?:reel|p)\/([^/]+)/) || [])[1];
+        let nuestro = REGISTRADOS[codigo] ? (propios.find(p => p.slug === REGISTRADOS[codigo] && p.lang === lang) || { slug: REGISTRADOS[codigo] }) : null;
+        if (!nuestro) nuestro = propios.find(p => (m.caption || '').startsWith(p.inicio));
         let durPublicado = null;
         if (tipo === 'REELS' && m.media_url) {
           try {
@@ -66,7 +71,6 @@ function nuestrosReels() {
           } catch { /* sin duración */ }
         }
         if (!nuestro && durPublicado) {
-          const lang = nombre.includes('ES') ? 'es' : 'en';
           const cerca = propios.filter(p => p.lang === lang).map(p => ({ p, d: Math.abs(p.dur - durPublicado) })).sort((a, b) => a.d - b.d)[0];
           if (cerca && cerca.d < 1.5) nuestro = cerca.p;   // margen: puede haberse publicado un render anterior
         }
