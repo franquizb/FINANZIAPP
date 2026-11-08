@@ -1,0 +1,8 @@
+{
+  "name": "finanziapp-marketing-educativo",
+  "private": true,
+  "description": "Motor de Reels y carruseles educativos (Playwright + ffmpeg). Three.js para las escenas 3D.",
+  "dependencies": {
+    "three": "0.149.0"
+  }
+}
