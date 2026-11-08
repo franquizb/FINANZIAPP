@@ -84,3 +84,26 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.
+
+# Estadísticas, cuaderno y publicación por API
+
+- **Web privada**: https://estadisticas.franquizb.com (sitio de Hosting
+  `finanziapp-estadisticas`, carpeta `estadisticas-web/`). Solo la ve el
+  propietario: inicia sesión y lee `estadisticas/instagram`, que las reglas de
+  Firestore solo dejan leer al propietario. Muestra el **cuaderno**
+  (`cuaderno.json`: próximas subidas y temas pendientes por cuenta, más las
+  preguntas abiertas de `reels-voz/REGISTRO.md`), las conclusiones
+  (`estadisticas-notas.json`), la retención de cada Reel, todas las
+  publicaciones y los referentes.
+- **Actualizar** (cuando lo pida el propietario; sin procesos en la nube):
+  `node estadisticas-instagram.cjs --json propias.json`,
+  `node referentes-instagram.cjs --json referentes.json` y
+  `node estadisticas-subir.cjs <…> <…> propias.json referentes.json`.
+  Para cambiar la página: `firebase deploy --only hosting` desde `estadisticas-web/`.
+- **Publicar** (solo si el propietario lo pide, vídeo a vídeo):
+  `node publicar-instagram.cjs <…> <…> es|en reel <video.mp4> <texto.txt> [--portada portada.jpg]`
+  hace un ensayo; con `--publicar` publica. Los archivos pasan un momento por el
+  bucket privado `finanziapp-publicar` (us-central1, se vacía solo a 1 día).
+- **Token de Meta**: lo inyecta el proxy del entorno en `graph.facebook.com`
+  (formulario seguro, nunca en el código). Generado en el Explorador de la API
+  Graph y ampliado a 60 días: hay que renovarlo hacia principios de enero de 2027.

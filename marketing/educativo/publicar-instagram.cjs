@@ -1,7 +1,7 @@
 // Publica un Reel o un carrusel en Instagram con la API Graph de Meta.
 // SOLO se usa cuando el propietario pide publicar algo concreto en una cuenta concreta.
 //
-// Cómo: sube los archivos un momento a Firebase Storage (privado), crea una URL firmada que caduca en
+// Cómo: sube los archivos un momento al bucket privado finanziapp-publicar (Cloud Storage), crea una URL firmada que caduca en
 // 1 hora, Instagram la descarga, se publica y se borran los archivos. Coste prácticamente nulo.
 // Sin --publicar hace un ENSAYO: prepara la publicación en Instagram y comprueba que la acepta, pero no
 // publica nada (el borrador caduca solo en 24 h).
@@ -18,7 +18,7 @@ if (process.env.HTTPS_PROXY && !process.env.NODE_USE_ENV_PROXY) {
 
 const G = 'https://graph.facebook.com/v23.0';
 const CUENTA = { en: '17841480765193424', es: '17841411098796089' };   // @finanziapp, @finanziapp.es
-const BUCKET = 'personal-franquizb.firebasestorage.app';
+const BUCKET = 'finanziapp-publicar';   // privado, us-central1 (capa gratuita), borra todo a 1 día
 const [, , fbt, saArchivo, idioma, tipo, origen, textoArchivo] = process.argv;
 const op = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const publicar = process.argv.includes('--publicar');
