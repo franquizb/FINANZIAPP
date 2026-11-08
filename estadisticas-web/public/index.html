@@ -54,6 +54,11 @@
   .error { color: var(--rojo); font-size: 14px; margin-top: 12px; min-height: 20px; }
   .oculto { display: none !important; }
   .pie { color: var(--suave); font-size: 12px; margin-top: 30px; }
+  .estado { display: inline-block; border-radius: 8px; padding: 1px 8px; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
+  .estado.hecho { background: rgba(94,234,212,.15); color: var(--acento); } .estado.listo { background: rgba(194,124,14,.2); color: #f0b45a; } .estado.por { background: rgba(148,163,184,.15); color: var(--suave); }
+  .cuenta-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .cuenta-cab b { font-size: 16px; } .estilo { color: var(--suave); font-size: 13px; margin-bottom: 10px; }
+  .sub-t { font-size: 12px; font-weight: 750; color: var(--suave); text-transform: uppercase; letter-spacing: .08em; margin: 14px 0 4px; }
 </style>
 </head>
 <body>
@@ -79,6 +84,11 @@
     </header>
 
     <div class="kpis" id="kpis"></div>
+
+    <h2>Cuaderno <small>calendario de subida y temas pendientes, por cuenta</small></h2>
+    <p id="cuaderno-nota" style="color:var(--suave);font-size:13px;margin:-6px 0 12px"></p>
+    <div class="rejilla" id="cuaderno"></div>
+    <div class="tarjeta" id="abiertas" style="margin-top:12px"></div>
 
     <h2>Conclusiones <small>lo que hacemos con estos datos</small></h2>
     <div class="notas" id="notas"></div>
@@ -118,6 +128,16 @@
         <div class="sub">vistas en ${fs.length} publicaciones · ${num(fs[0]?.seguidores)} seguidores</div>
         <div class="sub">${mejor ? `Mejor retención: <b>${mejor.retencion} %</b> (${esc(mejor.tema || 'sin texto')})` : ''}</div></div>`;
     }).join('');
+    // Cuaderno: calendario y temas pendientes por cuenta (España primero).
+    const cu = d.cuaderno || { cuentas: {} };
+    $('cuaderno-nota').textContent = cu.nota || '';
+    const est = (e) => `<span class="estado ${e === 'hecho' ? 'hecho' : e === 'listo' ? 'listo' : 'por'}">${esc(e)}</span>`;
+    const fecha = (f) => new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+    $('cuaderno').innerHTML = ['es', 'en'].filter(k => cu.cuentas[k]).map(k => { const c = cu.cuentas[k]; return `<div class="tarjeta">
+      <div class="cuenta-cab"><b>${esc(c.nombre)}</b><span class="chip ${k}">${k.toUpperCase()}</span></div><div class="estilo">${esc(c.estilo)}</div>
+      <div class="sub-t">Próximas subidas</div><ul class="lista">${(c.proximos || []).map(x => `<li><div style="display:flex;justify-content:space-between;gap:8px"><span><b style="color:var(--tinta)">${esc(fecha(x.fecha))}</b> · ${esc(x.tipo)}</span>${est(x.estado)}</div>${esc(x.tema)}<div class="met">${esc(x.nota || '')}</div></li>`).join('')}</ul>
+      <div class="sub-t">Temas pendientes</div><ul class="lista">${(c.pendientes || []).map(x => `<li>${esc(x.tema)}<div class="met">${esc(x.porque || '')}</div></li>`).join('')}</ul></div>`; }).join('');
+    $('abiertas').innerHTML = `<div class="sub-t" style="margin-top:0">Preguntas abiertas en vídeos (hay que responderlas)</div><ul class="lista">${(d.abiertas || []).map(a => `<li>${esc(a)}</li>`).join('') || '<li>Ninguna</li>'}</ul>`;
     // Conclusiones.
     $('notas').innerHTML = (d.notas || []).map(n => `<div class="tarjeta nota"><h3>${esc(n.titulo)}</h3><p>${esc(n.texto)}</p></div>`).join('');
     // Retención.

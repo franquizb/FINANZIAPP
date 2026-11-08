@@ -1,4 +1,4 @@
-// Junta las estadísticas propias, los referentes y las conclusiones, y las guarda en Firestore
+// Junta las estadísticas propias, los referentes, las conclusiones y el cuaderno (calendario y temas pendientes), y las guarda en Firestore
 // (estadisticas/instagram), de donde las lee la web privada estadisticas.franquizb.com.
 // Solo el propietario puede leer ese documento (firestore.rules); se escribe con la cuenta de servicio.
 // Uso: node estadisticas-subir.cjs <dir con google-auth-library> <credencial.json> <propias.json> <referentes.json> [--solo-archivo salida.json]
@@ -7,7 +7,11 @@ const [, , fbt, sa, propias, referentes] = process.argv;
 
 const p = JSON.parse(fs.readFileSync(propias, 'utf8')), r = JSON.parse(fs.readFileSync(referentes, 'utf8'));
 const notas = JSON.parse(fs.readFileSync(path.join(__dirname, 'estadisticas-notas.json'), 'utf8'));
-const datos = { actualizado: new Date().toISOString(), propias: p.filas, referentes: r, notas };
+const cuaderno = JSON.parse(fs.readFileSync(path.join(__dirname, 'cuaderno.json'), 'utf8'));
+// Preguntas abiertas del registro de Reels hablados (las que aún hay que responder en un vídeo).
+const registro = fs.readFileSync(path.join(__dirname, 'reels-voz', 'REGISTRO.md'), 'utf8');
+const abiertas = (registro.split('## Pendientes')[1] || '').split('\n').filter(l => l.startsWith('- ')).map(l => l.slice(2).trim());
+const datos = { actualizado: new Date().toISOString(), propias: p.filas, referentes: r, notas, cuaderno, abiertas };
 
 (async () => {
   const i = process.argv.indexOf('--solo-archivo');
