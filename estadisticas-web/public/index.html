@@ -197,9 +197,12 @@
 <script type="module">
   const PROPIETARIO = 'lK7Y5eUYmSRAiXs2M1J7NyKPSQw2';
   const CUENTAS = {
-    en: { corto: 'EE. UU.', nombre: '@finanziapp', zona: 'America/New_York', zonaTxt: 'hora de Nueva York', franja: [18, 21], franjaTxt: 'de 18:00 a 21:00 de Nueva York (de 0:00 a 3:00 en España)', moneda: '$' },
-    es: { corto: 'España', nombre: '@finanziapp.es', zona: 'Europe/Madrid', zonaTxt: 'hora de España', franja: [13, 15], franjaTxt: 'de 13:00 a 15:00 o de 20:00 a 22:00 de España', moneda: '€' }
+    // franjas: hipótesis en hora de la audiencia, distintas entre semana y en fin de semana (hasta que «Cuándo publicar» tenga datos).
+    en: { corto: 'EE. UU.', nombre: '@finanziapp', zona: 'America/New_York', publico: 'Nueva York', franjas: { laborable: [[12, 13], [19, 21]], finde: [[10, 12], [18, 20]] }, moneda: '$' },
+    es: { corto: 'España', nombre: '@finanziapp.es', zona: 'Europe/Madrid', publico: 'la península', franjas: { laborable: [[13, 15], [21, 23]], finde: [[10, 13], [20, 22]] }, moneda: '€' }
   };
+  // Las horas del panel van en la hora del propietario (Canarias); la de la audiencia sale al lado cuando importa.
+  const MI = { zona: 'Atlantic/Canary', txt: 'hora de Canarias' };
   const RAPIDAS = {
     en: ['Thanks! 🙌', 'Great question! We’ll cover it in a video soon.', 'Glad it helped 💸', 'Agree 100%!'],
     es: ['¡Gracias! 🙌', '¡Buena pregunta! Lo explicamos en un vídeo pronto.', 'Nos alegra que te sirva 💸', '¡Totalmente de acuerdo!']
@@ -219,6 +222,13 @@
   const fechaZona = (iso, zona, op = { dateStyle: 'medium', timeStyle: 'short' }) => iso ? new Intl.DateTimeFormat('es-ES', { timeZone: zona, ...op }).format(new Date(iso)) : '—';
   const horaZona = (iso, zona) => +new Intl.DateTimeFormat('en-GB', { timeZone: zona, hour: 'numeric', hourCycle: 'h23' }).format(new Date(iso));
   const hoyZona = (zona) => new Intl.DateTimeFormat('en-CA', { timeZone: zona }).format(new Date());
+  const desfase = (zona, f = new Date()) => (Date.parse(f.toLocaleString('en-US', { timeZone: zona })) - Date.parse(f.toLocaleString('en-US', { timeZone: 'UTC' }))) / 36e5;
+  const aMi = (h, zona) => ((h + desfase(MI.zona) - desfase(zona)) % 24 + 24) % 24;
+  const tipoDia = (iso, zona) => ['Sat', 'Sun'].includes(new Intl.DateTimeFormat('en-US', { timeZone: zona, weekday: 'short' }).format(new Date(iso))) ? 'finde' : 'laborable';
+  const franjaTxt = (c, tipo) => c.franjas[tipo].map(([a, b]) => `${aMi(a, c.zona)}:00–${aMi(b, c.zona)}:00`).join(' o ') + ' en Canarias' +
+    (c.zona === 'Europe/Madrid' ? '' : ` (${c.franjas[tipo].map(([a, b]) => `${a}:00–${b}:00`).join(' o ')} en ${c.publico})`);
+  const enFranja = (iso, c) => { const h = horaZona(iso, c.zona); return c.franjas[tipoDia(iso, c.zona)].some(([a, b]) => h >= a - 1 && h <= b); };
+  const dobleHora = (iso, c) => `${fechaZona(iso, MI.zona)} (Canarias)${c.zona === 'Europe/Madrid' ? '' : ` · ${fechaZona(iso, c.zona, { timeStyle: 'short' })} en ${c.publico}`}`;
   const hace = (iso) => { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 60 ? `hace ${Math.max(1, Math.round(m))} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} días`; };
   const nombreTema = (p) => p.tema ? p.tema.replace(/^(es|en)-/, '').replace(/-/g, ' ') : (p.texto || '(sin texto)');
   function aviso(t, ms = 4000) { const a = $('aviso-global'); a.innerHTML = t; a.classList.remove('oculto'); clearTimeout(aviso.t); if (ms) aviso.t = setTimeout(() => a.classList.add('oculto'), ms); }
@@ -279,7 +289,7 @@
   // ——— pintado ———
   function pintar() {
     const e = S.estado;
-    $('actualizado').textContent = e ? `Actualizado ${hace(e.ultima)} · ${fechaZona(e.ultima, 'Europe/Madrid', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Aún sin datos de la actualización automática';
+    $('actualizado').textContent = e ? `Actualizado ${hace(e.ultima)} · ${fechaZona(e.ultima, MI.zona, { dateStyle: 'medium', timeStyle: 'short' })} (Canarias)` : 'Aún sin datos de la actualización automática';
     $('estado-pildora').classList.toggle('mal', !!(e && !e.ok));
     $('estado-txt').textContent = !e ? 'sin datos' : e.ok ? 'todo bien' : `${e.errores.length} aviso${e.errores.length > 1 ? 's' : ''}`;
     $('pestanas').innerHTML = ['es', 'en'].map(k => { const n = S.datos[k] ? pendientes(S.datos[k]).length : 0;
@@ -314,14 +324,14 @@
 
       <div class="filtros"><span style="color:var(--suave);font-size:13px">Periodo</span>
         <div class="seg" id="periodo">${[['d1', '24 h'], ['d7', '7 días'], ['d28', '28 días']].map(([v, t]) => `<button data-v="${v}" class="${S.periodo === v ? 'activa' : ''}">${t}</button>`).join('')}</div>
-        <span style="color:var(--suave);font-size:12.5px">Horas en ${c.zonaTxt}</span></div>
+        <span style="color:var(--suave);font-size:12.5px">Todas las horas, en hora de Canarias</span></div>
 
       <div class="kpis">
         ${kpi('ig', 'Reproducciones', num(r.views), delta('views'))}
         ${kpi('ig', 'Cuentas alcanzadas', num(r.reach), delta('reach'))}
         ${kpi('ig', 'Interacciones', num(r.total_interactions), `${num(r.likes)} me gusta · ${num(r.comments)} coment.`)}
         ${kpi('ig', 'Guardados y compartidos', num((r.saves || 0) + (r.shares || 0)), `${num(r.saves)} guardados · ${num(r.shares)} compartidos`)}
-        ${kpi('ig', 'Visitas al perfil', num(r.profile_views), `${num(r.website_clicks)} toques en la web · ${delta('profile_views') || '&nbsp;'}`)}
+        ${kpi('ig', 'Visitas al perfil', num(r.profile_views), `<b>${r.reach ? num(1000 * (r.profile_views || 0) / r.reach, 1) : '—'}</b> por cada 1.000 alcanzadas · ${num(r.website_clicks)} toques en la web`)}
         ${kpi('ig', 'Retención media', pct(retMedia), 'últimos 5 Reels · objetivo 40 %')}
         ${fb ? kpi('fb', 'Visualizaciones', num(sumaSerie(fb.serie.page_media_view, dias)), `${num(sumaSerie(fb.serie.page_total_media_view_unique, dias))} personas`) : ''}
         ${fb ? kpi('fb', 'Reproducciones de Reels', num(reelsFb.reduce((a, p) => a + (p.vistas || 0), 0)), `${reelsFb.length} Reels publicados (total)`) : ''}
@@ -338,6 +348,9 @@
         <div class="tarjeta"><div class="graf-tit">Seguidores</div><div class="graf-sub">Una foto al día de cada red</div><div class="graf" id="g-seguidores"></div></div>
         <div class="tarjeta"><div class="graf-tit">Retención por Reel</div><div class="graf-sub">Tiempo medio visto ÷ duración · la línea discontinua es el objetivo (40 %)</div><div id="g-retencion"></div></div>
       </div>
+
+      <h2>Cuándo publicar <small>Reels de Instagram: reproducciones en sus primeras 24 h según el día y la hora de la audiencia (${c.publico})</small></h2>
+      <div class="tarjeta" id="franjas"></div>
 
       <h2>Publicaciones <small id="pubs-cuenta"></small></h2>
       <div class="filtros">
@@ -364,7 +377,7 @@
       <div class="notas" id="notas"></div>`;
 
     $('periodo').querySelectorAll('button').forEach(b => b.onclick = () => { S.periodo = b.dataset.v; pintar(); });
-    pintarToca(); pintarGraficas(); pintarTabla(); pintarComentarios(); pintarCuaderno(); pintarReferentes();
+    pintarToca(); pintarGraficas(); pintarFranjas(); pintarTabla(); pintarComentarios(); pintarCuaderno(); pintarReferentes();
     const notas = ((S.config.notas || {})[k]) || [];
     $('notas').innerHTML = notas.map(n => `<div class="tarjeta nota"><h3>${esc(n.titulo)}</h3><p>${esc(n.texto)}</p></div>`).join('') || '<p class="vacio">Sin conclusiones todavía.</p>';
     $('f-plat').querySelectorAll('button').forEach(b => b.onclick = () => { S.filtro.plat = b.dataset.v; $('f-plat').querySelectorAll('button').forEach(x => x.classList.toggle('activa', x === b)); pintarTabla(); });
@@ -382,12 +395,12 @@
     const pend = pendientes(d);
     if (pend.length) add('💬', `${pend.length} comentario${pend.length > 1 ? 's' : ''} sin responder`, 'Responder en la primera hora ayuda a que el algoritmo lo enseñe a más gente.', '<button class="mini" data-ir="comentarios">Ir a comentarios</button>');
     // Cuaderno: hoy y lo siguiente.
-    const cu = ((S.cuaderno || {}).cuentas || {})[k], hoy = hoyZona(c.zona);
+    const cu = ((S.cuaderno || {}).cuentas || {})[k], hoy = hoyZona(MI.zona);
     if (cu) {
       const prox = (cu.proximos || []).filter(x => x.estado !== 'hecho' && x.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
       const deHoy = prox.filter(x => x.fecha === hoy);
-      if (deHoy.length) add('📅', 'Hoy toca publicar', deHoy.map(x => `${esc(x.tema)} <span class="estado ${x.estado === 'listo' ? 'listo' : 'por'}">${esc(x.estado)}</span>`).join('<br>') + `<br><span style="color:var(--suave)">Mejor franja: ${c.franjaTxt}.</span>`);
-      else if (prox[0]) add('📅', `Lo siguiente: ${new Date(prox[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}`, esc(prox[0].tema));
+      if (deHoy.length) add('📅', 'Hoy toca publicar', deHoy.map(x => `${x.hora ? `<b>${esc(x.hora)}</b> · ` : ''}${esc(x.tema)} <span class="estado ${x.estado === 'listo' ? 'listo' : 'por'}">${esc(x.estado)}</span>`).join('<br>') + `<br><span style="color:var(--suave)">Franja de hoy (${tipoDia(new Date().toISOString(), c.zona) === 'finde' ? 'fin de semana' : 'entre semana'}): ${franjaTxt(c, tipoDia(new Date().toISOString(), c.zona))}.</span>`);
+      else if (prox[0]) add('📅', `Lo siguiente: ${new Date(prox[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}${prox[0].hora ? ' a las ' + esc(prox[0].hora) : ''}`, esc(prox[0].tema));
       const atrasados = (cu.proximos || []).filter(x => x.estado !== 'hecho' && x.fecha < hoy);
       if (atrasados.length) add('⏰', `${atrasados.length} subida${atrasados.length > 1 ? 's' : ''} del calendario sin hacer`, atrasados.map(x => esc(x.tema)).slice(0, 3).join('<br>'), '<button class="mini" data-ir="cuaderno">Revisar el cuaderno</button>');
     }
@@ -409,17 +422,18 @@
     }
     // Hora de la última publicación.
     const ultIg = pubs.filter(p => p.plataforma === 'ig').sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
-    if (ultIg) { const h = horaZona(ultIg.fecha, c.zona); if (h < c.franja[0] - 1 || h > c.franja[1] + 1) add('🕖', 'Publica en la mejor franja', `La última publicación salió a las ${h}:00 (${c.zonaTxt}). Mejor ${c.franjaTxt}.`); }
+    if (ultIg && !enFranja(ultIg.fecha, c)) { const t = tipoDia(ultIg.fecha, c.zona);
+      add('🕖', 'Publica en la mejor franja', `La última salió ${t === 'finde' ? 'en fin de semana' : 'entre semana'} a las ${fechaZona(ultIg.fecha, MI.zona, { timeStyle: 'short' })} de Canarias. Para ese tipo de día, mejor ${franjaTxt(c, t)}.`); }
     // Preguntas abiertas.
     const ab = ((S.config.abiertas || {})[k]) || [];
     if (ab.length) add('❓', 'Pregunta abierta en un vídeo', ab.map(esc).join('<br>') + '<br><span style="color:var(--suave)">Hay que responderla en una píldora: quien siguió la cuenta por ella la espera.</span>');
     // Programados: Instagram (cola del panel) y Facebook.
     for (const it of colaCuenta().filter(x => x.estado === 'pendiente' || x.estado === 'publicando'))
-      add('🗓️', it.estado === 'publicando' ? 'Publicándose ahora en Instagram' : 'Programado en Instagram', `${esc(nombreTema({ tema: it.slug }))} · ${fechaZona(it.cuando, c.zona)} (${c.zonaTxt})`,
+      add('🗓️', it.estado === 'publicando' ? 'Publicándose ahora en Instagram' : 'Programado en Instagram', `${esc(nombreTema({ tema: it.slug }))} · ${dobleHora(it.cuando, c)}`,
         it.estado === 'pendiente' ? `<button class="mini peligro" data-cancelar="${esc(it.id)}">Cancelar</button>` : '');
     for (const it of colaCuenta().filter(x => x.estado === 'error' && Date.now() - Date.parse(x.intento || x.creado) < 3 * 864e5))
       add('⛔', 'No se pudo publicar en Instagram', `${esc(nombreTema({ tema: it.slug }))}: ${esc(it.error || '')}`);
-    for (const p of ((d.fb || {}).programados || [])) add('🗓️', 'Programado en Facebook', `${esc(nombreTema(p))} · ${fechaZona(p.cuando, c.zona)} (${c.zonaTxt})`);
+    for (const p of ((d.fb || {}).programados || [])) add('🗓️', 'Programado en Facebook', `${esc(nombreTema(p))} · ${dobleHora(p.cuando, c)}`);
     if (d.ig && d.ig.cuota && d.ig.cuota.usada >= d.ig.cuota.total * 0.8) add('🚦', 'Cuota de publicación casi agotada', `${d.ig.cuota.usada} de ${d.ig.cuota.total} publicaciones por API en 24 h.`);
     $('toca').innerHTML = avisos.join('') || '<div class="tarjeta aviso"><span class="ic">✅</span><div><b>Todo al día</b><p>No hay nada pendiente en esta cuenta.</p></div></div>';
     $('toca').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => $(b.dataset.ir).scrollIntoView({ behavior: 'smooth', block: 'start' }));
@@ -449,9 +463,34 @@
         <div class="pista"><div class="bar" style="width:${Math.min(100, p.retencion)}%;background:var(--${p.plataforma})"></div><div class="obj" style="left:40%"></div></div><span class="valor">${p.retencion} %</span></div>`).join('')}</div>`;
     g.querySelectorAll('.fila').forEach(f => {
       const p = reels.find(x => x.id === f.dataset.pub);
-      f.onmousemove = (ev) => mostrarTip(`<b>${esc(nombreTema(p))}</b><div>${p.plataforma === 'ig' ? 'Instagram' : 'Facebook'} · ${fechaZona(p.fecha, CUENTAS[S.cuenta].zona, { dateStyle: 'medium' })}</div><div>Visto de media: <b>${num(p.visto_medio_s, 1)} s</b> de ${num(p.duracion_s, 1)} s</div><div>Reproducciones: <b>${num(p.vistas)}</b></div>`, ev);
+      f.onmousemove = (ev) => mostrarTip(`<b>${esc(nombreTema(p))}</b><div>${p.plataforma === 'ig' ? 'Instagram' : 'Facebook'} · ${fechaZona(p.fecha, MI.zona, { dateStyle: 'medium' })}</div><div>Visto de media: <b>${num(p.visto_medio_s, 1)} s</b> de ${num(p.duracion_s, 1)} s</div><div>Reproducciones: <b>${num(p.vistas)}</b></div>`, ev);
       f.onmouseleave = ocultarTip; f.onclick = () => abrirDetalle(p.id);
     });
+  }
+
+  // Día (entre semana / finde) × hora de la audiencia → reproducciones a las 24 h. Con pocos vídeos es una pista, no una regla.
+  function pintarFranjas() {
+    const c = CUENTAS[S.cuenta], h = (S.hist[S.cuenta] || {}).media || {};
+    const BLOQUES = [['Mañana', 6, 12], ['Mediodía', 12, 16], ['Tarde', 16, 20], ['Noche', 20, 24], ['Madrugada', 0, 6]];
+    const a24 = (p) => {
+      const edad = (Date.now() - Date.parse(p.fecha)) / 36e5, m = h[p.id];
+      if (m) { const pts = Object.entries(m.puntos).map(([t, v]) => [(Date.parse(t.length === 13 ? t + ':30:00Z' : t + 'T12:00:00Z') - Date.parse(p.fecha)) / 36e5, v]).filter(x => x[0] <= 26).sort((x, y) => x[0] - y[0]);
+        if (pts.length) return { v: pts[pts.length - 1][1], tipo: edad < 24 ? 'en curso' : 'exacto' }; }
+      return { v: p.vistas || 0, tipo: edad < 24 ? 'en curso' : 'total' };
+    };
+    const reels = publicaciones().filter(p => p.plataforma === 'ig' && p.tipo === 'Reel').map(p => ({ p, d: tipoDia(p.fecha, c.zona), hr: horaZona(p.fecha, c.zona), ...a24(p) }));
+    const celda = (d, a, b) => reels.filter(r => r.d === d && r.hr >= a && r.hr < b);
+    const medias = []; for (const d of ['laborable', 'finde']) for (const [, a, b] of BLOQUES) { const rs = celda(d, a, b).filter(r => r.tipo !== 'en curso'); if (rs.length) medias.push(rs.reduce((s, r) => s + r.v, 0) / rs.length); }
+    const mejor = Math.max(0, ...medias);
+    $('franjas').innerHTML = `<div class="tabla-env" style="border:none"><table><thead><tr><th></th>${BLOQUES.map(([n, a, b]) => `<th class="num">${n}<br><span style="text-transform:none;letter-spacing:0;font-weight:600">${a}–${b} h · ${aMi(a, c.zona)}–${aMi(b, c.zona)} h Canarias</span></th>`).join('')}</tr></thead><tbody>
+      ${[['laborable', 'Entre semana'], ['finde', 'Fin de semana']].map(([d, nom]) => `<tr style="cursor:default"><td><b>${nom}</b><div style="color:var(--suave);font-size:12px">hipótesis: ${esc(franjaTxt(c, d))}</div></td>${BLOQUES.map(([, a, b]) => {
+        const rs = celda(d, a, b), hechos = rs.filter(r => r.tipo !== 'en curso'), m = hechos.length ? hechos.reduce((s, r) => s + r.v, 0) / hechos.length : null;
+        const hip = c.franjas[d].some(([x, y]) => x < b && y > a);
+        return `<td class="num" style="${m != null && m === mejor && mejor > 0 ? 'background:rgba(94,234,212,.12);' : ''}${hip ? 'box-shadow:inset 0 -3px 0 rgba(94,234,212,.5);' : ''}" title="${esc(rs.map(r => `${nombreTema(r.p)}: ${num(r.v)} (${r.tipo})`).join('\n'))}">
+          ${rs.length ? (() => { const enc = rs.length - hechos.length, parcial = enc ? rs.filter(r => r.tipo === 'en curso').reduce((s2, r) => s2 + r.v, 0) / enc : 0;
+            return (m != null ? `<b>${num(m)}</b>` : `<b style="color:var(--suave)">${num(parcial)}</b>`) + `<div style="color:var(--suave);font-size:12px">${rs.length} vídeo${rs.length > 1 ? 's' : ''}${enc ? ` · ${enc} aún sin 24 h` : ''}</div>`; })() : '<span style="color:var(--suave)">—</span>'}</td>`; }).join('')}</tr>`).join('')}
+      </tbody></table></div>
+      <p style="color:var(--suave);font-size:12.5px;margin-top:8px">Media de reproducciones a las 24 h (los publicados antes del panel cuentan con su total). Raya turquesa: franja de la hipótesis; fondo: la mejor hasta ahora. Pasa el ratón por una casilla para ver qué vídeos son.</p>`;
   }
 
   const COLS = [['fecha', 'Fecha'], ['plataforma', 'Red'], ['tipo', 'Tipo'], ['tema', 'Tema'], ['vistas', 'Reprod.', 1], ['alcance', 'Alcance', 1], ['retencion', 'Retención'],
@@ -465,7 +504,7 @@
     const c = CUENTAS[S.cuenta], filas = filasFiltradas(), f = S.filtro;
     $('pubs-cuenta').textContent = `${filas.length} de ${publicaciones().length} · pulsa una fila para ver el detalle`;
     $('t-pubs').innerHTML = `<thead><tr>${COLS.map(([k2, t, n]) => `<th class="${n ? 'num' : ''} ${k2 !== 'enlace' ? 'ord' : ''} ${f.orden === k2 ? 'activa' : ''}" data-k="${k2}">${t}${f.orden === k2 ? (f.dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
-      <tbody>${filas.map(p => `<tr data-pub="${esc(p.id)}"><td>${fechaZona(p.fecha, c.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td>${chipPlat(p.plataforma)}</td><td>${esc(p.tipo)}</td>
+      <tbody>${filas.map(p => `<tr data-pub="${esc(p.id)}"><td>${fechaZona(p.fecha, MI.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td>${chipPlat(p.plataforma)}</td><td>${esc(p.tipo)}</td>
         <td class="tema">${esc(nombreTema(p))}</td><td class="num"><b>${num(p.vistas)}</b></td><td class="num">${num(p.alcance)}</td>
         <td>${p.retencion != null ? `<div class="ret"><div class="pista"><div class="bar" style="width:${Math.min(100, p.retencion)}%"></div></div><span>${p.retencion} %</span></div>` : '<span style="color:var(--suave)">—</span>'}</td>
         <td class="num">${p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—'}</td><td class="num">${num(p.guardados)}</td><td class="num">${num(p.compartidos)}</td><td class="num">${num(p.megusta)}</td>
@@ -483,7 +522,7 @@
   function tarjetaComentario(x, rapidas = true) {
     const c = CUENTAS[S.cuenta];
     return `<div class="tarjeta comentario ${x.oculto ? 'oculto-c' : ''}" data-id="${esc(x.id)}" data-plat="${x.plataforma}">
-      <div class="cab">${chipPlat(x.plataforma)}<b>${esc(x.autor)}</b><span>${fechaZona(x.fecha, c.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+      <div class="cab">${chipPlat(x.plataforma)}<b>${esc(x.autor)}</b><span>${fechaZona(x.fecha, MI.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
         ${x.respondido ? '<span class="chip neutro">respondido</span>' : ''}${x.oculto ? '<span class="chip neutro">oculto</span>' : ''}<span style="margin-left:auto">${enlace(x.publicacion.enlace, 'en: ' + esc(String(x.publicacion.tema || '').replace(/^(es|en)-/, '').replace(/-/g, ' ').slice(0, 40)))}</span></div>
       <div class="txt">${esc(x.texto)}</div>
       ${(x.respuestas || []).map(r => `<div class="resp ${r.nuestra ? 'nuestra' : ''}"><b>${esc(r.autor)}</b> ${esc(r.texto)}</div>`).join('')}
@@ -513,14 +552,14 @@
     if (!S.cuaderno) { $('cuaderno').innerHTML = '<div class="tarjeta"><p class="vacio">El cuaderno aún no está en el panel.</p></div>'; return; }
     if (!S.borrador) S.borrador = JSON.parse(JSON.stringify(S.cuaderno));
     const cu = S.borrador.cuentas[k] = S.borrador.cuentas[k] || { proximos: [], pendientes: [] };
-    const hoy = hoyZona(CUENTAS[k].zona);
-    cu.proximos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const hoy = hoyZona(MI.zona);
+    cu.proximos.sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
     const sel = (v, ops, cl) => `<select class="${cl}">${ops.map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
     $('cuaderno').innerHTML = `<div class="tarjeta" style="margin-bottom:10px"><div style="color:var(--suave);font-size:12.5px;margin-bottom:4px">Estilo de la cuenta</div><textarea class="cu-estilo" rows="2">${esc(cu.estilo || '')}</textarea></div>
       <div class="cu-rejilla">
-      <div class="tabla-env"><table><thead><tr><th>Fecha</th><th>Tema</th><th>Estado</th><th></th></tr></thead><tbody>
+      <div class="tabla-env"><table><thead><tr><th>Día y hora (Canarias)</th><th>Tema</th><th>Estado</th><th></th></tr></thead><tbody>
         ${cu.proximos.map((x, i) => `<tr data-i="${i}" style="${x.fecha < hoy && x.estado !== 'hecho' ? 'box-shadow:inset 3px 0 0 #f0b45a' : ''}">
-          <td class="estrecho"><input type="date" class="cu-fecha" value="${esc(x.fecha)}">${sel(x.tipo || 'Reel', ['Reel', 'Carrusel', 'Historia', 'Post'], 'cu-tipo')}</td>
+          <td class="estrecho"><input type="date" class="cu-fecha" value="${esc(x.fecha)}"><input type="time" class="cu-hora" value="${esc(x.hora || '')}" title="Hora de Canarias" style="margin-top:6px">${sel(x.tipo || 'Reel', ['Reel', 'Carrusel', 'Historia', 'Post'], 'cu-tipo')}</td>
           <td><input class="cu-tema" value="${esc(x.tema)}" placeholder="Tema"><input class="cu-nota" value="${esc(x.nota || '')}" placeholder="Nota" style="margin-top:6px;color:var(--suave)"></td>
           <td class="estrecho">${sel(x.estado || 'por hacer', ['por hacer', 'listo', 'hecho'], 'cu-estado')}</td>
           <td><button class="mini peligro" data-borrar="${i}" title="Quitar">✕</button></td></tr>`).join('') || '<tr><td colspan="4" class="vacio">Sin subidas en el calendario.</td></tr>'}
@@ -535,6 +574,7 @@
     cont.querySelectorAll('tbody tr[data-i]').forEach(tr => { const x = cu.proximos[+tr.dataset.i];
       tr.querySelector('.cu-fecha').onchange = (ev) => { x.fecha = ev.target.value; marcar(); };
       tr.querySelector('.cu-tipo').onchange = (ev) => { x.tipo = ev.target.value; marcar(); };
+      tr.querySelector('.cu-hora').onchange = (ev) => { x.hora = ev.target.value; marcar(); };
       tr.querySelector('.cu-tema').oninput = (ev) => { x.tema = ev.target.value; marcar(); };
       tr.querySelector('.cu-nota').oninput = (ev) => { x.nota = ev.target.value; marcar(); };
       tr.querySelector('.cu-estado').onchange = (ev) => { x.estado = ev.target.value; marcar(); }; });
@@ -591,7 +631,7 @@
     const met = (t, v) => `<div><small>${t}</small><b>${v}</b></div>`;
     $('detalle').innerHTML = `<button class="mini cerrar" id="d-cerrar">✕</button>
       <h3>${esc(nombreTema(p))}</h3>
-      <div style="color:var(--suave);font-size:13px">${chipPlat(p.plataforma)} ${esc(p.tipo)} · ${fechaZona(p.fecha, c.zona)} (${c.zonaTxt})${S.cuenta === 'en' ? ` · ${fechaZona(p.fecha, 'Europe/Madrid', { timeStyle: 'short' })} en España` : ''} · ${enlace(p.enlace, 'abrir en ' + (p.plataforma === 'ig' ? 'Instagram' : 'Facebook') + ' ↗')}</div>
+      <div style="color:var(--suave);font-size:13px">${chipPlat(p.plataforma)} ${esc(p.tipo)} · ${dobleHora(p.fecha, c)} · ${enlace(p.enlace, 'abrir en ' + (p.plataforma === 'ig' ? 'Instagram' : 'Facebook') + ' ↗')}</div>
       ${p.texto ? `<p style="color:var(--texto);font-size:14px;margin-top:10px">${esc(p.texto)}</p>` : ''}
       <div class="mets">${met('Reproducciones', num(p.vistas))}${met('Alcance', num(p.alcance))}${met('Retención', pct(p.retencion))}
         ${met('Visto de media', p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—')}${met('Duración', p.duracion_s != null ? num(p.duracion_s, 1) + ' s' : '—')}${met('Tiempo total visto', p.tiempo_total_h != null ? num(p.tiempo_total_h, 1) + ' h' : '—')}
@@ -619,7 +659,7 @@
     const e = S.estado || {}, t = e.token || {};
     $('vista').innerHTML = `<div class="rejilla">
       <div class="tarjeta"><b>Actualización automática</b><ul class="lista" style="margin-top:6px">
-        <li>Última: <b style="color:var(--tinta)">${e.ultima ? fechaZona(e.ultima, 'Europe/Madrid') + ' (' + hace(e.ultima) + ')' : '—'}</b></li>
+        <li>Última: <b style="color:var(--tinta)">${e.ultima ? fechaZona(e.ultima, MI.zona) + ' (Canarias, ' + hace(e.ultima) + ')' : '—'}</b></li>
         <li>Duración: ${num(e.duracion_s)} s · ${num(e.llamadas)} llamadas a Meta</li>
         <li>Frecuencia: cada hora (referentes, una vez al día${e.referentes ? `; últimos ${hace(e.referentes)}` : ''})</li>
         <li>Estado: ${e.ok ? '<span class="delta sube">✓ sin errores</span>' : `<span class="delta baja">${(e.errores || []).length} avisos</span>`}</li></ul>

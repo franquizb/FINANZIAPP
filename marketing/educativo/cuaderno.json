@@ -1,5 +1,5 @@
 {
-  "nota": "Cuaderno de Claude: lo decide con los datos (ESTRATEGIA.md). Estado: hecho = publicado · listo = en Drive o renderizado · por hacer.",
+  "nota": "Cuaderno de Claude: lo decide con los datos (ESTRATEGIA.md). Fechas y horas en hora de Canarias. Estado: hecho = publicado · listo = programado o renderizado · por hacer.",
   "cuentas": {
     "es": {
       "nombre": "@finanziapp.es · España",
@@ -17,28 +17,32 @@
           "tipo": "Reel",
           "tema": "Black Friday: el «antes 199 €» te engaña aunque lo sepas (efecto ancla y regla de los 30 días)",
           "estado": "listo",
-          "nota": "Programado 8 nov 20:30 en Instagram y Facebook · primero con subtítulos palabra a palabra y efectos"
+          "nota": "Programado 8 nov 20:30 en Instagram y Facebook · primero con subtítulos palabra a palabra y efectos",
+          "hora": "19:30"
         },
         {
           "fecha": "2026-11-11",
           "tipo": "Reel",
           "tema": "Desmontar un precio del súper: ¿qué parte de lo que pagas llega al productor?",
           "estado": "por hacer",
-          "nota": "Es el formato que más comentarios genera en #finanzaspersonales"
+          "nota": "Es el formato que más comentarios genera en #finanzaspersonales · Prueba: mediodía entre semana (14:00 en la península)",
+          "hora": "13:00"
         },
         {
           "fecha": "2026-11-12",
           "tipo": "Reel",
           "tema": "Tu nómina: por qué cobras menos de lo que dice tu contrato (bruto, neto, IRPF)",
           "estado": "por hacer",
-          "nota": "Tema muy de aquí"
+          "nota": "Tema muy de aquí · Prueba: noche entre semana (21:30 en la península)",
+          "hora": "20:30"
         },
         {
           "fecha": "2026-11-13",
           "tipo": "Reel",
           "tema": "Logros hormiga: 5 victorias pequeñas de ahorro que sí cuentan",
           "estado": "por hacer",
-          "nota": "Formato que funciona en #ahorro"
+          "nota": "Formato que funciona en #ahorro · Prueba: mañana entre semana (10:00 en la península)",
+          "hora": "09:00"
         }
       ],
       "pendientes": [
@@ -80,32 +84,36 @@
           "nota": "Published Nov 8 on Instagram; Facebook scheduled 7:30 PM New York · full first frame · 39.5 s"
         },
         {
-          "fecha": "2026-11-08",
+          "fecha": "2026-11-09",
           "tipo": "Reel",
           "tema": "What changes when you save your first $1,000",
           "estado": "listo",
-          "nota": "Instagram 8 nov 19:00 NY, Facebook 9 nov 19:00 NY · word-by-word captions + SFX"
+          "nota": "Instagram 8 nov 19:00 NY, Facebook 9 nov 19:00 NY · word-by-word captions + SFX",
+          "hora": "00:00"
         },
         {
           "fecha": "2026-11-11",
           "tipo": "Reel",
           "tema": "Your 401(k) match is a 100% return. Are you leaving it on the table?",
           "estado": "por hacer",
-          "nota": "Tema propio de EE. UU., dinero «gratis»"
-        },
-        {
-          "fecha": "2026-11-12",
-          "tipo": "Reel",
-          "tema": "Renting isn't throwing money away. Agree or disagree?",
-          "estado": "por hacer",
-          "nota": "Opinión con pregunta: comentarios"
+          "nota": "Tema propio de EE. UU., dinero «gratis» · Test: weekday lunch (12:30 PM New York)",
+          "hora": "17:30"
         },
         {
           "fecha": "2026-11-13",
           "tipo": "Reel",
+          "tema": "Renting isn't throwing money away. Agree or disagree?",
+          "estado": "por hacer",
+          "nota": "Opinión con pregunta: comentarios · Test: weekday evening (Thu 7:30 PM New York)",
+          "hora": "00:30"
+        },
+        {
+          "fecha": "2026-11-14",
+          "tipo": "Reel",
           "tema": "What changes when you hit $10,000 saved",
           "estado": "por hacer",
-          "nota": "Segundo de la serie de hitos"
+          "nota": "Segundo de la serie de hitos · Test: Friday evening (7:00 PM New York)",
+          "hora": "00:00"
         }
       ],
       "pendientes": [
