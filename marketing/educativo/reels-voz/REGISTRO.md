@@ -16,8 +16,8 @@ Voz: `VOZ` de `_comun.js` (v3: carisma cercano; la v2 era demasiado sarcástica)
 | 2 | Reel largo | El dolor de pagar (`dolor-de-pagar`) | 63 / 65 s | tarro | — | — |
 | 3 | Píldora · Trampas de precio | Las palomitas medianas: efecto señuelo (`trampa-01-senuelo`) | 32 / 30 s | salto | ¿Por qué casi todo cuesta 9,99? | #4 |
 | 4 | Píldora · Trampas de precio | Por qué casi todo cuesta 9,99 (`precio-999`): **no publicada**, sustituida por las versiones por cuenta (#5 y #6) | 59 / 57 s | moneda | — | — |
-| 5 | Píldora · solo ES | La milésima de la gasolinera (`es-gasolina-1499`) · publicada 8 nov 2026 en @finanziapp.es | 46 s | tarro | ¿Por qué funciona el «antes 199 €, ahora 99 €» aunque sepas que es inventado? | pendiente: precio tachado (ES) |
-| 6 | Píldora · solo EN | 79,900 vs 80,000 miles (`en-millas-79900`) · publicada 8 nov 2026 en @finanziapp | 39,5 s | tarro | Why does “was $199, now $99” work even when you know it’s made up? | pendiente: anchoring (EN) |
+| 5 | Píldora · solo ES | La milésima de la gasolinera (`es-gasolina-1499`) · publicada 8 nov 2026 en @finanziapp.es y en la página de Facebook Finanziapp ES | 46 s | tarro | ¿Por qué funciona el «antes 199 €, ahora 99 €» aunque sepas que es inventado? | pendiente: precio tachado (ES) |
+| 6 | Píldora · solo EN | 79,900 vs 80,000 miles (`en-millas-79900`) · publicada 8 nov 2026 en @finanziapp y programada en la página de Facebook FinanziApp (8 nov, 19:30 de Nueva York) | 39,5 s | tarro | Why does “was $199, now $99” work even when you know it’s made up? | pendiente: anchoring (EN) |
 
 ## Pendientes (preguntas abiertas)
 
