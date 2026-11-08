@@ -55,10 +55,11 @@ const TIPOS = { '.mp4': 'video/mp4', '.jpg': 'image/jpeg', '.png': 'image/png' }
       ? [['en/4x5', 'Instagram EN'], ['es/4x5', 'Instagram ES'], ['en/9x16', 'TikTok EN'], ['es/9x16', 'TikTok ES']]
       : [['en', 'Reel EN (Instagram y TikTok)'], ['es', 'Reel ES (Instagram y TikTok)']];
     for (const [local, nombre] of mapa) {
+      if (!fs.existsSync(path.join(origen, local))) continue;   // vídeos de una sola cuenta
       const dir = path.join(origen, local), destinoDir = await carpeta(nombre, pub.id);
       for (const f of fs.readdirSync(dir).sort()) { const t = TIPOS[path.extname(f)]; if (t && await subir(f, destinoDir.id, fs.readFileSync(path.join(dir, f)), t)) n++; }
     }
-    const txt = (l) => fs.readFileSync(path.join(origen, modo === 'carrusel' ? `${l}/4x5/texto.txt` : `${l}/texto.txt`), 'utf8');
+    const txt = (l) => { const f = path.join(origen, modo === 'carrusel' ? `${l}/4x5/texto.txt` : `${l}/texto.txt`); return fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '(este vídeo no va en esta cuenta)'; };
     if (await docTextos(pub.id, txt('en'), txt('es'))) n++;
     console.log(`✓ ${destino} → ${titulo}: ${n} archivos nuevos · https://drive.google.com/drive/folders/${pub.id}`);
   } else if (modo === 'doc' || modo === 'hoja') {

@@ -33,7 +33,7 @@ Listen to this line of a voice-over and answer ONLY with JSON:
   };
   const solo = process.env.SOLO ? process.env.SOLO.split(',').map(Number) : null;
   let malas = 0;
-  for (const lang of idiomas.length ? idiomas : ['es', 'en']) {
+  for (const lang of idiomas.length ? idiomas : Object.keys(reel.T)) {   // Reels de una sola cuenta: solo su idioma
     for (const [i, [, frase]] of reel.T[lang].guion.entries()) {
       if (solo && !solo.includes(i + 1)) continue;
       for (let n = 1; n <= intentos; n++) {

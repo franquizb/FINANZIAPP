@@ -11,6 +11,8 @@
 // real de la voz. Cada escena puede tener una animación anim(s, e, el) que se
 // ejecuta en la página con el tiempo local s (segundos) y e.seg = inicio y
 // duración de sus frases. Los elementos con class="a" entran uno tras otro.
+// reel.arranque = 'lleno': fotograma 0 completo (1.ª escena, texto de arriba y 1.ª frase ya visibles),
+// porque los datos dicen que la gente se va en los primeros segundos. reel.inicio: cuándo empieza la voz.
 // reel.suelo: suelo común a 900 px de la escena (1190 en pantalla) que llena la parte de abajo.
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
 // retención); se oculta en la última escena (el cierre).
@@ -55,7 +57,7 @@ function trozos(texto, ini, dur) {
 
 function linea(reel, lang, voces) {
   const t = reel.T[lang];
-  let tt = INICIO;
+  let tt = reel.inicio != null ? reel.inicio : INICIO;
   const frases = t.guion.map(([esc, texto], i) => {
     if (i > 0 && esc !== t.guion[i - 1][0]) tt += CAMBIO;
     // Marcas §: posición en el texto hablado → momento aproximado dentro de la frase.
@@ -103,7 +105,7 @@ function pagina(reel, lang, L) {
   const LANG = ${JSON.stringify(lang)}, D = ${JSON.stringify(reel.datos ? reel.datos(lang) : {})};
   const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg })))};
   const SUB = ${JSON.stringify(L.subs)};
-  const FUND = ${FUNDIDO};
+  const FUND = ${FUNDIDO}, LLENO = ${reel.arranque === 'lleno'};
   const tramo = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
   const sale = (x) => 1 - Math.pow(1 - x, 3);
   const rebote = (x) => { const c = 1.70158, d = c + 1; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + d * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
@@ -121,16 +123,17 @@ function pagina(reel, lang, L) {
       if (op <= 0) return;
       const s = t - e.ini;
       el.querySelectorAll('.a').forEach((a, k) => {
-        const p = sale(tramo(s, 0.15 + k * 0.3, 0.7 + k * 0.3));
+        const p = LLENO && i === 0 ? 1 : sale(tramo(s, 0.15 + k * 0.3, 0.7 + k * 0.3));   // arranque lleno: la 1.ª escena ya está entera
         a.style.opacity = p; a.style.transform = 'translateY(' + ((1 - p) * 30) + 'px)';
       });
       if (ANIM[i]) ANIM[i](s, e, el);
     });
     const ret = document.getElementById('retencion');
-    if (ret) ret.style.opacity = Math.min(tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
-    const k = SUB.findIndex(x => t >= x.ini && t < x.fin + 0.12);
+    if (ret) ret.style.opacity = Math.min(LLENO ? 1 : tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
+    let k = SUB.findIndex(x => t >= x.ini && t < x.fin + 0.12);
+    if (LLENO && k < 0 && t < SUB[0].ini) k = 0;   // la primera frase ya se lee en el fotograma 0
     if (k !== subActual) { sub.innerHTML = k >= 0 ? '<div>' + SUB[k].html + '</div>' : ''; subActual = k; }
-    if (k >= 0) { const p = rebote(tramo(t, SUB[k].ini, SUB[k].ini + 0.18)); sub.style.transform = 'scale(' + (0.86 + 0.14 * p) + ')'; sub.style.opacity = Math.min(1, p * 1.5); }
+    if (k >= 0) { const p = LLENO && k === 0 && t <= SUB[0].ini + 0.18 ? 1 : rebote(tramo(t, SUB[k].ini, SUB[k].ini + 0.18)); sub.style.transform = 'scale(' + (0.86 + 0.14 * p) + ')'; sub.style.opacity = Math.min(1, p * 1.5); }
   }
   </script></body></html>`;
 }
@@ -164,7 +167,7 @@ async function grabar(browser, reel, lang, op) {
   }
   if (vista) {
     // Un fotograma al final de cada frase y otro al final del vídeo.
-    const momentos = [...L.frases.map(f => f.ini + f.dur - 0.05), L.total - 0.05];
+    const momentos = [0, ...L.frases.map(f => f.ini + f.dur - 0.05), L.total - 0.05];   // el 1.º es el fotograma 0 (el arranque)
     for (const [i, m] of momentos.entries()) {
       await page.evaluate((x) => pintar(x), m);
       await page.screenshot({ path: path.join(dir, `vista-${String(i + 1).padStart(2, '0')}.jpg`), type: 'jpeg', quality: 85 });
@@ -206,7 +209,7 @@ async function grabar(browser, reel, lang, op) {
   const esc = args.find(a => a.startsWith('--escena='));
   const op = { vista: args.includes('--vista'), sinVoz: args.includes('--sin-voz'), escena: esc ? +esc.split('=')[1] : null };
   const browser = await chromium.launch();
-  for (const lang of idiomas.length ? idiomas : ['en', 'es']) {
+  for (const lang of idiomas.length ? idiomas : Object.keys(reel.T)) {   // cada Reel puede ser de una sola cuenta
     const ini = Date.now();
     const { total, real } = await grabar(browser, reel, lang, op);
     console.log(`✓ ${reel.slug} ${lang}: ${total.toFixed(1)} s ${real ? 'con voz' : '(sin voz: duraciones estimadas)'} (${((Date.now() - ini) / 1000).toFixed(0)} s)`);

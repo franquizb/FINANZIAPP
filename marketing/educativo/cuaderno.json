@@ -5,38 +5,134 @@
       "nombre": "@finanziapp.es · España",
       "estilo": "Cercano y con chispa, voz Charon con acento peninsular. Desmontar precios, trucos del día a día y temas de aquí (nómina, renta, hipoteca, súper).",
       "proximos": [
-        { "fecha": "2026-11-09", "tipo": "Reel", "tema": "Por qué casi todo cuesta 9,99 (dígito izquierdo, coches de 79.900 millas)", "estado": "listo", "nota": "En Drive · responde a la pregunta de las palomitas" },
-        { "fecha": "2026-11-10", "tipo": "Reel", "tema": "«Antes 199 €, ahora 99 €»: por qué funciona aunque sepas que es inventado (anclaje)", "estado": "por hacer", "nota": "Responde a la pregunta abierta del 9,99" },
-        { "fecha": "2026-11-11", "tipo": "Reel", "tema": "Desmontar un precio del súper: ¿qué parte de lo que pagas llega al productor?", "estado": "por hacer", "nota": "Es el formato que más comentarios genera en #finanzaspersonales" },
-        { "fecha": "2026-11-12", "tipo": "Reel", "tema": "Tu nómina: por qué cobras menos de lo que dice tu contrato (bruto, neto, IRPF)", "estado": "por hacer", "nota": "Tema muy de aquí" },
-        { "fecha": "2026-11-13", "tipo": "Reel", "tema": "Logros hormiga: 5 victorias pequeñas de ahorro que sí cuentan", "estado": "por hacer", "nota": "Formato que funciona en #ahorro" }
+        {
+          "fecha": "2026-11-08",
+          "tipo": "Reel",
+          "tema": "La milésima de la gasolinera (1,499): efecto del dígito izquierdo",
+          "estado": "hecho",
+          "nota": "Publicado 8 nov · arranque lleno · 46 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "tipo": "Reel",
+          "tema": "«Antes 199 €, ahora 99 €»: por qué funciona aunque sepas que es inventado (anclaje)",
+          "estado": "por hacer",
+          "nota": "Responde a la pregunta abierta del 9,99"
+        },
+        {
+          "fecha": "2026-11-11",
+          "tipo": "Reel",
+          "tema": "Desmontar un precio del súper: ¿qué parte de lo que pagas llega al productor?",
+          "estado": "por hacer",
+          "nota": "Es el formato que más comentarios genera en #finanzaspersonales"
+        },
+        {
+          "fecha": "2026-11-12",
+          "tipo": "Reel",
+          "tema": "Tu nómina: por qué cobras menos de lo que dice tu contrato (bruto, neto, IRPF)",
+          "estado": "por hacer",
+          "nota": "Tema muy de aquí"
+        },
+        {
+          "fecha": "2026-11-13",
+          "tipo": "Reel",
+          "tema": "Logros hormiga: 5 victorias pequeñas de ahorro que sí cuentan",
+          "estado": "por hacer",
+          "nota": "Formato que funciona en #ahorro"
+        }
       ],
       "pendientes": [
-        { "tema": "Letras del Tesoro explicadas en 40 segundos", "porque": "Muy buscado en España y nadie lo explica fácil" },
-        { "tema": "Hipoteca fija o variable: la pregunta que nadie te hace", "porque": "Decisión grande y emocional: retiene" },
-        { "tema": "Alquilar no es tirar el dinero (o sí): las cuentas", "porque": "Opinión con debate: genera comentarios" },
-        { "tema": "Fondos indexados y el traspaso sin pagar impuestos", "porque": "Ventaja propia de España frente a los ETF" },
-        { "tema": "La declaración de la renta: lo que casi todo el mundo se deja", "porque": "Para marzo–junio, temporada de la renta" },
-        { "tema": "Pagas extra: ¿prorrateadas o en junio y diciembre?", "porque": "Duda muy común y muy de aquí" }
+        {
+          "tema": "Letras del Tesoro explicadas en 40 segundos",
+          "porque": "Muy buscado en España y nadie lo explica fácil"
+        },
+        {
+          "tema": "Hipoteca fija o variable: la pregunta que nadie te hace",
+          "porque": "Decisión grande y emocional: retiene"
+        },
+        {
+          "tema": "Alquilar no es tirar el dinero (o sí): las cuentas",
+          "porque": "Opinión con debate: genera comentarios"
+        },
+        {
+          "tema": "Fondos indexados y el traspaso sin pagar impuestos",
+          "porque": "Ventaja propia de España frente a los ETF"
+        },
+        {
+          "tema": "La declaración de la renta: lo que casi todo el mundo se deja",
+          "porque": "Para marzo–junio, temporada de la renta"
+        },
+        {
+          "tema": "Pagas extra: ¿prorrateadas o en junio y diciembre?",
+          "porque": "Duda muy común y muy de aquí"
+        }
       ]
     },
     "en": {
       "nombre": "@finanziapp · EE. UU.",
       "estilo": "Energético y cercano, voz Puck. Series de hitos, opinión con pregunta («agree or disagree?»), curiosidades y temas de allí (401(k), credit score, tarjetas).",
       "proximos": [
-        { "fecha": "2026-11-09", "tipo": "Reel", "tema": "Why everything costs $9.99 (left-digit effect, used cars)", "estado": "listo", "nota": "Rendered · answers the popcorn question" },
-        { "fecha": "2026-11-10", "tipo": "Reel", "tema": "What changes when you save your first $1,000", "estado": "por hacer", "nota": "Serie de hitos: el formato que más empuja en EE. UU." },
-        { "fecha": "2026-11-11", "tipo": "Reel", "tema": "Your 401(k) match is a 100% return. Are you leaving it on the table?", "estado": "por hacer", "nota": "Tema propio de EE. UU., dinero «gratis»" },
-        { "fecha": "2026-11-12", "tipo": "Reel", "tema": "Renting isn't throwing money away. Agree or disagree?", "estado": "por hacer", "nota": "Opinión con pregunta: comentarios" },
-        { "fecha": "2026-11-13", "tipo": "Reel", "tema": "What changes when you hit $10,000 saved", "estado": "por hacer", "nota": "Segundo de la serie de hitos" }
+        {
+          "fecha": "2026-11-08",
+          "tipo": "Reel",
+          "tema": "79,900 vs 80,000 miles: the left-digit effect",
+          "estado": "hecho",
+          "nota": "Published Nov 8 · full first frame · 39.5 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "tipo": "Reel",
+          "tema": "What changes when you save your first $1,000",
+          "estado": "por hacer",
+          "nota": "Serie de hitos: el formato que más empuja en EE. UU."
+        },
+        {
+          "fecha": "2026-11-11",
+          "tipo": "Reel",
+          "tema": "Your 401(k) match is a 100% return. Are you leaving it on the table?",
+          "estado": "por hacer",
+          "nota": "Tema propio de EE. UU., dinero «gratis»"
+        },
+        {
+          "fecha": "2026-11-12",
+          "tipo": "Reel",
+          "tema": "Renting isn't throwing money away. Agree or disagree?",
+          "estado": "por hacer",
+          "nota": "Opinión con pregunta: comentarios"
+        },
+        {
+          "fecha": "2026-11-13",
+          "tipo": "Reel",
+          "tema": "What changes when you hit $10,000 saved",
+          "estado": "por hacer",
+          "nota": "Segundo de la serie de hitos"
+        }
       ],
       "pendientes": [
-        { "tema": "Credit score myths that cost you money", "porque": "Muy buscado en EE. UU." },
-        { "tema": "Roth or traditional IRA in 40 seconds", "porque": "Duda constante; formato «explicado fácil»" },
-        { "tema": "Was $199, now $99: why it works (anchoring)", "porque": "Sigue la serie de trampas de precio" },
-        { "tema": "The weirdest things people collect as investments", "porque": "Curiosidad: el formato que más supera a su audiencia (×2,45)" },
-        { "tema": "What changes when you hit $100,000 (the Crossover point)", "porque": "Serie de hitos" },
-        { "tema": "Lifestyle creep: the money treadmill", "porque": "Ya hecho en largo; versión píldora con arranque fuerte" }
+        {
+          "tema": "Credit score myths that cost you money",
+          "porque": "Muy buscado en EE. UU."
+        },
+        {
+          "tema": "Roth or traditional IRA in 40 seconds",
+          "porque": "Duda constante; formato «explicado fácil»"
+        },
+        {
+          "tema": "Was $199, now $99: why it works (anchoring)",
+          "porque": "Sigue la serie de trampas de precio"
+        },
+        {
+          "tema": "The weirdest things people collect as investments",
+          "porque": "Curiosidad: el formato que más supera a su audiencia (×2,45)"
+        },
+        {
+          "tema": "What changes when you hit $100,000 (the Crossover point)",
+          "porque": "Serie de hitos"
+        },
+        {
+          "tema": "Lifestyle creep: the money treadmill",
+          "porque": "Ya hecho en largo; versión píldora con arranque fuerte"
+        }
       ]
     }
   }

@@ -200,3 +200,6 @@ Y la siguiente pregunta: ¿por qué funciona el «antes 199 €, ahora 99 €» 
 #finanzaspersonales #ahorro #dinero #educacionfinanciera #psicologia`
   }
 };
+
+// Piezas reutilizables (versiones por cuenta: es-gasolina-1499, en-millas-79900).
+module.exports.piezas = { coche, nube, ROJO_T };
