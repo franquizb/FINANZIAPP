@@ -43,6 +43,42 @@
           "estado": "por hacer",
           "nota": "Formato que funciona en #ahorro · Prueba: mañana entre semana (10:00 en la península)",
           "hora": "09:00"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "Se te rompe el móvil a los dos años y medio. ¿Mala suerte? No tan rápido.",
+          "estado": "listo",
+          "slug": "es-garantia-3-anos",
+          "nota": "Programado en Instagram y Facebook · 31.19 s"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Compras unas zapatillas por internet y no te convencen. ¿Te las quedas? Ni de broma.",
+          "estado": "listo",
+          "slug": "es-devolucion-14-dias",
+          "nota": "Programado en Instagram y Facebook · 28.69 s"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "El paquete grande sale más barato, ¿no? No siempre.",
+          "estado": "listo",
+          "slug": "es-precio-por-kilo",
+          "nota": "Programado en Instagram y Facebook · 28.9 s"
+        },
+        {
+          "fecha": "2026-11-09",
+          "hora": "20:30",
+          "tipo": "Reel",
+          "tema": "Un café de 1,50 cada día de trabajo. Parece nada. Hagamos la cuenta.",
+          "estado": "listo",
+          "slug": "es-cafe-hormiga",
+          "nota": "Programado en Instagram y Facebook · 29.35 s"
         }
       ],
       "pendientes": [
