@@ -87,19 +87,32 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
 
 # Estadísticas, cuaderno y publicación por API
 
-- **Web privada**: https://estadisticas.franquizb.com (sitio de Hosting
-  `finanziapp-estadisticas`, carpeta `estadisticas-web/`). Solo la ve el
-  propietario: inicia sesión y lee `estadisticas/instagram`, que las reglas de
-  Firestore solo dejan leer al propietario. Muestra el **cuaderno**
-  (`cuaderno.json`: próximas subidas y temas pendientes por cuenta, más las
-  preguntas abiertas de `reels-voz/REGISTRO.md`), las conclusiones
-  (`estadisticas-notas.json`), la retención de cada Reel, todas las
-  publicaciones y los referentes.
-- **Actualizar** (cuando lo pida el propietario; sin procesos en la nube):
-  `node estadisticas-instagram.cjs --json propias.json`,
-  `node referentes-instagram.cjs --json referentes.json` y
-  `node estadisticas-subir.cjs <…> <…> propias.json referentes.json`.
-  Para cambiar la página: `firebase deploy --only hosting` desde `estadisticas-web/`.
+- **Panel de redes**: https://franquizb.com (carpeta `estadisticas-web/`, sitio de
+  Hosting `franquizb-web` del proyecto `franquizb-web`; la página personal de antes
+  sigue en `/brian/`, y estadisticas.franquizb.com redirige a la raíz con
+  `estadisticas-web/redireccion/`). Solo entra la cuenta de Google del propietario.
+  Una pestaña por cuenta (España y EE. UU.) con Instagram y Facebook: KPIs con
+  variación, «qué toca ahora», gráficas, todas las publicaciones con su detalle
+  (curva de arranque y, en Facebook, curva de retención), comentarios con
+  responder y ocultar, el **cuaderno** editable, referentes editables y mis
+  conclusiones; y una pestaña de sistema (última lectura, errores, token).
+- **Datos**: la función `panelActualizar` (codebase `panel`,
+  `app-financiera/panel-funciones/`, europe-west1) lee Meta cada hora con el
+  secreto `META_TOKEN` y escribe en Firestore `estadisticas/{en,es,historial_en,
+  historial_es,estado,cache}`, que solo puede leer el propietario. `panelAccion`
+  hace las acciones del panel (actualizar, responder, ocultar, cuaderno,
+  referentes) y solo acepta al propietario.
+- **Lo que no sale de Meta** (qué vídeo es cada publicación, conclusiones,
+  preguntas abiertas): `node panel-config.cjs <…> <…>` lo sube a
+  `estadisticas/config`. Ejecutarlo después de publicar o de cambiar
+  `estadisticas-notas.json` o `REGISTRO.md`. `--cuaderno` sobrescribe el cuaderno
+  del panel con `cuaderno.json` (solo para empezar: después se edita en el panel).
+- **Desplegar** (solo cuando lo pida el propietario):
+  `firebase deploy --only functions:panel --project personal-franquizb` desde
+  `app-financiera/`, y `firebase deploy --only hosting --project franquizb-web`
+  desde `estadisticas-web/`.
+- En local, `estadisticas-instagram.cjs` y `referentes-instagram.cjs` siguen
+  sirviendo para consultas rápidas desde la terminal.
 - **Publicar** (solo si el propietario lo pide, vídeo a vídeo):
   `node publicar-instagram.cjs <…> <…> es|en reel <video.mp4> <texto.txt> [--portada portada.jpg]`
   hace un ensayo; con `--publicar` publica. Los archivos pasan un momento por el

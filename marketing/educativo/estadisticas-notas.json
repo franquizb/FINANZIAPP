@@ -1,22 +1,38 @@
-[
-  {
-    "titulo": "El arranque lleno funciona",
-    "texto": "Con el fotograma 0 completo (título, muñeco y escena), la retención pasa del 6–14 % de los Reels largos al 44 % en «La milésima de la gasolinera» (ES) y al 42 % en «79,900 miles» (EN). Se queda como norma."
-  },
-  {
-    "titulo": "España: el tema de aquí arrasa",
-    "texto": "«La milésima de la gasolinera» suma ~700 reproducciones, seis veces más que cualquier otro vídeo de @finanziapp.es, con 20 s vistos de media. Temas cotidianos de España (gasolina, súper, nómina) primero."
-  },
-  {
-    "titulo": "EE. UU.: retiene, pero sale de madrugada",
-    "texto": "«79,900 miles» retiene igual de bien (42 %) pero se publicó a las 3:42 de Nueva York y se quedó en ~150 reproducciones. Los de EE. UU. se publican por la tarde-noche de allí."
-  },
-  {
-    "titulo": "Serie de hitos",
-    "texto": "En cuentas grandes de EE. UU., «qué cambia cuando llegas a X» funciona una y otra vez (hasta 1,5 M de reproducciones). Para @finanziapp: primeros 1.000 $, 10.000 $, 100.000 $."
-  },
-  {
-    "titulo": "Pregunta al final del texto",
-    "texto": "Los vídeos que más comentarios tienen terminan el texto con una pregunta directa («agree or disagree?»). Lo mantenemos en todos los textos."
-  }
-]
+{
+  "es": [
+    {
+      "titulo": "El arranque lleno funciona",
+      "texto": "Con el fotograma 0 completo (título, muñeco y escena), la retención pasa del 6–14 % de los Reels largos al 44 % en «La milésima de la gasolinera». Se queda como norma."
+    },
+    {
+      "titulo": "El tema de aquí arrasa",
+      "texto": "«La milésima de la gasolinera» multiplica por diez a cualquier otro vídeo de @finanziapp.es, con 20 s vistos de media. Temas cotidianos de España (gasolina, súper, nómina, renta) primero."
+    },
+    {
+      "titulo": "Desmontar precios",
+      "texto": "En #finanzaspersonales lo que más comentarios genera es desmontar un precio («¿qué parte llega al productor?»). Encaja con la serie de trampas de precio."
+    },
+    {
+      "titulo": "Pregunta al final",
+      "texto": "Cada vídeo termina con una pregunta de otro tema y «síguenos para no perdértelo», y el texto con una pregunta directa para comentar."
+    }
+  ],
+  "en": [
+    {
+      "titulo": "Full first frame works",
+      "texto": "With frame 0 complete, «79,900 miles» holds 42 % of the video on average (the long Reels were at 21–33 %). It stays as the rule."
+    },
+    {
+      "titulo": "Publicar por la tarde de EE. UU.",
+      "texto": "«79,900 miles» retiene igual de bien que el mejor de España, pero salió a las 3:42 de Nueva York y se quedó en ~150 reproducciones. Los de EE. UU. van de 18:00 a 21:00 de allí."
+    },
+    {
+      "titulo": "Serie de hitos",
+      "texto": "En cuentas grandes de EE. UU., «qué cambia cuando llegas a X» funciona una y otra vez (hasta 1,5 M de reproducciones). Para @finanziapp: primeros 1.000 $, 10.000 $, 100.000 $."
+    },
+    {
+      "titulo": "Agree or disagree?",
+      "texto": "Los vídeos de opinión que terminan con «agree or disagree?» son los que más comentarios tienen en EE. UU. Lo usamos en los de opinión (alquilar, fondo de emergencia)."
+    }
+  ]
+}

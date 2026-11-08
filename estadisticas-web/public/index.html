@@ -4,186 +4,691 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Estadísticas · FinanziApp</title>
+<title>Panel de redes · FinanziApp</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f9f8f'/%3E%3Cpolyline points='19 8 12.5 14.5 9.5 11.5 5 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <style>
   :root {
-    --fondo: #0f172a; --superficie: #151f33; --borde: #24324d; --tinta: #f1f5f9; --texto: #cbd5e1; --suave: #94a3b8;
-    --acento: #5eead4; --teal: #0f9f8f; --ambar: #c27c0e; --violeta: #7c6cf0; --rojo: #e66767;
+    color-scheme: dark;
+    --fondo: #0f172a; --superficie: #151f33; --superficie-2: #1b2740; --borde: #24324d; --tinta: #f1f5f9; --texto: #cbd5e1; --suave: #94a3b8;
+    --acento: #5eead4; --teal: #0f9f8f; --rojo: #f08a8a; --verde: #6ee7b7;
+    /* Series de las gráficas (validadas para fondo oscuro: CVD y visión normal) */
+    --ig: #d95926; --fb: #3987e5; --serie: #199e70;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--fondo); color: var(--tinta); font: 15px/1.5 Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
-  .contenedor { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
-  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
-  .marca { display: flex; align-items: center; gap: 12px; }
-  .marca .ico { width: 38px; height: 38px; border-radius: 11px; background: var(--teal); display: grid; place-items: center; }
-  .marca h1 { font-size: 20px; font-weight: 750; letter-spacing: -.01em; }
-  .marca small { display: block; color: var(--suave); font-size: 13px; font-weight: 500; }
-  button, .boton { font: inherit; font-weight: 650; border-radius: 12px; border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta); padding: 10px 16px; cursor: pointer; }
-  button.prim { background: var(--teal); border-color: var(--teal); color: #fff; }
-  button:hover { filter: brightness(1.1); }
-  h2 { font-size: 18px; font-weight: 750; margin: 34px 0 12px; letter-spacing: -.01em; }
-  h2 small { color: var(--suave); font-weight: 500; font-size: 13px; margin-left: 8px; }
-  .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 18px; padding: 18px; }
-  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-  .kpi .eti { color: var(--suave); font-size: 13px; font-weight: 600; }
-  .kpi .val { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
-  .kpi .sub { color: var(--texto); font-size: 13px; }
-  .tabla-env { overflow-x: auto; border: 1px solid var(--borde); border-radius: 18px; background: var(--superficie); }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--borde); white-space: nowrap; }
-  th { color: var(--suave); font-weight: 650; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; position: sticky; top: 0; background: var(--superficie); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  td.tema { white-space: normal; min-width: 220px; max-width: 420px; color: var(--texto); }
-  tr:last-child td { border-bottom: none; }
+  .contenedor { max-width: 1240px; margin: 0 auto; padding: 20px 16px 70px; }
   a { color: var(--acento); text-decoration: none; } a:hover { text-decoration: underline; }
-  .chip { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
-  .chip.en { background: rgba(124,108,240,.18); color: #b3a9ff; } .chip.es { background: rgba(15,159,143,.2); color: var(--acento); }
-  .ret { display: flex; align-items: center; gap: 8px; min-width: 150px; }
-  .ret .pista { flex: 1; height: 10px; border-radius: 6px; background: rgba(148,163,184,.15); overflow: hidden; }
-  .ret .bar { height: 100%; border-radius: 6px; }
-  .rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; }
-  .notas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
-  .nota h3 { font-size: 15px; font-weight: 750; margin-bottom: 6px; } .nota p { color: var(--texto); font-size: 14px; }
-  .lista { list-style: none; } .lista li { padding: 9px 0; border-bottom: 1px solid var(--borde); color: var(--texto); font-size: 14px; }
-  .lista li:last-child { border-bottom: none; } .lista .met { color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; }
-  #acceso { max-width: 420px; margin: 12vh auto 0; text-align: center; }
-  #acceso h1 { font-size: 24px; margin: 18px 0 6px; } #acceso p { color: var(--suave); margin-bottom: 22px; }
-  #acceso form { display: grid; gap: 10px; margin-top: 18px; text-align: left; }
-  input { font: inherit; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--borde); background: #0b1222; color: var(--tinta); }
-  .error { color: var(--rojo); font-size: 14px; margin-top: 12px; min-height: 20px; }
+  button, .boton { font: inherit; font-weight: 650; font-size: 14px; border-radius: 11px; border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta); padding: 8px 14px; cursor: pointer; white-space: nowrap; }
+  button:hover:not(:disabled) { background: var(--superficie-2); }
+  button:disabled { opacity: .5; cursor: default; }
+  button.prim { background: var(--teal); border-color: var(--teal); color: #fff; } button.prim:hover:not(:disabled) { filter: brightness(1.1); background: var(--teal); }
+  button.mini { padding: 4px 10px; font-size: 13px; border-radius: 9px; }
+  button.peligro { color: var(--rojo); }
+  input, select, textarea { font: inherit; font-size: 14px; padding: 8px 11px; border-radius: 10px; border: 1px solid var(--borde); background: #0b1222; color: var(--tinta); min-width: 0; }
+  textarea { width: 100%; resize: vertical; min-height: 60px; }
   .oculto { display: none !important; }
-  .pie { color: var(--suave); font-size: 12px; margin-top: 30px; }
+  .vacio { color: var(--suave); font-size: 14px; padding: 6px 0; }
+
+  /* Cabecera y pestañas */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .marca { display: flex; align-items: center; gap: 12px; }
+  .marca .ico { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #2dd4bf, #14b8a6); display: grid; place-items: center; flex: none; }
+  .marca h1 { font-size: 20px; font-weight: 800; letter-spacing: -.015em; }
+  .marca small { display: block; color: var(--suave); font-size: 13px; font-weight: 500; }
+  .acciones-cab { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pildora { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 4px 11px; font-size: 12.5px; font-weight: 700; border: 1px solid var(--borde); color: var(--texto); background: var(--superficie); }
+  .pildora .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); }
+  .pildora.mal .punto { background: var(--rojo); }
+  .pestanas { display: flex; gap: 6px; border-bottom: 1px solid var(--borde); margin-bottom: 20px; overflow-x: auto; }
+  .pestana { background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 10px 14px 9px; color: var(--suave); font-size: 15px; }
+  .pestana:hover:not(:disabled) { background: none; color: var(--tinta); }
+  .pestana.activa { color: var(--tinta); border-bottom-color: var(--acento); }
+  .pestana .cnt { display: inline-block; min-width: 20px; padding: 0 6px; border-radius: 999px; background: #8a2c2c; color: #fff; font-size: 11.5px; margin-left: 6px; }
+
+  /* Bloques */
+  h2 { font-size: 17px; font-weight: 800; margin: 30px 0 10px; letter-spacing: -.01em; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  h2 small { color: var(--suave); font-weight: 500; font-size: 13px; }
+  h2 .der { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 16px; padding: 16px; }
+  .rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 12px; }
+  @media (max-width: 520px) { .rejilla, .rejilla-2 { grid-template-columns: 1fr; } }
+  .perfil { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+  .perfil .tarjeta { flex: 1 1 260px; display: flex; gap: 12px; align-items: center; padding: 12px 14px; }
+  .perfil .plat { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; font-size: 13px; color: #fff; flex: none; }
+  .perfil b { font-size: 15px; } .perfil .met { color: var(--suave); font-size: 13px; }
+  .filtros { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin: 14px 0 12px; }
+  .seg { display: inline-flex; border: 1px solid var(--borde); border-radius: 11px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; padding: 7px 12px; background: var(--superficie); color: var(--suave); }
+  .seg button.activa { background: var(--superficie-2); color: var(--tinta); }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+  .kpi { padding: 13px 14px; }
+  .kpi .eti { color: var(--suave); font-size: 12.5px; font-weight: 650; display: flex; align-items: center; gap: 6px; }
+  .kpi .val { font-size: 27px; font-weight: 800; letter-spacing: -.02em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi .sub { color: var(--suave); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .delta.sube { color: var(--verde); } .delta.baja { color: var(--rojo); }
+  .marca-plat { display: inline-block; width: 9px; height: 9px; border-radius: 3px; }
+  .chip { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 11.5px; font-weight: 750; letter-spacing: .02em; }
+  .chip.ig { background: rgba(217,89,38,.18); color: #f3a07c; } .chip.fb { background: rgba(57,135,229,.2); color: #9cc3f3; }
+  .chip.neutro { background: rgba(148,163,184,.15); color: var(--texto); }
+
+  /* Qué toca ahora */
+  .toca { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+  .aviso { display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; }
+  .aviso .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; flex: none; font-size: 16px; background: var(--superficie-2); }
+  .aviso b { display: block; font-size: 14.5px; } .aviso p { color: var(--texto); font-size: 13.5px; margin-top: 2px; }
+  .aviso .acc { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* Gráficas */
+  .graf { position: relative; }
+  .graf svg { display: block; width: 100%; overflow: visible; }
+  .graf-tit { font-size: 14px; font-weight: 750; margin-bottom: 2px; }
+  .graf-sub { color: var(--suave); font-size: 12.5px; margin-bottom: 8px; }
+  .leyenda { display: flex; gap: 14px; flex-wrap: wrap; color: var(--texto); font-size: 12.5px; margin-bottom: 6px; }
+  .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .barras .fila { display: grid; grid-template-columns: minmax(110px, 210px) 1fr 52px; gap: 10px; align-items: center; padding: 5px 0; cursor: pointer; }
+  .barras .fila:hover .nombre { color: var(--tinta); }
+  .barras .nombre { color: var(--texto); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .barras .pista { position: relative; height: 14px; border-radius: 4px; background: rgba(148,163,184,.12); }
+  .barras .bar { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 0 4px 4px 0; }
+  .barras .obj { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed rgba(241,245,249,.45); }
+  .barras .valor { text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; font-size: 13.5px; }
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: #0b1222; border: 1px solid var(--borde); border-radius: 10px; padding: 8px 10px; font-size: 12.5px; color: var(--texto); box-shadow: 0 8px 24px rgba(0,0,0,.4); max-width: 280px; }
+  #tip b { color: var(--tinta); }
+
+  /* Tablas */
+  .tabla-env { overflow-x: auto; border: 1px solid var(--borde); border-radius: 16px; background: var(--superficie); }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 9px 11px; text-align: left; border-bottom: 1px solid var(--borde); white-space: nowrap; }
+  th { color: var(--suave); font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; background: var(--superficie); user-select: none; }
+  th.ord { cursor: pointer; } th.ord:hover { color: var(--tinta); } th.activa { color: var(--acento); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.tema { white-space: normal; min-width: 220px; max-width: 380px; color: var(--texto); }
+  tbody tr { cursor: pointer; } tbody tr:hover td { background: rgba(148,163,184,.05); }
+  tr:last-child td { border-bottom: none; }
+  .ret { display: flex; align-items: center; gap: 8px; min-width: 130px; }
+  .ret .pista { flex: 1; height: 8px; border-radius: 4px; background: rgba(148,163,184,.14); overflow: hidden; }
+  .ret .bar { height: 100%; border-radius: 0 4px 4px 0; background: var(--serie); }
+
+  /* Comentarios */
+  .comentario { padding: 13px 14px; display: grid; gap: 6px; }
+  .comentario .cab { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--suave); }
+  .comentario .cab b { color: var(--tinta); font-size: 14px; }
+  .comentario .txt { font-size: 14.5px; }
+  .comentario .resp { border-left: 2px solid var(--borde); padding-left: 10px; font-size: 13.5px; color: var(--texto); }
+  .comentario .resp.nuestra { border-left-color: var(--acento); }
+  .comentario.oculto-c { opacity: .55; }
+  .rapidas { display: flex; gap: 6px; flex-wrap: wrap; } .rapidas button { white-space: normal; text-align: left; }
+  .rejilla > *, .rejilla-2 > *, .toca > * { min-width: 0; }
+
+  /* Cuaderno */
+  .cu-rejilla { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 12px; align-items: start; }
+  @media (max-width: 900px) { .cu-rejilla { grid-template-columns: 1fr; } }
+  .cuaderno table td { white-space: normal; vertical-align: top; }
+  .cuaderno input, .cuaderno select { width: 100%; }
+  .cuaderno td.estrecho { width: 140px; }
+  .cuaderno tbody tr { cursor: default; } .cuaderno tbody tr:hover td { background: none; }
+  .pend { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; padding: 9px 0; border-bottom: 1px solid var(--borde); }
+  .pend:last-child { border-bottom: none; }
+  .pend .met { color: var(--suave); font-size: 12.5px; }
   .estado { display: inline-block; border-radius: 8px; padding: 1px 8px; font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .05em; }
   .estado.hecho { background: rgba(94,234,212,.15); color: var(--acento); } .estado.listo { background: rgba(194,124,14,.2); color: #f0b45a; } .estado.por { background: rgba(148,163,184,.15); color: var(--suave); }
-  .cuenta-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .cuenta-cab b { font-size: 16px; } .estilo { color: var(--suave); font-size: 13px; margin-bottom: 10px; }
-  .sub-t { font-size: 12px; font-weight: 750; color: var(--suave); text-transform: uppercase; letter-spacing: .08em; margin: 14px 0 4px; }
+
+  /* Referentes */
+  .chips-ed { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chips-ed .chip { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; padding: 3px 4px 3px 10px; }
+  .chips-ed .chip button { border: none; background: none; padding: 0 4px; color: inherit; font-size: 14px; line-height: 1; }
+  .lista { list-style: none; } .lista li { padding: 8px 0; border-bottom: 1px solid var(--borde); color: var(--texto); font-size: 13.5px; }
+  .lista li:last-child { border-bottom: none; } .lista .met { color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .notas { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+  .nota h3 { font-size: 14.5px; font-weight: 750; margin-bottom: 4px; } .nota p { color: var(--texto); font-size: 13.5px; }
+
+  /* Detalle */
+  #velo { position: fixed; inset: 0; background: rgba(2,6,23,.6); z-index: 30; }
+  #detalle { position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100%); background: var(--fondo); border-left: 1px solid var(--borde); z-index: 40; overflow-y: auto; padding: 20px 18px 40px; }
+  #detalle h3 { font-size: 18px; font-weight: 800; letter-spacing: -.01em; margin-bottom: 4px; padding-right: 40px; }
+  #detalle .cerrar { position: absolute; top: 14px; right: 14px; }
+  .mets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .mets div { background: var(--superficie); border: 1px solid var(--borde); border-radius: 12px; padding: 9px 10px; }
+  .mets small { display: block; color: var(--suave); font-size: 11.5px; font-weight: 650; } .mets b { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .sub-t { font-size: 11.5px; font-weight: 750; color: var(--suave); text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 6px; }
+
+  /* Acceso */
+  #acceso { max-width: 400px; margin: 14vh auto 0; text-align: center; }
+  #acceso h1 { font-size: 24px; margin: 18px 0 6px; letter-spacing: -.015em; } #acceso p { color: var(--suave); margin-bottom: 22px; }
+  .error { color: var(--rojo); font-size: 14px; margin-top: 12px; min-height: 20px; }
+  .pie { color: var(--suave); font-size: 12px; margin-top: 34px; display: flex; gap: 14px; flex-wrap: wrap; justify-content: space-between; }
+  #aviso-global { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60; background: #0b1222; border: 1px solid var(--borde); border-radius: 12px; padding: 10px 16px; font-size: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.45); max-width: calc(100% - 32px); }
+  .girando { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: gira .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes gira { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
 <div class="contenedor">
   <section id="acceso">
     <div class="marca" style="justify-content:center"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
-    <h1>Estadísticas de FinanziApp</h1>
-    <p>Página privada. Entra con la cuenta de propietario.</p>
-    <button class="prim" id="google" style="width:100%">Entrar con Google</button>
-    <form id="formulario">
-      <input type="email" id="correo" placeholder="Correo" autocomplete="username" required>
-      <input type="password" id="clave" placeholder="Contraseña" autocomplete="current-password" required>
-      <button type="submit">Entrar con correo</button>
-    </form>
+    <h1>Panel de redes</h1>
+    <p>Página privada de FinanziApp. Solo puede entrar la cuenta de Google del propietario.</p>
+    <button class="prim" id="google" style="width:100%;padding:12px">Entrar con Google</button>
     <div class="error" id="error"></div>
+    <p style="margin-top:40px;font-size:13px"><a href="/brian/">Brian · página personal</a></p>
   </section>
 
   <main id="panel" class="oculto">
     <header>
       <div class="marca"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
-        <div><h1>Estadísticas de Instagram</h1><small id="actualizado"></small></div></div>
-      <button id="salir">Salir</button>
+        <div><h1>Panel de redes</h1><small id="actualizado">—</small></div></div>
+      <div class="acciones-cab">
+        <span class="pildora" id="estado-pildora"><span class="punto"></span><span id="estado-txt">—</span></span>
+        <button class="prim" id="actualizar">Actualizar ahora</button>
+        <button id="salir">Salir</button>
+      </div>
     </header>
-
-    <div class="kpis" id="kpis"></div>
-
-    <h2>Cuaderno <small>calendario de subida y temas pendientes, por cuenta</small></h2>
-    <p id="cuaderno-nota" style="color:var(--suave);font-size:13px;margin:-6px 0 12px"></p>
-    <div class="rejilla" id="cuaderno"></div>
-    <div class="tarjeta" id="abiertas" style="margin-top:12px"></div>
-
-    <h2>Conclusiones <small>lo que hacemos con estos datos</small></h2>
-    <div class="notas" id="notas"></div>
-
-    <h2>Retención de los Reels <small>tiempo medio visto ÷ duración del vídeo</small></h2>
-    <div class="tarjeta" id="retencion"></div>
-
-    <h2>Todas las publicaciones</h2>
-    <div class="tabla-env"><table id="propias"></table></div>
-
-    <h2>Qué funciona fuera <small>Reels de cuentas grandes que más superan a su propia audiencia (vistas ÷ seguidores)</small></h2>
-    <div class="tabla-env"><table id="referentes"></table></div>
-
-    <h2>Lo más popular en hashtags <small>me gusta y comentarios (Instagram no da las vistas de otros)</small></h2>
-    <div class="rejilla" id="hashtags"></div>
-
-    <p class="pie">Datos de la API Graph de Instagram. Se actualizan cuando se pide a Claude («actualiza las estadísticas»).</p>
+    <nav class="pestanas" id="pestanas"></nav>
+    <div id="vista"></div>
+    <div class="pie"><span>Datos de la API Graph de Meta (Instagram y Facebook). Se actualizan solos cada hora; «Actualizar ahora» los lee al momento.</span><a href="/brian/">Página personal</a></div>
   </main>
 </div>
+<div id="tip" class="oculto"></div>
+<div id="velo" class="oculto"></div>
+<aside id="detalle" class="oculto"></aside>
+<div id="aviso-global" class="oculto"></div>
 
 <script type="module">
-  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const num = (n) => n == null ? '—' : Number(n).toLocaleString('es-ES');
-  const enlace = (u) => /^https:\/\/(www\.)?instagram\.com\//.test(u || '') ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">ver</a>` : '';
-  const chip = (cuenta) => cuenta.includes('ES') ? '<span class="chip es">ES</span>' : '<span class="chip en">EN</span>';
-  const $ = (id) => document.getElementById(id);
+  const PROPIETARIO = 'lK7Y5eUYmSRAiXs2M1J7NyKPSQw2';
+  const CUENTAS = {
+    en: { corto: 'EE. UU.', nombre: '@finanziapp', zona: 'America/New_York', zonaTxt: 'hora de Nueva York', franja: [18, 21], franjaTxt: 'de 18:00 a 21:00 de Nueva York (de 0:00 a 3:00 en España)', moneda: '$' },
+    es: { corto: 'España', nombre: '@finanziapp.es', zona: 'Europe/Madrid', zonaTxt: 'hora de España', franja: [13, 15], franjaTxt: 'de 13:00 a 15:00 o de 20:00 a 22:00 de España', moneda: '€' }
+  };
+  const RAPIDAS = {
+    en: ['Thanks! 🙌', 'Great question! We’ll cover it in a video soon.', 'Glad it helped 💸', 'Agree 100%!'],
+    es: ['¡Gracias! 🙌', '¡Buena pregunta! Lo explicamos en un vídeo pronto.', 'Nos alegra que te sirva 💸', '¡Totalmente de acuerdo!']
+  };
+  const S = { cuenta: 'es', periodo: 'd7', datos: {}, hist: {}, estado: null, config: {}, cuaderno: null, borrador: null, sucio: false,
+    filtro: { plat: 'todas', tipo: 'todos', q: '', orden: 'fecha', dir: -1 }, com: 'pendientes', demo: false, accion: null };
+  let llamar = null;   // función de acciones (Cloud Functions)
 
-  function pintar(d) {
-    $('actualizado').textContent = 'Actualizado: ' + new Date(d.actualizado).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
-    const filas = d.propias || [];
-    // KPIs por cuenta.
-    const cuentas = [...new Set(filas.map(f => f.cuenta))];
-    $('kpis').innerHTML = cuentas.map(c => {
-      const fs = filas.filter(f => f.cuenta === c), reels = fs.filter(f => f.retencion != null);
-      const mejor = reels.sort((a, b) => b.retencion - a.retencion)[0];
-      return `<div class="tarjeta kpi"><div class="eti">${chip(c)} ${esc(c.split(' ')[0])}</div><div class="val">${num(fs.reduce((a, f) => a + (f.views || 0), 0))}</div>
-        <div class="sub">vistas en ${fs.length} publicaciones · ${num(fs[0]?.seguidores)} seguidores</div>
-        <div class="sub">${mejor ? `Mejor retención: <b>${mejor.retencion} %</b> (${esc(mejor.tema || 'sin texto')})` : ''}</div></div>`;
-    }).join('');
-    // Cuaderno: calendario y temas pendientes por cuenta (España primero).
-    const cu = d.cuaderno || { cuentas: {} };
-    $('cuaderno-nota').textContent = cu.nota || '';
-    const est = (e) => `<span class="estado ${e === 'hecho' ? 'hecho' : e === 'listo' ? 'listo' : 'por'}">${esc(e)}</span>`;
-    const fecha = (f) => new Date(f + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
-    $('cuaderno').innerHTML = ['es', 'en'].filter(k => cu.cuentas[k]).map(k => { const c = cu.cuentas[k]; return `<div class="tarjeta">
-      <div class="cuenta-cab"><b>${esc(c.nombre)}</b><span class="chip ${k}">${k.toUpperCase()}</span></div><div class="estilo">${esc(c.estilo)}</div>
-      <div class="sub-t">Próximas subidas</div><ul class="lista">${(c.proximos || []).map(x => `<li><div style="display:flex;justify-content:space-between;gap:8px"><span><b style="color:var(--tinta)">${esc(fecha(x.fecha))}</b> · ${esc(x.tipo)}</span>${est(x.estado)}</div>${esc(x.tema)}<div class="met">${esc(x.nota || '')}</div></li>`).join('')}</ul>
-      <div class="sub-t">Temas pendientes</div><ul class="lista">${(c.pendientes || []).map(x => `<li>${esc(x.tema)}<div class="met">${esc(x.porque || '')}</div></li>`).join('')}</ul></div>`; }).join('');
-    $('abiertas').innerHTML = `<div class="sub-t" style="margin-top:0">Preguntas abiertas en vídeos (hay que responderlas)</div><ul class="lista">${(d.abiertas || []).map(a => `<li>${esc(a)}</li>`).join('') || '<li>Ninguna</li>'}</ul>`;
-    // Conclusiones.
-    $('notas').innerHTML = (d.notas || []).map(n => `<div class="tarjeta nota"><h3>${esc(n.titulo)}</h3><p>${esc(n.texto)}</p></div>`).join('');
-    // Retención.
-    const reels = filas.filter(f => f.retencion != null).sort((a, b) => b.retencion - a.retencion);
-    $('retencion').innerHTML = reels.map(f => `<div class="ret" style="margin:8px 0">${chip(f.cuenta)}<span style="width:190px;color:var(--texto);font-size:14px;overflow:hidden;text-overflow:ellipsis">${esc(f.tema || 'sin texto')}</span>
-      <div class="pista"><div class="bar" style="width:${Math.min(100, f.retencion)}%;background:${f.cuenta.includes('ES') ? 'var(--teal)' : 'var(--violeta)'}"></div></div>
-      <b style="width:52px;text-align:right">${f.retencion} %</b><span style="width:120px;color:var(--suave);font-size:13px;text-align:right">${f.visto_medio_s} s de ${f.duracion_s} s</span></div>`).join('') || '<p style="color:var(--suave)">Aún no hay Reels con datos de retención.</p>';
-    // Publicaciones.
-    const cols = [['fecha', 'Fecha'], ['cuenta', ''], ['tipo', 'Tipo'], ['tema', 'Tema'], ['views', 'Vistas', 1], ['reach', 'Alcance', 1], ['retencion', 'Retención'], ['saved', 'Guard.', 1], ['shares', 'Compart.', 1], ['likes', 'Me gusta', 1], ['comments', 'Coment.', 1], ['enlace', '']];
-    const orden = [...filas].sort((a, b) => b.fecha.localeCompare(a.fecha));
-    $('propias').innerHTML = `<thead><tr>${cols.map(([, t, n]) => `<th class="${n ? 'num' : ''}">${t}</th>`).join('')}</tr></thead><tbody>${orden.map(f => `<tr>
-      <td>${esc(f.fecha)}</td><td>${chip(f.cuenta)}</td><td>${esc(f.tipo)}</td><td class="tema">${esc(f.tema || '—')}</td>
-      <td class="num">${num(f.views)}</td><td class="num">${num(f.reach)}</td>
-      <td>${f.retencion != null ? `<div class="ret"><div class="pista"><div class="bar" style="width:${Math.min(100, f.retencion)}%;background:var(--acento)"></div></div><span>${f.retencion} %</span></div>` : '<span style="color:var(--suave)">—</span>'}</td>
-      <td class="num">${num(f.saved)}</td><td class="num">${num(f.shares)}</td><td class="num">${num(f.likes)}</td><td class="num">${num(f.comments)}</td><td>${enlace(f.enlace)}</td></tr>`).join('')}</tbody>`;
-    // Referentes.
-    const r = d.referentes || {};
-    $('referentes').innerHTML = `<thead><tr><th class="num">×</th><th>Cuenta</th><th>Gancho (primera línea del texto)</th><th class="num">Vistas</th><th class="num">Seguidores</th><th class="num">Coment.</th><th></th></tr></thead><tbody>${(r.reels || []).slice(0, 25).map(x => `<tr>
-      <td class="num"><b>×${x.multiplicador}</b></td><td>@${esc(x.usuario)}</td><td class="tema">${esc(x.gancho)}</td><td class="num">${num(x.vistas)}</td><td class="num">${num(x.seguidores)}</td><td class="num">${num(x.comentarios)}</td><td>${enlace(x.enlace)}</td></tr>`).join('')}</tbody>`;
-    const tags = Object.entries(r.hashtags || {}).sort(([, a], [, b]) => (a.idioma === 'es' ? -1 : 1) - (b.idioma === 'es' ? -1 : 1));
-    $('hashtags').innerHTML = tags.map(([tag, h]) => `<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b>#${esc(tag)}</b><span class="chip ${h.idioma}">${h.idioma.toUpperCase()}</span></div>
-      <ul class="lista">${h.publicaciones.slice(0, 8).map(p => `<li>${esc(p.gancho || '(sin texto)')}<div class="met">${num(p.megusta)} me gusta · ${num(p.comentarios)} comentarios · ${esc(p.fecha)} ${enlace(p.enlace)}</div></li>`).join('')}</ul></div>`).join('');
+  // ——— utilidades ———
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n, d = 0) => n == null || n === '' || isNaN(n) ? '—' : Number(n).toLocaleString('es-ES', { maximumFractionDigits: d });
+  const pct = (n) => n == null ? '—' : num(n) + ' %';
+  const urlSegura = (u) => /^https:\/\/([a-z0-9-]+\.)*(instagram\.com|facebook\.com|fb\.watch)\//i.test(u || '') ? u : null;
+  const enlace = (u, t = 'abrir ↗') => urlSegura(u) ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">${t}</a>` : '';
+  const chipPlat = (p) => p === 'fb' ? '<span class="chip fb">FB</span>' : '<span class="chip ig">IG</span>';
+  const fechaZona = (iso, zona, op = { dateStyle: 'medium', timeStyle: 'short' }) => iso ? new Intl.DateTimeFormat('es-ES', { timeZone: zona, ...op }).format(new Date(iso)) : '—';
+  const horaZona = (iso, zona) => +new Intl.DateTimeFormat('en-GB', { timeZone: zona, hour: 'numeric', hourCycle: 'h23' }).format(new Date(iso));
+  const hoyZona = (zona) => new Intl.DateTimeFormat('en-CA', { timeZone: zona }).format(new Date());
+  const hace = (iso) => { const m = (Date.now() - Date.parse(iso)) / 60000; return m < 60 ? `hace ${Math.max(1, Math.round(m))} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} días`; };
+  const nombreTema = (p) => p.tema ? p.tema.replace(/^(es|en)-/, '').replace(/-/g, ' ') : (p.texto || '(sin texto)');
+  function aviso(t, ms = 4000) { const a = $('aviso-global'); a.innerHTML = t; a.classList.remove('oculto'); clearTimeout(aviso.t); if (ms) aviso.t = setTimeout(() => a.classList.add('oculto'), ms); }
+  const tip = $('tip');
+  function mostrarTip(html, ev) { tip.innerHTML = html; tip.classList.remove('oculto'); const w = tip.offsetWidth, h = tip.offsetHeight; let x = ev.clientX + 14, y = ev.clientY + 14;
+    if (x + w > innerWidth - 8) x = ev.clientX - w - 14; if (y + h > innerHeight - 8) y = ev.clientY - h - 14; tip.style.left = x + 'px'; tip.style.top = y + 'px'; }
+  const ocultarTip = () => tip.classList.add('oculto');
+
+  // ——— gráficas (SVG propio) ———
+  function maxBonito(v) { if (v <= 0) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))), f = v / e; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * e; }
+  // series: [{ nombre, color, puntos: [[x, y], …] }]; x numérico (fecha en ms u horas).
+  function grafLineas(el, series, o = {}) {
+    series = series.filter(s => s.puntos.length);
+    const todos = series.flatMap(s => s.puntos);
+    if (!todos.length || [...new Set(todos.map(p => p[0]))].length < 2) { el.innerHTML = `<p class="vacio">${o.vacio || 'Aún no hay datos suficientes.'}</p>`; return; }
+    const W = Math.max(280, el.clientWidth || 520), H = o.alto || 210, m = { l: 46, r: series.length > 1 ? 70 : 16, t: 10, b: 26 };
+    const xs = [...new Set(todos.map(p => p[0]))].sort((a, b) => a - b), x0 = xs[0], x1 = xs[xs.length - 1];
+    const ymax = o.ymax || maxBonito(Math.max(...todos.map(p => p[1]), 4));
+    const X = (t) => m.l + (W - m.l - m.r) * ((t - x0) / (x1 - x0 || 1)), Y = (v) => H - m.b - (H - m.t - m.b) * (v / ymax);
+    const fx = o.fx || ((t) => new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })), fy = o.fy || ((v) => num(v));
+    let g = '';
+    for (let i = 0; i <= 4; i++) { const v = ymax * i / 4, y = Y(v); g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y}" y2="${y}" stroke="rgba(148,163,184,${i ? .12 : .3})"/><text x="${m.l - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#94a3b8">${esc(fy(v))}</text>`; }
+    const nx = Math.min(5, xs.length);
+    for (let i = 0; i < nx; i++) { const t = xs[Math.round(i * (xs.length - 1) / Math.max(1, nx - 1))]; g += `<text x="${X(t)}" y="${H - 6}" text-anchor="${i === 0 ? 'start' : i === nx - 1 ? 'end' : 'middle'}" font-size="11" fill="#94a3b8">${esc(fx(t))}</text>`; }
+    for (const s of series) {
+      const p = [...s.puntos].sort((a, b) => a[0] - b[0]);
+      if (o.area && series.length === 1) g += `<path d="M${X(p[0][0])},${Y(0)} ${p.map(q => `L${X(q[0])},${Y(q[1])}`).join(' ')} L${X(p[p.length - 1][0])},${Y(0)}Z" fill="${s.color}" opacity=".14"/>`;
+      g += `<path d="${p.map((q, i) => `${i ? 'L' : 'M'}${X(q[0])},${Y(q[1])}`).join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+      const u = p[p.length - 1];
+      g += `<circle cx="${X(u[0])}" cy="${Y(u[1])}" r="4" fill="${s.color}" stroke="#151f33" stroke-width="2"/>`;
+      if (series.length > 1) g += `<text x="${X(u[0]) + 8}" y="${Y(u[1]) + 4}" font-size="11.5" font-weight="700" fill="#cbd5e1">${esc(s.nombre)}</text>`;
+    }
+    g += `<line class="cruz" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="rgba(241,245,249,.35)" opacity="0"/><g class="marcas"></g>`;
+    g += `<rect class="caza" x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent"/>`;
+    el.innerHTML = (series.length > 1 ? `<div class="leyenda">${series.map(s => `<span><i class="marca-plat" style="background:${s.color}"></i>${esc(s.nombre)}</span>`).join('')}</div>` : '') +
+      `<svg viewBox="0 0 ${W} ${H}" height="${H}" font-family="Inter,sans-serif">${g}</svg>`;
+    const svg = el.querySelector('svg'), cruz = svg.querySelector('.cruz'), marcas = svg.querySelector('.marcas');
+    svg.querySelector('.caza').addEventListener('mousemove', (ev) => {
+      const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+      const t = xs.reduce((a, b) => Math.abs(X(b) - px) < Math.abs(X(a) - px) ? b : a);
+      cruz.setAttribute('x1', X(t)); cruz.setAttribute('x2', X(t)); cruz.setAttribute('opacity', 1);
+      const filas = series.map(s => [s, s.puntos.find(q => q[0] === t)]).filter(([, q]) => q);
+      marcas.innerHTML = filas.map(([s, q]) => `<circle cx="${X(t)}" cy="${Y(q[1])}" r="4.5" fill="${s.color}" stroke="#151f33" stroke-width="2"/>`).join('');
+      mostrarTip(`<b>${esc(o.fxLargo ? o.fxLargo(t) : fx(t))}</b>${filas.map(([s, q]) => `<div><i class="marca-plat" style="background:${s.color}"></i> ${esc(s.nombre)}: <b>${esc(fy(q[1]))}</b></div>`).join('')}`, ev);
+    });
+    svg.querySelector('.caza').addEventListener('mouseleave', () => { cruz.setAttribute('opacity', 0); marcas.innerHTML = ''; ocultarTip(); });
+  }
+  const serieFecha = (arr) => (arr || []).filter(v => typeof v.valor === 'number').map(v => [Date.parse(v.fecha + 'T12:00:00Z'), v.valor]);
+
+  // ——— datos derivados ———
+  const D = () => S.datos[S.cuenta] || {};
+  const publicaciones = (d = D()) => [...((d.ig && d.ig.publicaciones) || []), ...((d.fb && d.fb.publicaciones) || [])];
+  const comentarios = (d = D()) => [...((d.ig && d.ig.comentarios) || []), ...((d.fb && d.fb.comentarios) || [])].filter(c => !c.nuestro);
+  const pendientes = (d = D()) => comentarios(d).filter(c => !c.respondido && !c.oculto);
+  const sumaSerie = (arr, dias) => { if (!arr || !arr.length) return null; const corte = new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10); return arr.filter(v => v.fecha >= corte && typeof v.valor === 'number').reduce((a, v) => a + v.valor, 0); };
+
+  // ——— pintado ———
+  function pintar() {
+    const e = S.estado;
+    $('actualizado').textContent = e ? `Actualizado ${hace(e.ultima)} · ${fechaZona(e.ultima, 'Europe/Madrid', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Aún sin datos de la actualización automática';
+    $('estado-pildora').classList.toggle('mal', !!(e && !e.ok));
+    $('estado-txt').textContent = !e ? 'sin datos' : e.ok ? 'todo bien' : `${e.errores.length} aviso${e.errores.length > 1 ? 's' : ''}`;
+    $('pestanas').innerHTML = ['es', 'en'].map(k => { const n = S.datos[k] ? pendientes(S.datos[k]).length : 0;
+      return `<button class="pestana ${S.cuenta === k ? 'activa' : ''}" data-cuenta="${k}">${k === 'es' ? '🇪🇸' : '🇺🇸'} ${CUENTAS[k].corto} · ${CUENTAS[k].nombre}${n ? `<span class="cnt">${n}</span>` : ''}</button>`; }).join('') +
+      `<button class="pestana ${S.cuenta === 'sistema' ? 'activa' : ''}" data-cuenta="sistema">⚙️ Sistema</button>`;
+    $('pestanas').querySelectorAll('[data-cuenta]').forEach(b => b.onclick = () => { S.cuenta = b.dataset.cuenta; S.borrador = null; S.sucio = false; try { localStorage.setItem('panel-cuenta', S.cuenta); } catch {} pintar(); });
+    if (S.cuenta === 'sistema') pintarSistema(); else pintarCuenta();
   }
 
-  // Modo de prueba local (solo en localhost): datos de un archivo, sin iniciar sesión.
+  function pintarCuenta() {
+    const k = S.cuenta, c = CUENTAS[k], d = D(), ig = d.ig, fb = d.fb;
+    if (!ig && !fb) { $('vista').innerHTML = '<div class="tarjeta"><p class="vacio">Aún no hay datos de esta cuenta. Pulsa «Actualizar ahora».</p></div>'; return; }
+    const r = ig ? ig.resumen[S.periodo] || {} : {}, prev = S.periodo === 'd7' && ig ? ig.resumen.d7prev || {} : null;
+    const dias = { d1: 1, d7: 7, d28: 28 }[S.periodo];
+    const delta = (k2) => { if (!prev || prev[k2] == null || r[k2] == null) return ''; if (!prev[k2]) return r[k2] ? '<span class="delta sube">▲ nuevo</span>' : '';
+      const p = Math.round(100 * (r[k2] - prev[k2]) / prev[k2]); return `<span class="delta ${p >= 0 ? 'sube' : 'baja'}">${p >= 0 ? '▲' : '▼'} ${Math.abs(p)} %</span> vs 7 días antes`; };
+    const pubs = publicaciones(d), reelsFb = pubs.filter(p => p.plataforma === 'fb');
+    const kpi = (plat, eti, val, sub) => `<div class="tarjeta kpi"><div class="eti">${chipPlat(plat)} ${eti}</div><div class="val">${val}</div><div class="sub">${sub || '&nbsp;'}</div></div>`;
+    const igSeg = ig ? ig.perfil.followers_count : null, fbSeg = fb ? (fb.perfil.followers_count ?? fb.perfil.fan_count) : null;
+    const reelsIg = pubs.filter(p => p.plataforma === 'ig' && p.retencion != null);
+    const retMedia = reelsIg.length ? Math.round(reelsIg.slice(0, 5).reduce((a, p) => a + p.retencion, 0) / Math.min(5, reelsIg.length)) : null;
+
+    $('vista').innerHTML = `
+      <div class="perfil">
+        ${ig ? `<div class="tarjeta"><span class="plat" style="background:var(--ig)">IG</span><div><b>@${esc(ig.perfil.username)}</b>${d.ig_antiguo ? ' <span class="chip neutro">lectura anterior</span>' : ''}
+          <div class="met">${num(igSeg)} seguidores · ${num(ig.perfil.media_count)} publicaciones · cuota ${ig.cuota ? `${ig.cuota.usada}/${ig.cuota.total}` : '—'} en 24 h</div></div>
+          <a class="boton" style="margin-left:auto" href="https://www.instagram.com/${esc(ig.perfil.username)}/" target="_blank" rel="noopener noreferrer">Abrir</a></div>` : ''}
+        ${fb ? `<div class="tarjeta"><span class="plat" style="background:var(--fb)">FB</span><div><b>${esc((fb.perfil.name || '').trim())}</b>${d.fb_antiguo ? ' <span class="chip neutro">lectura anterior</span>' : ''}
+          <div class="met">${num(fbSeg)} seguidores · ${reelsFb.length} Reels · ${(fb.programados || []).length} programados</div></div>
+          ${urlSegura(fb.perfil.link) ? `<a class="boton" style="margin-left:auto" href="${esc(fb.perfil.link)}" target="_blank" rel="noopener noreferrer">Abrir</a>` : ''}</div>` : ''}
+      </div>
+
+      <div class="filtros"><span style="color:var(--suave);font-size:13px">Periodo</span>
+        <div class="seg" id="periodo">${[['d1', '24 h'], ['d7', '7 días'], ['d28', '28 días']].map(([v, t]) => `<button data-v="${v}" class="${S.periodo === v ? 'activa' : ''}">${t}</button>`).join('')}</div>
+        <span style="color:var(--suave);font-size:12.5px">Horas en ${c.zonaTxt}</span></div>
+
+      <div class="kpis">
+        ${kpi('ig', 'Reproducciones', num(r.views), delta('views'))}
+        ${kpi('ig', 'Cuentas alcanzadas', num(r.reach), delta('reach'))}
+        ${kpi('ig', 'Interacciones', num(r.total_interactions), `${num(r.likes)} me gusta · ${num(r.comments)} coment.`)}
+        ${kpi('ig', 'Guardados y compartidos', num((r.saves || 0) + (r.shares || 0)), `${num(r.saves)} guardados · ${num(r.shares)} compartidos`)}
+        ${kpi('ig', 'Visitas al perfil', num(r.profile_views), `${num(r.website_clicks)} toques en la web · ${delta('profile_views') || '&nbsp;'}`)}
+        ${kpi('ig', 'Retención media', pct(retMedia), 'últimos 5 Reels · objetivo 40 %')}
+        ${fb ? kpi('fb', 'Visualizaciones', num(sumaSerie(fb.serie.page_media_view, dias)), `${num(sumaSerie(fb.serie.page_total_media_view_unique, dias))} personas`) : ''}
+        ${fb ? kpi('fb', 'Reproducciones de Reels', num(reelsFb.reduce((a, p) => a + (p.vistas || 0), 0)), `${reelsFb.length} Reels publicados (total)`) : ''}
+        ${fb ? kpi('fb', 'Seguidores nuevos', num(sumaSerie(fb.serie.page_daily_follows_unique, dias)), `${num(sumaSerie(fb.serie.page_post_engagements, dias))} interacciones`) : ''}
+      </div>
+
+      <h2>Qué toca ahora <small>lo saco de los datos de esta cuenta</small></h2>
+      <div class="toca" id="toca"></div>
+
+      <h2>Evolución</h2>
+      <div class="rejilla-2">
+        <div class="tarjeta"><div class="graf-tit">Personas alcanzadas por día</div><div class="graf-sub">Instagram: cuentas alcanzadas · Facebook: personas que vieron algo de la página</div><div class="graf" id="g-alcance"></div></div>
+        <div class="tarjeta"><div class="graf-tit">Reproducciones acumuladas</div><div class="graf-sub">Suma de todas las publicaciones, una foto al día (se va llenando)</div><div class="graf" id="g-vistas"></div></div>
+        <div class="tarjeta"><div class="graf-tit">Seguidores</div><div class="graf-sub">Una foto al día de cada red</div><div class="graf" id="g-seguidores"></div></div>
+        <div class="tarjeta"><div class="graf-tit">Retención por Reel</div><div class="graf-sub">Tiempo medio visto ÷ duración · la línea discontinua es el objetivo (40 %)</div><div id="g-retencion"></div></div>
+      </div>
+
+      <h2>Publicaciones <small id="pubs-cuenta"></small></h2>
+      <div class="filtros">
+        <div class="seg" id="f-plat">${[['todas', 'Todas'], ['ig', 'Instagram'], ['fb', 'Facebook']].map(([v, t]) => `<button data-v="${v}" class="${S.filtro.plat === v ? 'activa' : ''}">${t}</button>`).join('')}</div>
+        <div class="seg" id="f-tipo">${[['todos', 'Todo'], ['Reel', 'Reels'], ['Carrusel', 'Carruseles']].map(([v, t]) => `<button data-v="${v}" class="${S.filtro.tipo === v ? 'activa' : ''}">${t}</button>`).join('')}</div>
+        <input id="f-q" placeholder="Buscar tema o texto…" value="${esc(S.filtro.q)}" style="flex:1;min-width:180px;max-width:320px">
+        <button class="mini" id="f-csv">Exportar CSV</button>
+      </div>
+      <div class="tabla-env"><table id="t-pubs"></table></div>
+
+      <h2>Comentarios <small>responde u oculta sin salir del panel</small>
+        <span class="der"><span class="seg" id="f-com">${[['pendientes', 'Sin responder'], ['todos', 'Todos'], ['ocultos', 'Ocultos']].map(([v, t]) => `<button data-v="${v}" class="${S.com === v ? 'activa' : ''}">${t}</button>`).join('')}</span></span></h2>
+      <div class="rejilla" id="comentarios"></div>
+
+      <h2>Cuaderno <small>calendario de subida y temas pendientes de esta cuenta · editable</small>
+        <span class="der"><button class="mini" id="cu-anadir">+ Añadir subida</button><button class="mini prim" id="cu-guardar" disabled>Guardar cambios</button></span></h2>
+      <div class="cuaderno" id="cuaderno"></div>
+
+      <h2>Qué funciona fuera <small>cuentas grandes y hashtags que vigilo para esta cuenta</small>
+        <span class="der"><button class="mini" id="ref-leer">Leer referentes ahora</button></span></h2>
+      <div id="referentes"></div>
+
+      <h2>Mis conclusiones <small>lo que hago con estos datos en esta cuenta</small></h2>
+      <div class="notas" id="notas"></div>`;
+
+    $('periodo').querySelectorAll('button').forEach(b => b.onclick = () => { S.periodo = b.dataset.v; pintar(); });
+    pintarToca(); pintarGraficas(); pintarTabla(); pintarComentarios(); pintarCuaderno(); pintarReferentes();
+    const notas = ((S.config.notas || {})[k]) || [];
+    $('notas').innerHTML = notas.map(n => `<div class="tarjeta nota"><h3>${esc(n.titulo)}</h3><p>${esc(n.texto)}</p></div>`).join('') || '<p class="vacio">Sin conclusiones todavía.</p>';
+    $('f-plat').querySelectorAll('button').forEach(b => b.onclick = () => { S.filtro.plat = b.dataset.v; $('f-plat').querySelectorAll('button').forEach(x => x.classList.toggle('activa', x === b)); pintarTabla(); });
+    $('f-tipo').querySelectorAll('button').forEach(b => b.onclick = () => { S.filtro.tipo = b.dataset.v; $('f-tipo').querySelectorAll('button').forEach(x => x.classList.toggle('activa', x === b)); pintarTabla(); });
+    $('f-q').oninput = (ev) => { S.filtro.q = ev.target.value; pintarTabla(); };
+    $('f-csv').onclick = exportarCsv;
+    $('f-com').querySelectorAll('button').forEach(b => b.onclick = () => { S.com = b.dataset.v; $('f-com').querySelectorAll('button').forEach(x => x.classList.toggle('activa', x === b)); pintarComentarios(); });
+    $('ref-leer').onclick = () => accion({ accion: 'actualizar', referentes: true }, 'Leyendo referentes e Instagram/Facebook… (un minuto)');
+  }
+
+  // Avisos accionables.
+  function pintarToca() {
+    const k = S.cuenta, c = CUENTAS[k], d = D(), avisos = [], pubs = publicaciones(d);
+    const add = (ic, tit, txt, acc = '') => avisos.push(`<div class="tarjeta aviso"><span class="ic">${ic}</span><div><b>${tit}</b><p>${txt}</p>${acc ? `<div class="acc">${acc}</div>` : ''}</div></div>`);
+    const pend = pendientes(d);
+    if (pend.length) add('💬', `${pend.length} comentario${pend.length > 1 ? 's' : ''} sin responder`, 'Responder en la primera hora ayuda a que el algoritmo lo enseñe a más gente.', '<button class="mini" data-ir="comentarios">Ir a comentarios</button>');
+    // Cuaderno: hoy y lo siguiente.
+    const cu = ((S.cuaderno || {}).cuentas || {})[k], hoy = hoyZona(c.zona);
+    if (cu) {
+      const prox = (cu.proximos || []).filter(x => x.estado !== 'hecho' && x.fecha >= hoy).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      const deHoy = prox.filter(x => x.fecha === hoy);
+      if (deHoy.length) add('📅', 'Hoy toca publicar', deHoy.map(x => `${esc(x.tema)} <span class="estado ${x.estado === 'listo' ? 'listo' : 'por'}">${esc(x.estado)}</span>`).join('<br>') + `<br><span style="color:var(--suave)">Mejor franja: ${c.franjaTxt}.</span>`);
+      else if (prox[0]) add('📅', `Lo siguiente: ${new Date(prox[0].fecha + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}`, esc(prox[0].tema));
+      const atrasados = (cu.proximos || []).filter(x => x.estado !== 'hecho' && x.fecha < hoy);
+      if (atrasados.length) add('⏰', `${atrasados.length} subida${atrasados.length > 1 ? 's' : ''} del calendario sin hacer`, atrasados.map(x => esc(x.tema)).slice(0, 3).join('<br>'), '<button class="mini" data-ir="cuaderno">Revisar el cuaderno</button>');
+    }
+    // Días sin publicar.
+    for (const [pl, nom] of [['ig', 'Instagram'], ['fb', 'Facebook']]) {
+      const ult = pubs.filter(p => p.plataforma === pl).map(p => p.fecha).sort().pop();
+      if (ult) { const dd = Math.floor((Date.now() - Date.parse(ult)) / 864e5); if (dd >= 2) add('⏳', `${dd} días sin publicar en ${nom}`, 'La constancia pesa: mejor un vídeo corto hoy que uno perfecto la semana que viene.'); }
+    }
+    // Reels de Instagram que aún no están en Facebook.
+    const temasFb = new Set(pubs.filter(p => p.plataforma === 'fb').map(p => p.tema).concat(((d.fb || {}).programados || []).map(p => p.tema)).filter(Boolean));
+    const faltan = pubs.filter(p => p.plataforma === 'ig' && p.tipo === 'Reel' && p.tema && !temasFb.has(p.tema) && (p.retencion || 0) >= 25);
+    if (d.fb && faltan.length) add('📘', `${faltan.length} Reel${faltan.length > 1 ? 's' : ''} que funcionan y aún no están en Facebook`, faltan.slice(0, 4).map(p => `${esc(nombreTema(p))} (${p.retencion} %)`).join('<br>') + '<br><span style="color:var(--suave)">Pídeme que los publique o programe.</span>');
+    // Mejor y peor arranque.
+    const reels = pubs.filter(p => p.retencion != null && (p.vistas || 0) >= 20).sort((a, b) => b.retencion - a.retencion);
+    if (reels.length >= 2) {
+      add('🏆', `Mejor retención: ${esc(nombreTema(reels[0]))}`, `${reels[0].retencion} % del vídeo visto de media (${num(reels[0].visto_medio_s, 1)} s de ${num(reels[0].duracion_s, 1)} s) y ${num(reels[0].vistas)} reproducciones. Repite su arranque y su formato.`, `<button class="mini" data-pub="${esc(reels[0].id)}">Ver detalle</button>`);
+      const flojo = reels.filter(p => p.retencion < 20).pop();
+      if (flojo) add('⚠️', `Retiene poco: ${esc(nombreTema(flojo))}`, `${flojo.retencion} %: la gente se va en los primeros segundos. No repetir ese arranque.`, `<button class="mini" data-pub="${esc(flojo.id)}">Ver detalle</button>`);
+    }
+    // Hora de la última publicación.
+    const ultIg = pubs.filter(p => p.plataforma === 'ig').sort((a, b) => b.fecha.localeCompare(a.fecha))[0];
+    if (ultIg) { const h = horaZona(ultIg.fecha, c.zona); if (h < c.franja[0] - 1 || h > c.franja[1] + 1) add('🕖', 'Publica en la mejor franja', `La última publicación salió a las ${h}:00 (${c.zonaTxt}). Mejor ${c.franjaTxt}.`); }
+    // Preguntas abiertas.
+    const ab = ((S.config.abiertas || {})[k]) || [];
+    if (ab.length) add('❓', 'Pregunta abierta en un vídeo', ab.map(esc).join('<br>') + '<br><span style="color:var(--suave)">Hay que responderla en una píldora: quien siguió la cuenta por ella la espera.</span>');
+    // Programados.
+    for (const p of ((d.fb || {}).programados || [])) add('🗓️', 'Programado en Facebook', `${esc(nombreTema(p))} · ${fechaZona(p.cuando, c.zona)} (${c.zonaTxt})`);
+    if (d.ig && d.ig.cuota && d.ig.cuota.usada >= d.ig.cuota.total * 0.8) add('🚦', 'Cuota de publicación casi agotada', `${d.ig.cuota.usada} de ${d.ig.cuota.total} publicaciones por API en 24 h.`);
+    $('toca').innerHTML = avisos.join('') || '<div class="tarjeta aviso"><span class="ic">✅</span><div><b>Todo al día</b><p>No hay nada pendiente en esta cuenta.</p></div></div>';
+    $('toca').querySelectorAll('[data-ir]').forEach(b => b.onclick = () => $(b.dataset.ir).scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    $('toca').querySelectorAll('[data-pub]').forEach(b => b.onclick = () => abrirDetalle(b.dataset.pub));
+  }
+
+  function pintarGraficas() {
+    const d = D(), h = S.hist[S.cuenta] || { dias: {} }, dias = Object.keys(h.dias || {}).sort();
+    const ig = 'var(--ig)', fb = 'var(--fb)', col = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    grafLineas($('g-alcance'), [
+      { nombre: 'Instagram', color: col('--ig'), puntos: serieFecha(d.ig && d.ig.serie && d.ig.serie.reach) },
+      { nombre: 'Facebook', color: col('--fb'), puntos: serieFecha(d.fb && d.fb.serie && d.fb.serie.page_total_media_view_unique) }
+    ], { vacio: 'Meta aún no ha devuelto la serie diaria.' });
+    const pt = (k2) => dias.filter(x => h.dias[x][k2] != null).map(x => [Date.parse(x + 'T12:00:00Z'), h.dias[x][k2]]);
+    grafLineas($('g-vistas'), [{ nombre: 'Instagram', color: col('--ig'), puntos: pt('ig_vistas') }, { nombre: 'Facebook', color: col('--fb'), puntos: pt('fb_vistas') }],
+      { vacio: `Guardo una foto al día: la gráfica aparece a partir del segundo día (hoy: ${num((h.dias[dias[dias.length - 1]] || {}).ig_vistas)} en Instagram).` });
+    grafLineas($('g-seguidores'), [{ nombre: 'Instagram', color: col('--ig'), puntos: pt('ig_seguidores') }, { nombre: 'Facebook', color: col('--fb'), puntos: pt('fb_seguidores') }],
+      { vacio: 'Se va llenando con una foto al día (a partir del segundo día).' });
+    // Retención: barras horizontales por Reel (color = red).
+    const reels = publicaciones(d).filter(p => p.retencion != null).sort((a, b) => b.retencion - a.retencion);
+    const g = $('g-retencion');
+    if (!reels.length) { g.innerHTML = '<p class="vacio">Aún no hay Reels con datos de retención.</p>'; return; }
+    const redes = [...new Set(reels.map(p => p.plataforma))];
+    g.innerHTML = (redes.length > 1 ? `<div class="leyenda">${redes.map(p => `<span><i class="marca-plat" style="background:var(--${p})"></i>${p === 'ig' ? 'Instagram' : 'Facebook'}</span>`).join('')}</div>` : '') +
+      `<div class="barras">${reels.map(p => `<div class="fila" data-pub="${esc(p.id)}"><span class="nombre">${chipPlat(p.plataforma)} ${esc(nombreTema(p))}</span>
+        <div class="pista"><div class="bar" style="width:${Math.min(100, p.retencion)}%;background:var(--${p.plataforma})"></div><div class="obj" style="left:40%"></div></div><span class="valor">${p.retencion} %</span></div>`).join('')}</div>`;
+    g.querySelectorAll('.fila').forEach(f => {
+      const p = reels.find(x => x.id === f.dataset.pub);
+      f.onmousemove = (ev) => mostrarTip(`<b>${esc(nombreTema(p))}</b><div>${p.plataforma === 'ig' ? 'Instagram' : 'Facebook'} · ${fechaZona(p.fecha, CUENTAS[S.cuenta].zona, { dateStyle: 'medium' })}</div><div>Visto de media: <b>${num(p.visto_medio_s, 1)} s</b> de ${num(p.duracion_s, 1)} s</div><div>Reproducciones: <b>${num(p.vistas)}</b></div>`, ev);
+      f.onmouseleave = ocultarTip; f.onclick = () => abrirDetalle(p.id);
+    });
+  }
+
+  const COLS = [['fecha', 'Fecha'], ['plataforma', 'Red'], ['tipo', 'Tipo'], ['tema', 'Tema'], ['vistas', 'Reprod.', 1], ['alcance', 'Alcance', 1], ['retencion', 'Retención'],
+    ['visto_medio_s', 'Visto medio', 1], ['guardados', 'Guard.', 1], ['compartidos', 'Compart.', 1], ['megusta', 'Me gusta', 1], ['comentarios', 'Coment.', 1], ['seguidores', 'Seguid.', 1], ['enlace', '']];
+  function filasFiltradas() {
+    const f = S.filtro, q = f.q.trim().toLowerCase();
+    return publicaciones().filter(p => (f.plat === 'todas' || p.plataforma === f.plat) && (f.tipo === 'todos' || p.tipo === f.tipo) && (!q || (nombreTema(p) + ' ' + (p.texto || '')).toLowerCase().includes(q)))
+      .sort((a, b) => { const x = a[f.orden], y = b[f.orden]; if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y))) * f.dir; });
+  }
+  function pintarTabla() {
+    const c = CUENTAS[S.cuenta], filas = filasFiltradas(), f = S.filtro;
+    $('pubs-cuenta').textContent = `${filas.length} de ${publicaciones().length} · pulsa una fila para ver el detalle`;
+    $('t-pubs').innerHTML = `<thead><tr>${COLS.map(([k2, t, n]) => `<th class="${n ? 'num' : ''} ${k2 !== 'enlace' ? 'ord' : ''} ${f.orden === k2 ? 'activa' : ''}" data-k="${k2}">${t}${f.orden === k2 ? (f.dir < 0 ? ' ↓' : ' ↑') : ''}</th>`).join('')}</tr></thead>
+      <tbody>${filas.map(p => `<tr data-pub="${esc(p.id)}"><td>${fechaZona(p.fecha, c.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td>${chipPlat(p.plataforma)}</td><td>${esc(p.tipo)}</td>
+        <td class="tema">${esc(nombreTema(p))}</td><td class="num"><b>${num(p.vistas)}</b></td><td class="num">${num(p.alcance)}</td>
+        <td>${p.retencion != null ? `<div class="ret"><div class="pista"><div class="bar" style="width:${Math.min(100, p.retencion)}%"></div></div><span>${p.retencion} %</span></div>` : '<span style="color:var(--suave)">—</span>'}</td>
+        <td class="num">${p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—'}</td><td class="num">${num(p.guardados)}</td><td class="num">${num(p.compartidos)}</td><td class="num">${num(p.megusta)}</td>
+        <td class="num">${num(p.comentarios)}</td><td class="num">${num(p.seguidores)}</td><td>${enlace(p.enlace)}</td></tr>`).join('') || `<tr><td colspan="${COLS.length}" class="vacio">Nada con estos filtros.</td></tr>`}</tbody>`;
+    $('t-pubs').querySelectorAll('th.ord').forEach(th => th.onclick = () => { const k2 = th.dataset.k; if (f.orden === k2) f.dir = -f.dir; else { f.orden = k2; f.dir = ['tema', 'tipo', 'plataforma'].includes(k2) ? 1 : -1; } pintarTabla(); });
+    $('t-pubs').querySelectorAll('tbody tr[data-pub]').forEach(tr => tr.onclick = (ev) => { if (ev.target.closest('a')) return; abrirDetalle(tr.dataset.pub); });
+  }
+  function exportarCsv() {
+    const cols = COLS.filter(c => c[0] !== 'enlace').concat([['enlace', 'enlace'], ['duracion_s', 'duracion_s'], ['tiempo_total_h', 'tiempo_total_h']]);
+    const csv = [cols.map(c => c[1] || c[0]).join(';'), ...filasFiltradas().map(p => cols.map(([k2]) => { const v = k2 === 'tema' ? nombreTema(p) : p[k2]; return v == null ? '' : `"${String(v).replace(/"/g, '""')}"`; }).join(';'))].join('\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `publicaciones-${S.cuenta}-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  function tarjetaComentario(x, rapidas = true) {
+    const c = CUENTAS[S.cuenta];
+    return `<div class="tarjeta comentario ${x.oculto ? 'oculto-c' : ''}" data-id="${esc(x.id)}" data-plat="${x.plataforma}">
+      <div class="cab">${chipPlat(x.plataforma)}<b>${esc(x.autor)}</b><span>${fechaZona(x.fecha, c.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+        ${x.respondido ? '<span class="chip neutro">respondido</span>' : ''}${x.oculto ? '<span class="chip neutro">oculto</span>' : ''}<span style="margin-left:auto">${enlace(x.publicacion.enlace, 'en: ' + esc(String(x.publicacion.tema || '').replace(/^(es|en)-/, '').replace(/-/g, ' ').slice(0, 40)))}</span></div>
+      <div class="txt">${esc(x.texto)}</div>
+      ${(x.respuestas || []).map(r => `<div class="resp ${r.nuestra ? 'nuestra' : ''}"><b>${esc(r.autor)}</b> ${esc(r.texto)}</div>`).join('')}
+      ${rapidas ? `<div class="rapidas">${RAPIDAS[S.cuenta].map(t => `<button class="mini" data-rapida="${esc(t)}">${esc(t)}</button>`).join('')}</div>` : ''}
+      <textarea placeholder="Escribe una respuesta (${S.cuenta === 'en' ? 'en inglés' : 'en español'})…" maxlength="2000"></textarea>
+      <div style="display:flex;gap:6px;justify-content:flex-end"><button class="mini" data-ocultar="${x.oculto ? '0' : '1'}">${x.oculto ? 'Mostrar' : 'Ocultar'}</button><button class="mini prim" data-responder>Responder</button></div></div>`;
+  }
+  function conectarComentarios(cont) {
+    cont.querySelectorAll('.comentario').forEach(el => {
+      const id = el.dataset.id, plat = el.dataset.plat, ta = el.querySelector('textarea');
+      el.querySelectorAll('[data-rapida]').forEach(b => b.onclick = () => { ta.value = b.dataset.rapida; ta.focus(); });
+      el.querySelector('[data-responder]').onclick = () => { const t = ta.value.trim(); if (!t) { ta.focus(); return; } accion({ accion: 'responder', cuenta: S.cuenta, plataforma: plat, id, texto: t }, 'Enviando respuesta…', 'Respuesta publicada ✓'); };
+      el.querySelector('[data-ocultar]').onclick = (ev) => accion({ accion: 'ocultar', cuenta: S.cuenta, plataforma: plat, id, ocultar: ev.target.dataset.ocultar === '1' }, 'Cambiando…', ev.target.dataset.ocultar === '1' ? 'Comentario oculto ✓' : 'Comentario visible ✓');
+    });
+  }
+  function pintarComentarios() {
+    const todos = comentarios().sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const lista = S.com === 'pendientes' ? todos.filter(c => !c.respondido && !c.oculto) : S.com === 'ocultos' ? todos.filter(c => c.oculto) : todos;
+    $('comentarios').innerHTML = lista.map(x => tarjetaComentario(x)).join('') ||
+      `<div class="tarjeta"><p class="vacio">${S.com === 'pendientes' ? `No hay comentarios sin responder${todos.length ? ` (${todos.length} en total)` : ''}. Cuando llegue alguno aparecerá aquí y en la pestaña.` : 'Nada por aquí.'}</p></div>`;
+    conectarComentarios($('comentarios'));
+  }
+
+  // ——— cuaderno editable ———
+  function pintarCuaderno() {
+    const k = S.cuenta;
+    if (!S.cuaderno) { $('cuaderno').innerHTML = '<div class="tarjeta"><p class="vacio">El cuaderno aún no está en el panel.</p></div>'; return; }
+    if (!S.borrador) S.borrador = JSON.parse(JSON.stringify(S.cuaderno));
+    const cu = S.borrador.cuentas[k] = S.borrador.cuentas[k] || { proximos: [], pendientes: [] };
+    const hoy = hoyZona(CUENTAS[k].zona);
+    cu.proximos.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    const sel = (v, ops, cl) => `<select class="${cl}">${ops.map(o => `<option ${o === v ? 'selected' : ''}>${o}</option>`).join('')}</select>`;
+    $('cuaderno').innerHTML = `<div class="tarjeta" style="margin-bottom:10px"><div style="color:var(--suave);font-size:12.5px;margin-bottom:4px">Estilo de la cuenta</div><textarea class="cu-estilo" rows="2">${esc(cu.estilo || '')}</textarea></div>
+      <div class="cu-rejilla">
+      <div class="tabla-env"><table><thead><tr><th>Fecha</th><th>Tema</th><th>Estado</th><th></th></tr></thead><tbody>
+        ${cu.proximos.map((x, i) => `<tr data-i="${i}" style="${x.fecha < hoy && x.estado !== 'hecho' ? 'box-shadow:inset 3px 0 0 #f0b45a' : ''}">
+          <td class="estrecho"><input type="date" class="cu-fecha" value="${esc(x.fecha)}">${sel(x.tipo || 'Reel', ['Reel', 'Carrusel', 'Historia', 'Post'], 'cu-tipo')}</td>
+          <td><input class="cu-tema" value="${esc(x.tema)}" placeholder="Tema"><input class="cu-nota" value="${esc(x.nota || '')}" placeholder="Nota" style="margin-top:6px;color:var(--suave)"></td>
+          <td class="estrecho">${sel(x.estado || 'por hacer', ['por hacer', 'listo', 'hecho'], 'cu-estado')}</td>
+          <td><button class="mini peligro" data-borrar="${i}" title="Quitar">✕</button></td></tr>`).join('') || '<tr><td colspan="4" class="vacio">Sin subidas en el calendario.</td></tr>'}
+      </tbody></table></div>
+      <div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px"><b>Temas pendientes</b><button class="mini" id="cu-pend-anadir">+ Tema</button></div>
+        ${cu.pendientes.map((x, i) => `<div class="pend" data-i="${i}"><div><input class="pe-tema" value="${esc(x.tema)}" style="width:100%"><input class="pe-porque" value="${esc(x.porque || '')}" placeholder="Por qué" style="width:100%;margin-top:6px;color:var(--suave)"></div>
+          <div style="display:grid;gap:6px"><button class="mini" data-mover="${i}" title="Pasarlo al calendario">→ Calendario</button><button class="mini peligro" data-quitar="${i}">✕</button></div></div>`).join('') || '<p class="vacio">No hay temas pendientes.</p>'}
+      </div></div>`;
+    const marcar = () => { S.sucio = true; $('cu-guardar').disabled = false; };
+    const cont = $('cuaderno');
+    cont.querySelector('.cu-estilo').oninput = (ev) => { cu.estilo = ev.target.value; marcar(); };
+    cont.querySelectorAll('tbody tr[data-i]').forEach(tr => { const x = cu.proximos[+tr.dataset.i];
+      tr.querySelector('.cu-fecha').onchange = (ev) => { x.fecha = ev.target.value; marcar(); };
+      tr.querySelector('.cu-tipo').onchange = (ev) => { x.tipo = ev.target.value; marcar(); };
+      tr.querySelector('.cu-tema').oninput = (ev) => { x.tema = ev.target.value; marcar(); };
+      tr.querySelector('.cu-nota').oninput = (ev) => { x.nota = ev.target.value; marcar(); };
+      tr.querySelector('.cu-estado').onchange = (ev) => { x.estado = ev.target.value; marcar(); }; });
+    cont.querySelectorAll('[data-borrar]').forEach(b => b.onclick = () => { cu.proximos.splice(+b.dataset.borrar, 1); marcar(); pintarCuaderno(); });
+    cont.querySelectorAll('.pend[data-i]').forEach(el => { const x = cu.pendientes[+el.dataset.i];
+      el.querySelector('.pe-tema').oninput = (ev) => { x.tema = ev.target.value; marcar(); };
+      el.querySelector('.pe-porque').oninput = (ev) => { x.porque = ev.target.value; marcar(); }; });
+    cont.querySelectorAll('[data-quitar]').forEach(b => b.onclick = () => { cu.pendientes.splice(+b.dataset.quitar, 1); marcar(); pintarCuaderno(); });
+    const siguienteLibre = () => { const usadas = new Set(cu.proximos.map(x => x.fecha)); let f = new Date(hoy + 'T12:00:00Z'); while (usadas.has(f.toISOString().slice(0, 10))) f = new Date(+f + 864e5); return f.toISOString().slice(0, 10); };
+    cont.querySelectorAll('[data-mover]').forEach(b => b.onclick = () => { const [x] = cu.pendientes.splice(+b.dataset.mover, 1); cu.proximos.push({ fecha: siguienteLibre(), tipo: 'Reel', tema: x.tema, estado: 'por hacer', nota: x.porque || '' }); marcar(); pintarCuaderno(); });
+    $('cu-pend-anadir').onclick = () => { cu.pendientes.unshift({ tema: '', porque: '' }); marcar(); pintarCuaderno(); cont.querySelector('.pe-tema').focus(); };
+    $('cu-anadir').onclick = () => { cu.proximos.push({ fecha: siguienteLibre(), tipo: 'Reel', tema: '', estado: 'por hacer', nota: '' }); marcar(); pintarCuaderno(); };
+    $('cu-guardar').disabled = !S.sucio;
+    $('cu-guardar').onclick = async () => {
+      for (const kk of Object.keys(S.borrador.cuentas)) { const c2 = S.borrador.cuentas[kk]; c2.proximos = c2.proximos.filter(x => x.tema.trim() && x.fecha); c2.pendientes = c2.pendientes.filter(x => x.tema.trim()); }
+      const ok = await accion({ accion: 'cuaderno', cuaderno: S.borrador }, 'Guardando el cuaderno…', 'Cuaderno guardado ✓');
+      if (ok) { S.cuaderno = JSON.parse(JSON.stringify(S.borrador)); S.sucio = false; pintarCuaderno(); }
+    };
+  }
+
+  // ——— referentes ———
+  function pintarReferentes() {
+    const k = S.cuenta, ref = D().referentes;
+    if (!S.refConf || S.refConf.cuenta !== k) S.refConf = { cuenta: k, sucio: false, ...JSON.parse(JSON.stringify(((S.config.referentes || {})[k]) || { cuentas: [], hashtags: [] })) };
+    const conf = S.refConf;
+    const editor = (campo, pref, ph) => `<div class="chips-ed" data-campo="${campo}">${conf[campo].map((u, i) => `<span class="chip neutro">${pref}${esc(u)}<button data-x="${i}" title="Quitar">×</button></span>`).join('')}
+      <input placeholder="${ph}" style="width:170px"><button class="mini" data-anadir>Añadir</button></div>`;
+    const cuentas = ((ref && ref.cuentas) || []);
+    $('referentes').innerHTML = `<div class="tarjeta" style="margin-bottom:10px;display:grid;gap:10px">
+        <div><div style="color:var(--suave);font-size:12.5px;margin-bottom:4px">Cuentas que vigilo (Instagram)</div>${editor('cuentas', '@', 'usuario de Instagram')}</div>
+        <div><div style="color:var(--suave);font-size:12.5px;margin-bottom:4px">Hashtags (Meta deja 30 distintos por semana)</div>${editor('hashtags', '#', 'hashtag')}</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="mini prim" id="ref-guardar" ${conf.sucio ? '' : 'disabled'}>Guardar lista</button><span style="color:var(--suave);font-size:12.5px">${ref ? `Leídos ${hace(ref.fecha)}. Se vuelven a leer una vez al día.` : 'Aún no leídos.'}</span></div></div>
+      ${cuentas.length ? `<div class="tabla-env" style="margin-bottom:10px"><table><thead><tr><th>Cuenta</th><th class="num">Seguidores</th><th class="num">Reels</th><th class="num">Mediana de reprod.</th><th class="num">× su audiencia</th></tr></thead><tbody>
+        ${cuentas.map(x => `<tr><td>@${esc(x.usuario)}${x.error ? ` <span class="chip neutro" title="${esc(x.error)}">no disponible</span>` : ''}</td><td class="num">${num(x.seguidores)}</td><td class="num">${num(x.reels)}</td><td class="num">${num(x.mediana_vistas)}</td><td class="num">${x.mediana_vistas && x.seguidores ? '×' + num(x.mediana_vistas / x.seguidores, 2) : '—'}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      ${ref && ref.reels && ref.reels.length ? `<div class="tabla-env" style="margin-bottom:10px"><table><thead><tr><th class="num">×</th><th>Cuenta</th><th>Gancho (primera línea)</th><th class="num">Reprod.</th><th class="num">Coment.</th><th>Fecha</th><th></th></tr></thead><tbody>
+        ${ref.reels.slice(0, 20).map(x => `<tr><td class="num"><b>×${num(x.multiplicador, 2)}</b></td><td>@${esc(x.usuario)}</td><td class="tema">${esc(x.gancho)}</td><td class="num">${num(x.vistas)}</td><td class="num">${num(x.comentarios)}</td><td>${esc(x.fecha)}</td><td>${enlace(x.enlace)}</td></tr>`).join('')}</tbody></table></div>` : ''}
+      <div class="rejilla">${Object.entries((ref && ref.hashtags) || {}).map(([tag, ps]) => `<div class="tarjeta"><b>#${esc(tag)}</b><ul class="lista" style="margin-top:4px">${ps.slice(0, 6).map(p => `<li>${esc(p.gancho || '(sin texto)')}<div class="met">${num(p.megusta)} me gusta · ${num(p.comentarios)} comentarios · ${esc(p.fecha)} ${enlace(p.enlace)}</div></li>`).join('')}</ul></div>`).join('')}</div>`;
+    $('referentes').querySelectorAll('.chips-ed').forEach(el => {
+      const campo = el.dataset.campo, inp = el.querySelector('input');
+      const anadir = () => { const v = inp.value.trim().replace(/^[@#]/, '').toLowerCase(); if (v && !conf[campo].includes(v)) { conf[campo].push(v); conf.sucio = true; pintarReferentes(); } else inp.value = ''; };
+      el.querySelector('[data-anadir]').onclick = anadir; inp.onkeydown = (ev) => { if (ev.key === 'Enter') anadir(); };
+      el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => { conf[campo].splice(+b.dataset.x, 1); conf.sucio = true; pintarReferentes(); });
+    });
+    $('ref-guardar').onclick = async () => {
+      const ok = await accion({ accion: 'referentes', cuenta: k, cuentas: conf.cuentas, hashtags: conf.hashtags }, 'Guardando…', 'Lista guardada ✓. Pulsa «Leer referentes ahora» para verlos ya.');
+      if (ok) { conf.sucio = false; pintarReferentes(); } };
+  }
+
+  // ——— detalle de una publicación ———
+  function abrirDetalle(id) {
+    const p = publicaciones().find(x => x.id === id); if (!p) return;
+    const c = CUENTAS[S.cuenta], h = (S.hist[S.cuenta] || {}).media || {}, curvaLanz = h[id];
+    const coms = comentarios().filter(x => x.publicacion.id === id);
+    const met = (t, v) => `<div><small>${t}</small><b>${v}</b></div>`;
+    $('detalle').innerHTML = `<button class="mini cerrar" id="d-cerrar">✕</button>
+      <h3>${esc(nombreTema(p))}</h3>
+      <div style="color:var(--suave);font-size:13px">${chipPlat(p.plataforma)} ${esc(p.tipo)} · ${fechaZona(p.fecha, c.zona)} (${c.zonaTxt})${S.cuenta === 'en' ? ` · ${fechaZona(p.fecha, 'Europe/Madrid', { timeStyle: 'short' })} en España` : ''} · ${enlace(p.enlace, 'abrir en ' + (p.plataforma === 'ig' ? 'Instagram' : 'Facebook') + ' ↗')}</div>
+      ${p.texto ? `<p style="color:var(--texto);font-size:14px;margin-top:10px">${esc(p.texto)}</p>` : ''}
+      <div class="mets">${met('Reproducciones', num(p.vistas))}${met('Alcance', num(p.alcance))}${met('Retención', pct(p.retencion))}
+        ${met('Visto de media', p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—')}${met('Duración', p.duracion_s != null ? num(p.duracion_s, 1) + ' s' : '—')}${met('Tiempo total visto', p.tiempo_total_h != null ? num(p.tiempo_total_h, 1) + ' h' : '—')}
+        ${met('Me gusta', num(p.megusta))}${met('Comentarios', num(p.comentarios))}${met('Compartidos', num(p.compartidos))}
+        ${met('Guardados', num(p.guardados))}${met('Seguidores ganados', num(p.seguidores))}${met(p.plataforma === 'fb' ? 'Repeticiones' : 'Visitas al perfil', num(p.plataforma === 'fb' ? p.repeticiones : p.visitas_perfil))}</div>
+      <div class="sub-t">Cómo arrancó · reproducciones por horas desde que se publicó</div><div class="graf" id="d-lanz"></div>
+      ${p.plataforma === 'fb' ? '<div class="sub-t">Curva de retención (Facebook) · % de la gente que sigue viendo en cada momento</div><div class="graf" id="d-curva"></div>' : ''}
+      <div class="sub-t">Comentarios (${coms.length})</div><div id="d-coms" style="display:grid;gap:8px"></div>`;
+    $('velo').classList.remove('oculto'); $('detalle').classList.remove('oculto');
+    const cerrar = () => { $('velo').classList.add('oculto'); $('detalle').classList.add('oculto'); ocultarTip(); };
+    $('d-cerrar').onclick = cerrar; $('velo').onclick = cerrar; document.onkeydown = (ev) => { if (ev.key === 'Escape') cerrar(); };
+    const color = getComputedStyle(document.documentElement).getPropertyValue(p.plataforma === 'fb' ? '--fb' : '--ig').trim();
+    const pts = curvaLanz ? Object.entries(curvaLanz.puntos).map(([t, v]) => [(Date.parse(t.length === 13 ? t + ':30:00Z' : t + 'T12:00:00Z') - Date.parse(p.fecha)) / 36e5, v]).filter(q => q[0] >= 0) : [];
+    grafLineas($('d-lanz'), [{ nombre: 'Reproducciones', color, puntos: pts }], { area: true, alto: 180, fx: (t) => t < 48 ? `${Math.round(t)} h` : `${Math.round(t / 24)} d`, fxLargo: (t) => `${Math.round(t)} h después de publicar`, vacio: 'La curva se dibuja con las lecturas de cada hora (aparece tras dos lecturas).' });
+    if (p.plataforma === 'fb') {
+      const dur = p.duracion_s || 40, n = Math.max(1, (p.curva || []).length - 1);
+      grafLineas($('d-curva'), [{ nombre: 'Siguen viendo', color, puntos: (p.curva || []).map(([i, v]) => [i / n * dur, v * 100]) }], { area: true, alto: 180, ymax: 100, fy: (v) => num(v) + ' %', fx: (t) => num(t) + ' s', fxLargo: (t) => `Segundo ${num(t, 1)}`, vacio: 'Facebook da la curva cuando el Reel tiene reproducciones.' });
+    }
+    $('d-coms').innerHTML = coms.map(x => tarjetaComentario(x, false)).join('') || '<p class="vacio">Sin comentarios.</p>';
+    conectarComentarios($('d-coms'));
+  }
+
+  // ——— sistema ———
+  function pintarSistema() {
+    const e = S.estado || {}, t = e.token || {};
+    $('vista').innerHTML = `<div class="rejilla">
+      <div class="tarjeta"><b>Actualización automática</b><ul class="lista" style="margin-top:6px">
+        <li>Última: <b style="color:var(--tinta)">${e.ultima ? fechaZona(e.ultima, 'Europe/Madrid') + ' (' + hace(e.ultima) + ')' : '—'}</b></li>
+        <li>Duración: ${num(e.duracion_s)} s · ${num(e.llamadas)} llamadas a Meta</li>
+        <li>Frecuencia: cada hora (referentes, una vez al día${e.referentes ? `; últimos ${hace(e.referentes)}` : ''})</li>
+        <li>Estado: ${e.ok ? '<span class="delta sube">✓ sin errores</span>' : `<span class="delta baja">${(e.errores || []).length} avisos</span>`}</li></ul>
+        ${(e.errores || []).length ? `<div class="sub-t">Avisos de la última lectura</div><ul class="lista">${e.errores.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+        <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button class="mini prim" id="s-act">Actualizar ahora</button><button class="mini" id="s-ref">Actualizar con referentes</button></div></div>
+      <div class="tarjeta"><b>Token de Meta</b><ul class="lista" style="margin-top:6px">
+        <li>Válido: ${t.valido ? '<span class="delta sube">✓ sí</span>' : t.valido === false ? '<span class="delta baja">✕ no</span>' : '—'}</li>
+        <li>Caduca: ${esc(t.caduca || '—')}</li><li>Tipo: ${esc(t.tipo || '—')}</li>
+        <li>Permisos: <span style="color:var(--suave);font-size:12.5px">${(t.permisos || []).map(esc).join(', ') || '—'}</span></li></ul>
+        <p style="color:var(--suave);font-size:12.5px;margin-top:8px">Está en Secret Manager (META_TOKEN). Si caduca o se revoca, aquí sale en rojo y te aviso.</p></div>
+      <div class="tarjeta"><b>Cuentas</b><ul class="lista" style="margin-top:6px">
+        <li>🇺🇸 EE. UU.: <a href="https://www.instagram.com/finanziapp/" target="_blank" rel="noopener noreferrer">@finanziapp</a> · <a href="https://www.facebook.com/1341167292422940" target="_blank" rel="noopener noreferrer">página FinanziApp</a></li>
+        <li>🇪🇸 España: <a href="https://www.instagram.com/finanziapp.es/" target="_blank" rel="noopener noreferrer">@finanziapp.es</a> · <a href="https://www.facebook.com/1408886742310396" target="_blank" rel="noopener noreferrer">página Finanziapp ES</a></li></ul>
+        <p style="color:var(--suave);font-size:12.5px;margin-top:8px">Coste: una función cada hora dentro de la capa gratuita de Google Cloud.</p></div></div>`;
+    $('s-act').onclick = () => accion({ accion: 'actualizar' }, 'Leyendo Instagram y Facebook… (un minuto)', 'Datos actualizados ✓');
+    $('s-ref').onclick = () => accion({ accion: 'actualizar', referentes: true }, 'Leyendo todo, también referentes… (un par de minutos)', 'Datos actualizados ✓');
+  }
+
+  // ——— acciones (Cloud Functions) ———
+  async function accion(datos, enCurso, hecho) {
+    if (S.demo) { aviso('Modo demo: en el panel real esto llamaría a «' + esc(datos.accion) + '».'); return false; }
+    if (S.accion) { aviso('Espera a que termine lo anterior…'); return false; }
+    S.accion = datos.accion; aviso(`<span class="girando"></span>${esc(enCurso)}`, 0); $('actualizar').disabled = true;
+    try { await llamar(datos); aviso(esc(hecho || 'Hecho ✓')); return true; }
+    catch (e) { aviso('No se pudo: ' + esc((e && e.message) || e), 9000); return false; }
+    finally { S.accion = null; $('actualizar').disabled = false; }
+  }
+  $('actualizar').onclick = () => accion({ accion: 'actualizar' }, 'Leyendo Instagram y Facebook… (un minuto)', 'Datos actualizados ✓');
+  let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if ($('panel').classList.contains('oculto')) return; if (S.cuenta !== 'sistema') pintarGraficas(); }, 200); });
+  try { const g = localStorage.getItem('panel-cuenta'); if (['es', 'en', 'sistema'].includes(g)) S.cuenta = g; } catch {}
+
+  // ——— arranque ———
+  const doc2 = (j) => { try { return JSON.parse(j); } catch { return null; } };
+  function recibir(nombre, valor) {
+    if (nombre === 'en' || nombre === 'es') S.datos[nombre] = valor;
+    else if (nombre.startsWith('historial_')) S.hist[nombre.slice(10)] = valor;
+    else if (nombre === 'estado') S.estado = valor;
+    else if (nombre === 'config') { S.config = valor || {}; if (!(S.refConf && S.refConf.sucio)) S.refConf = null; }
+    else if (nombre === 'cuaderno') { S.cuaderno = valor; if (!S.sucio) S.borrador = null; }
+    if (!$('detalle').classList.contains('oculto')) return;   // no repintar con el detalle abierto
+    if (S.sucio && nombre !== 'cuaderno') { pintarCabecera(); return; }
+    pintar();
+  }
+  function pintarCabecera() { const e = S.estado; if (e) $('actualizado').textContent = `Actualizado ${hace(e.ultima)}`; }
+  const DOCS = ['en', 'es', 'historial_en', 'historial_es', 'estado', 'config', 'cuaderno'];
+
   if (['localhost', '127.0.0.1'].includes(location.hostname) && location.search.includes('demo')) {
     const d = await (await fetch('/datos-demo.json')).json();
-    $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto'); pintar(d);
+    S.demo = true; $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto');
+    for (const k of DOCS) if (d[k] !== undefined) { const v = d[k]; if (k === 'en' || k === 'es') S.datos[k] = v; else if (k.startsWith('historial_')) S.hist[k.slice(10)] = v; else if (k === 'estado') S.estado = v; else if (k === 'config') S.config = v; else if (k === 'cuaderno') S.cuaderno = v; }
+    const m = location.search.match(/cuenta=(\w+)/); if (m) S.cuenta = m[1];
+    pintar();
+    const p = location.search.match(/detalle=([\w]+)/); if (p) abrirDetalle(p[1]);
   } else {
     const V = '10.12.2';
     const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
-    const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signOut } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
-    const { getFirestore, doc, getDoc } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+    const { getFirestore, doc, onSnapshot } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const { getFunctions, httpsCallable } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-functions.js`);
     const app = initializeApp({ apiKey: 'AIzaSyDbTnzC7upZn_hItzl5dK8oZn3d10Ut2qw', authDomain: 'finanziapp.com', projectId: 'personal-franquizb', appId: '1:252802857674:web:59b13a4eaadca714651233' });
     const auth = getAuth(app), db = getFirestore(app);
+    const fn = httpsCallable(getFunctions(app, 'europe-west1'), 'panelAccion', { timeout: 540000 });
+    llamar = async (datos) => (await fn(datos)).data;
     const error = (m) => { $('error').textContent = m; };
-    $('google').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => error('No se pudo entrar con Google: ' + e.code));
-    $('formulario').onsubmit = (ev) => { ev.preventDefault(); signInWithEmailAndPassword(auth, $('correo').value, $('clave').value).catch(e => error('Correo o contraseña incorrectos (' + e.code + ').')); };
+    const proveedor = new GoogleAuthProvider(); proveedor.setCustomParameters({ prompt: 'select_account' });
+    $('google').onclick = () => signInWithPopup(auth, proveedor).catch(e => error('No se pudo entrar con Google: ' + e.code));
     $('salir').onclick = () => signOut(auth);
+    let bajas = [];
     onAuthStateChanged(auth, async (u) => {
+      bajas.forEach(f => f()); bajas = [];
       if (!u) { $('acceso').classList.remove('oculto'); $('panel').classList.add('oculto'); return; }
-      try {
-        const s = await getDoc(doc(db, 'estadisticas', 'instagram'));
-        if (!s.exists()) { error('Aún no hay estadísticas guardadas.'); return; }
-        $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto'); pintar(JSON.parse(s.data().json));
-      } catch (e) { error('Esta cuenta no tiene acceso a las estadísticas.'); await signOut(auth); }
+      // Solo la cuenta de Google del propietario.
+      const google = u.providerData.some(p => p.providerId === 'google.com');
+      if (u.uid !== PROPIETARIO || !google) { error('Esta cuenta no tiene acceso al panel.'); await signOut(auth); return; }
+      error(''); $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto'); pintar();
+      for (const k of DOCS) bajas.push(onSnapshot(doc(db, 'estadisticas', k), (s) => recibir(k, s.exists() ? doc2(s.data().json) : null), (e) => { error('Sin acceso a los datos: ' + e.code); }));
     });
   }
 </script>

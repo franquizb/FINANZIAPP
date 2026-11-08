@@ -1,0 +1,12 @@
+{
+  "name": "finanziapp-panel",
+  "description": "Panel de redes de FinanziApp (franquizb.com): estadísticas de Instagram y Facebook cada hora y acciones del propietario",
+  "private": true,
+  "main": "index.js",
+  "engines": { "node": "24" },
+  "scripts": { "lint": "node --check index.js && node --check meta.js" },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.1"
+  }
+}

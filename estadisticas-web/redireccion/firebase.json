@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "site": "finanziapp-estadisticas",
+    "public": "public",
+    "redirects": [{ "source": "**", "destination": "https://franquizb.com/", "type": 301 }]
+  }
+}
