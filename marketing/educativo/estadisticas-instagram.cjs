@@ -68,7 +68,7 @@ function nuestrosReels() {
         if (!nuestro && durPublicado) {
           const lang = nombre.includes('ES') ? 'es' : 'en';
           const cerca = propios.filter(p => p.lang === lang).map(p => ({ p, d: Math.abs(p.dur - durPublicado) })).sort((a, b) => a.d - b.d)[0];
-          if (cerca && cerca.d < 0.6) nuestro = cerca.p;
+          if (cerca && cerca.d < 1.5) nuestro = cerca.p;   // margen: puede haberse publicado un render anterior
         }
         const visto = datos.ig_reels_avg_watch_time != null ? datos.ig_reels_avg_watch_time / 1000 : null;
         filas.push({

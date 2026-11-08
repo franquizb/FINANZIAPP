@@ -341,6 +341,14 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ─── ESTADÍSTICAS DE REDES (web privada estadisticas.franquizb.com) ────────
+    // Solo el propietario las lee. Las escribe un script con la cuenta de
+    // servicio (que no pasa por estas reglas): ningún cliente puede escribir.
+    match /estadisticas/{documento} {
+      allow read: if esPropietario();
+      allow write: if false;
+    }
+
     // ─── TODO LO DEMAS: DENEGADO ──────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;

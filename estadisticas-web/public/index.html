@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Estadísticas · FinanziApp</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f9f8f'/%3E%3Cpolyline points='19 8 12.5 14.5 9.5 11.5 5 16' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --fondo: #0f172a; --superficie: #151f33; --borde: #24324d; --tinta: #f1f5f9; --texto: #cbd5e1; --suave: #94a3b8;
+    --acento: #5eead4; --teal: #0f9f8f; --ambar: #c27c0e; --violeta: #7c6cf0; --rojo: #e66767;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--tinta); font: 15px/1.5 Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+  .contenedor { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 26px; }
+  .marca { display: flex; align-items: center; gap: 12px; }
+  .marca .ico { width: 38px; height: 38px; border-radius: 11px; background: var(--teal); display: grid; place-items: center; }
+  .marca h1 { font-size: 20px; font-weight: 750; letter-spacing: -.01em; }
+  .marca small { display: block; color: var(--suave); font-size: 13px; font-weight: 500; }
+  button, .boton { font: inherit; font-weight: 650; border-radius: 12px; border: 1px solid var(--borde); background: var(--superficie); color: var(--tinta); padding: 10px 16px; cursor: pointer; }
+  button.prim { background: var(--teal); border-color: var(--teal); color: #fff; }
+  button:hover { filter: brightness(1.1); }
+  h2 { font-size: 18px; font-weight: 750; margin: 34px 0 12px; letter-spacing: -.01em; }
+  h2 small { color: var(--suave); font-weight: 500; font-size: 13px; margin-left: 8px; }
+  .tarjeta { background: var(--superficie); border: 1px solid var(--borde); border-radius: 18px; padding: 18px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .kpi .eti { color: var(--suave); font-size: 13px; font-weight: 600; }
+  .kpi .val { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .sub { color: var(--texto); font-size: 13px; }
+  .tabla-env { overflow-x: auto; border: 1px solid var(--borde); border-radius: 18px; background: var(--superficie); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--borde); white-space: nowrap; }
+  th { color: var(--suave); font-weight: 650; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; position: sticky; top: 0; background: var(--superficie); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  td.tema { white-space: normal; min-width: 220px; max-width: 420px; color: var(--texto); }
+  tr:last-child td { border-bottom: none; }
+  a { color: var(--acento); text-decoration: none; } a:hover { text-decoration: underline; }
+  .chip { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 700; }
+  .chip.en { background: rgba(124,108,240,.18); color: #b3a9ff; } .chip.es { background: rgba(15,159,143,.2); color: var(--acento); }
+  .ret { display: flex; align-items: center; gap: 8px; min-width: 150px; }
+  .ret .pista { flex: 1; height: 10px; border-radius: 6px; background: rgba(148,163,184,.15); overflow: hidden; }
+  .ret .bar { height: 100%; border-radius: 6px; }
+  .rejilla { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; }
+  .notas { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .nota h3 { font-size: 15px; font-weight: 750; margin-bottom: 6px; } .nota p { color: var(--texto); font-size: 14px; }
+  .lista { list-style: none; } .lista li { padding: 9px 0; border-bottom: 1px solid var(--borde); color: var(--texto); font-size: 14px; }
+  .lista li:last-child { border-bottom: none; } .lista .met { color: var(--suave); font-size: 12px; font-variant-numeric: tabular-nums; }
+  #acceso { max-width: 420px; margin: 12vh auto 0; text-align: center; }
+  #acceso h1 { font-size: 24px; margin: 18px 0 6px; } #acceso p { color: var(--suave); margin-bottom: 22px; }
+  #acceso form { display: grid; gap: 10px; margin-top: 18px; text-align: left; }
+  input { font: inherit; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--borde); background: #0b1222; color: var(--tinta); }
+  .error { color: var(--rojo); font-size: 14px; margin-top: 12px; min-height: 20px; }
+  .oculto { display: none !important; }
+  .pie { color: var(--suave); font-size: 12px; margin-top: 30px; }
+</style>
+</head>
+<body>
+<div class="contenedor">
+  <section id="acceso">
+    <div class="marca" style="justify-content:center"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span></div>
+    <h1>Estadísticas de FinanziApp</h1>
+    <p>Página privada. Entra con la cuenta de propietario.</p>
+    <button class="prim" id="google" style="width:100%">Entrar con Google</button>
+    <form id="formulario">
+      <input type="email" id="correo" placeholder="Correo" autocomplete="username" required>
+      <input type="password" id="clave" placeholder="Contraseña" autocomplete="current-password" required>
+      <button type="submit">Entrar con correo</button>
+    </form>
+    <div class="error" id="error"></div>
+  </section>
+
+  <main id="panel" class="oculto">
+    <header>
+      <div class="marca"><span class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
+        <div><h1>Estadísticas de Instagram</h1><small id="actualizado"></small></div></div>
+      <button id="salir">Salir</button>
+    </header>
+
+    <div class="kpis" id="kpis"></div>
+
+    <h2>Conclusiones <small>lo que hacemos con estos datos</small></h2>
+    <div class="notas" id="notas"></div>
+
+    <h2>Retención de los Reels <small>tiempo medio visto ÷ duración del vídeo</small></h2>
+    <div class="tarjeta" id="retencion"></div>
+
+    <h2>Todas las publicaciones</h2>
+    <div class="tabla-env"><table id="propias"></table></div>
+
+    <h2>Qué funciona fuera <small>Reels de cuentas grandes que más superan a su propia audiencia (vistas ÷ seguidores)</small></h2>
+    <div class="tabla-env"><table id="referentes"></table></div>
+
+    <h2>Lo más popular en hashtags <small>me gusta y comentarios (Instagram no da las vistas de otros)</small></h2>
+    <div class="rejilla" id="hashtags"></div>
+
+    <p class="pie">Datos de la API Graph de Instagram. Se actualizan cuando se pide a Claude («actualiza las estadísticas»).</p>
+  </main>
+</div>
+
+<script type="module">
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n) => n == null ? '—' : Number(n).toLocaleString('es-ES');
+  const enlace = (u) => /^https:\/\/(www\.)?instagram\.com\//.test(u || '') ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer">ver</a>` : '';
+  const chip = (cuenta) => cuenta.includes('ES') ? '<span class="chip es">ES</span>' : '<span class="chip en">EN</span>';
+  const $ = (id) => document.getElementById(id);
+
+  function pintar(d) {
+    $('actualizado').textContent = 'Actualizado: ' + new Date(d.actualizado).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+    const filas = d.propias || [];
+    // KPIs por cuenta.
+    const cuentas = [...new Set(filas.map(f => f.cuenta))];
+    $('kpis').innerHTML = cuentas.map(c => {
+      const fs = filas.filter(f => f.cuenta === c), reels = fs.filter(f => f.retencion != null);
+      const mejor = reels.sort((a, b) => b.retencion - a.retencion)[0];
+      return `<div class="tarjeta kpi"><div class="eti">${chip(c)} ${esc(c.split(' ')[0])}</div><div class="val">${num(fs.reduce((a, f) => a + (f.views || 0), 0))}</div>
+        <div class="sub">vistas en ${fs.length} publicaciones · ${num(fs[0]?.seguidores)} seguidores</div>
+        <div class="sub">${mejor ? `Mejor retención: <b>${mejor.retencion} %</b> (${esc(mejor.tema || 'sin texto')})` : ''}</div></div>`;
+    }).join('');
+    // Conclusiones.
+    $('notas').innerHTML = (d.notas || []).map(n => `<div class="tarjeta nota"><h3>${esc(n.titulo)}</h3><p>${esc(n.texto)}</p></div>`).join('');
+    // Retención.
+    const reels = filas.filter(f => f.retencion != null).sort((a, b) => b.retencion - a.retencion);
+    $('retencion').innerHTML = reels.map(f => `<div class="ret" style="margin:8px 0">${chip(f.cuenta)}<span style="width:190px;color:var(--texto);font-size:14px;overflow:hidden;text-overflow:ellipsis">${esc(f.tema || 'sin texto')}</span>
+      <div class="pista"><div class="bar" style="width:${Math.min(100, f.retencion)}%;background:${f.cuenta.includes('ES') ? 'var(--teal)' : 'var(--violeta)'}"></div></div>
+      <b style="width:52px;text-align:right">${f.retencion} %</b><span style="width:120px;color:var(--suave);font-size:13px;text-align:right">${f.visto_medio_s} s de ${f.duracion_s} s</span></div>`).join('') || '<p style="color:var(--suave)">Aún no hay Reels con datos de retención.</p>';
+    // Publicaciones.
+    const cols = [['fecha', 'Fecha'], ['cuenta', ''], ['tipo', 'Tipo'], ['tema', 'Tema'], ['views', 'Vistas', 1], ['reach', 'Alcance', 1], ['retencion', 'Retención'], ['saved', 'Guard.', 1], ['shares', 'Compart.', 1], ['likes', 'Me gusta', 1], ['comments', 'Coment.', 1], ['enlace', '']];
+    const orden = [...filas].sort((a, b) => b.fecha.localeCompare(a.fecha));
+    $('propias').innerHTML = `<thead><tr>${cols.map(([, t, n]) => `<th class="${n ? 'num' : ''}">${t}</th>`).join('')}</tr></thead><tbody>${orden.map(f => `<tr>
+      <td>${esc(f.fecha)}</td><td>${chip(f.cuenta)}</td><td>${esc(f.tipo)}</td><td class="tema">${esc(f.tema || '—')}</td>
+      <td class="num">${num(f.views)}</td><td class="num">${num(f.reach)}</td>
+      <td>${f.retencion != null ? `<div class="ret"><div class="pista"><div class="bar" style="width:${Math.min(100, f.retencion)}%;background:var(--acento)"></div></div><span>${f.retencion} %</span></div>` : '<span style="color:var(--suave)">—</span>'}</td>
+      <td class="num">${num(f.saved)}</td><td class="num">${num(f.shares)}</td><td class="num">${num(f.likes)}</td><td class="num">${num(f.comments)}</td><td>${enlace(f.enlace)}</td></tr>`).join('')}</tbody>`;
+    // Referentes.
+    const r = d.referentes || {};
+    $('referentes').innerHTML = `<thead><tr><th class="num">×</th><th>Cuenta</th><th>Gancho (primera línea del texto)</th><th class="num">Vistas</th><th class="num">Seguidores</th><th class="num">Coment.</th><th></th></tr></thead><tbody>${(r.reels || []).slice(0, 25).map(x => `<tr>
+      <td class="num"><b>×${x.multiplicador}</b></td><td>@${esc(x.usuario)}</td><td class="tema">${esc(x.gancho)}</td><td class="num">${num(x.vistas)}</td><td class="num">${num(x.seguidores)}</td><td class="num">${num(x.comentarios)}</td><td>${enlace(x.enlace)}</td></tr>`).join('')}</tbody>`;
+    const tags = Object.entries(r.hashtags || {}).sort(([, a], [, b]) => (a.idioma === 'es' ? -1 : 1) - (b.idioma === 'es' ? -1 : 1));
+    $('hashtags').innerHTML = tags.map(([tag, h]) => `<div class="tarjeta"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><b>#${esc(tag)}</b><span class="chip ${h.idioma}">${h.idioma.toUpperCase()}</span></div>
+      <ul class="lista">${h.publicaciones.slice(0, 8).map(p => `<li>${esc(p.gancho || '(sin texto)')}<div class="met">${num(p.megusta)} me gusta · ${num(p.comentarios)} comentarios · ${esc(p.fecha)} ${enlace(p.enlace)}</div></li>`).join('')}</ul></div>`).join('');
+  }
+
+  // Modo de prueba local (solo en localhost): datos de un archivo, sin iniciar sesión.
+  if (['localhost', '127.0.0.1'].includes(location.hostname) && location.search.includes('demo')) {
+    const d = await (await fetch('/datos-demo.json')).json();
+    $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto'); pintar(d);
+  } else {
+    const V = '10.12.2';
+    const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+    const { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword, signOut } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+    const { getFirestore, doc, getDoc } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+    const app = initializeApp({ apiKey: 'AIzaSyDbTnzC7upZn_hItzl5dK8oZn3d10Ut2qw', authDomain: 'finanziapp.com', projectId: 'personal-franquizb', appId: '1:252802857674:web:59b13a4eaadca714651233' });
+    const auth = getAuth(app), db = getFirestore(app);
+    const error = (m) => { $('error').textContent = m; };
+    $('google').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => error('No se pudo entrar con Google: ' + e.code));
+    $('formulario').onsubmit = (ev) => { ev.preventDefault(); signInWithEmailAndPassword(auth, $('correo').value, $('clave').value).catch(e => error('Correo o contraseña incorrectos (' + e.code + ').')); };
+    $('salir').onclick = () => signOut(auth);
+    onAuthStateChanged(auth, async (u) => {
+      if (!u) { $('acceso').classList.remove('oculto'); $('panel').classList.add('oculto'); return; }
+      try {
+        const s = await getDoc(doc(db, 'estadisticas', 'instagram'));
+        if (!s.exists()) { error('Aún no hay estadísticas guardadas.'); return; }
+        $('acceso').classList.add('oculto'); $('panel').classList.remove('oculto'); pintar(JSON.parse(s.data().json));
+      } catch (e) { error('Esta cuenta no tiene acceso a las estadísticas.'); await signOut(auth); }
+    });
+  }
+</script>
+</body>
+</html>

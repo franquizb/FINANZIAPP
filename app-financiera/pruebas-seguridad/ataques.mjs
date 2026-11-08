@@ -31,6 +31,7 @@ async function sembrar() {
     await setDoc(doc(db, 'incidencias/inc_bob'), { uid: 'bob', email: 'bob@x.com', categoria: 'pago', mensaje: 'privado', creada: ahora, estado: 'abierta' });
     await setDoc(doc(db, 'invitaciones/vip@x.com'), { email: 'vip@x.com', hasta: 0 });
     await setDoc(doc(db, 'activity_logs/session_bob_20261107'), { uid: 'bob', totalTime: 10, lastSeen: ahora });
+    await setDoc(doc(db, 'estadisticas/instagram'), { json: '{}', actualizado: ahora });
   });
 }
 
@@ -122,6 +123,11 @@ const casos = [
   ['Fable', 'Incidencia con fecha futura para quedarse siempre la primera', 'denegar', () => addDoc(collection(alice(), 'incidencias'), { uid: 'alice', email: 'alice@x.com', categoria: 'pago', mensaje: 'x', creada: 9e15, estado: 'abierta' })],
   ['Fable', 'Error del sistema con un contexto gigante (almacén)', 'denegar', () => addDoc(collection(alice(), 'system_errors'), { uid: 'alice', context: 'x'.repeat(5000), error: 'e', timestamp: ahora })],
   ['Fable', 'Registrar un error normal (control: como la app)', 'permitir', () => addDoc(collection(alice(), 'system_errors'), { uid: 'alice', context: 'Actualizar Perfil', error: 'algo falló', timestamp: ahora })],
+  ['Estadísticas', 'Leer las estadísticas de redes siendo un usuario normal', 'denegar', () => getDoc(doc(alice(), 'estadisticas/instagram'))],
+  ['Estadísticas', 'Leer las estadísticas de redes siendo administrador (no propietario)', 'denegar', () => getDoc(doc(ctx('admin', 'admin@x.com'), 'estadisticas/instagram'))],
+  ['Estadísticas', 'Leer las estadísticas sin sesión', 'denegar', () => getDoc(doc(anon(), 'estadisticas/instagram'))],
+  ['Estadísticas', 'El propietario lee sus estadísticas (control: la web privada)', 'permitir', () => getDoc(doc(ctx('lK7Y5eUYmSRAiXs2M1J7NyKPSQw2', 'propietario@x.com'), 'estadisticas/instagram'))],
+  ['Estadísticas', 'Escribir estadísticas falsas', 'denegar', () => setDoc(doc(alice(), 'estadisticas/instagram'), { json: '{"falso":1}' })],
   ['Fable', 'Guardar mi perfil con mi propio uid (control: como la app)', 'permitir', () => setDoc(doc(alice(), 'users/alice'), { uid: 'alice', email: 'alice@x.com', lastLogin: ahora }, { merge: true })],
 
 ];
