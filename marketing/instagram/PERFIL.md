@@ -9,6 +9,7 @@ Los anuncios de pago están en README.md; esto es el contenido **orgánico**.
 |---|---|
 | `out/perfil/foto-perfil.png` | Foto de perfil (1080 × 1080; Instagram la recorta en círculo). Mismo símbolo que la app y la web |
 | `out/perfil/destacadas/*.png` | Portadas de las 5 historias destacadas, en orden |
+| `out/perfil/portada-facebook-{en,es}.png` | Portadas de las páginas de Facebook (1640 × 624), con los muñecos de los Reels (`portada-facebook.js`) |
 | `out/perfil/vista-es.jpg`, `vista-en.jpg` | Cómo quedará el perfil con los 9 posts publicados |
 | `out/<idioma>/posts/` | 9 posts (5 de ellos carruseles), 1080 × 1350 |
 | `out/<idioma>/historias/<destacada>/` | 26 historias, 1080 × 1920, agrupadas por destacada |
@@ -138,9 +139,23 @@ node capturar.js http://localhost:4300   # capturas reales de la app
 node perfil.js --web                     # foto, portadas y, con --web, iconos de la web
 node organico.js                         # posts, historias y textos.md
 node vista.js                            # vista previa del perfil
+node portada-facebook.js                 # portadas de las páginas de Facebook
 ```
 
 Los textos y las composiciones están en `organico.js` (`POSTS` e
 `HISTORIAS`); los de la vista previa, en `vista.js`. Las cifras de los
 ejemplos (interés compuesto, 50/30/20, fondo de emergencia) se calculan en el
 propio script.
+
+## Páginas de Facebook
+
+Las dos páginas van iguales salvo el idioma (puestas por API el 8 nov 2026):
+
+| Página | Cuenta de Instagram | Descripción |
+|---|---|---|
+| FinanziApp | @finanziapp (EE. UU.) | Money, made simple 💸 Short videos on prices, saving and money milestones. 15 days free ↓ |
+| Finanziapp ES | @finanziapp.es (España) | Tu dinero, explicado fácil 💸 Vídeos cortos sobre precios, ahorro y tu nómina. 15 días gratis ↓ |
+
+Foto de perfil `out/perfil/foto-perfil.png`, portada `out/perfil/portada-facebook-<idioma>.png`
+y web https://finanziapp.com. El nombre de la página solo se puede cambiar desde Facebook (no por API).
+Los Reels se publican con `marketing/educativo/publicar-facebook.cjs`.
