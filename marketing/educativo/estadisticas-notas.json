@@ -1,6 +1,10 @@
 {
   "es": [
     {
+      "titulo": "Solo despega el primero de la mañana",
+      "texto": "De 4 vídeos al día, el único que pasa de ~130 reproducciones es el primero (8:43 el domingo: 1.534; 7:32 el lunes: 1.448). Ese hueco es para lo mejor: desde el 10 nov, la serie en 3D «30 días para ordenar tu dinero»."
+    },
+    {
       "titulo": "El arranque lleno funciona",
       "texto": "Con el fotograma 0 completo (título, muñeco y escena), la retención pasa del 6–14 % de los Reels largos al 44 % en «La milésima de la gasolinera». Se queda como norma."
     },
@@ -18,6 +22,10 @@
     }
   ],
   "en": [
+    {
+      "titulo": "Ninguno despega todavía",
+      "texto": "Los vídeos de EE. UU. se quedan en 120–155 reproducciones a cualquier hora. Siguiente prueba: llevar allí la serie en 3D con la voz de narrador y ganchos de curiosidad."
+    },
     {
       "titulo": "Full first frame works",
       "texto": "With frame 0 complete, «79,900 miles» holds 42 % of the video on average (the long Reels were at 21–33 %). It stays as the rule."

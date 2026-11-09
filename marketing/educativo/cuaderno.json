@@ -142,6 +142,15 @@
           "estado": "listo",
           "slug": "es-reto-01",
           "nota": "Programado en Instagram y Facebook · 28.96 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "Día 2/30 · El gasto que se te escapa sin darte cuenta",
+          "estado": "listo",
+          "slug": "es-reto-02",
+          "nota": "Programado en Instagram y Facebook · 24.5 s"
         }
       ],
       "pendientes": [

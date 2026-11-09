@@ -91,6 +91,13 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   de escena lleva «whoosh» y en el guion se ponen con `§{pop}`, `§{caja}`,
   `§{ding}` o `§{tic}` (la marca sigue sirviendo a la animación). La voz nunca
   lee el nombre del efecto.
+- **Reels en 3D** (`reels-voz/tres.js`, Three.js `0.149` con `npm install` en esta carpeta): maniquíes en un
+  escenario oscuro con un color de acento, como los vídeos de referencia del propietario. El Reel se declara con
+  `pildora3d({ … escenas: [{ html, anim }], tres: function (t, k, s, e, W) {…} })`: `escenas` son las capas 2D
+  (tarjetas, rótulos) y `tres` la coreografía 3D por fotograma (`W.multitud`, `W.heroe`, `W.zonas`, `W.puerta`,
+  `W.etiqueta`, `W.camara`). Se renderiza por software (SwiftShader), unos 7–10 min por vídeo de 30 s.
+  Voz: `VOZ_NARRADOR` (tranquila, ~3,4 palabras/s). Subtítulos arriba (`sub: { max, largo }`) y capa fija `fijo` (HUD).
+- **Cambiar algo ya programado** (otro archivo u otra hora) sin duplicar: `node reprogramar.cjs <…> <…> es|en <slug> [fecha ISO]`.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.

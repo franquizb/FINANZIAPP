@@ -24,6 +24,19 @@ Voz: `VOZ` de `_comun.js` (v3: carisma cercano; la v2 era demasiado sarcástica)
 
 Desde el #7: **subtítulos palabra a palabra** (alinear.py con Whisper) y **efectos de sonido** (sfx.py; en el guion, `§{pop}`, `§{caja}`, `§{ding}`, `§{tic}`; los cambios de escena llevan «whoosh»).
 
+## Serie en 3D · «30 días para ordenar tu dinero» (`reto-es.js`, mundo 3D en `tres.js`)
+
+Maniquíes en 3D, voz de narrador (`VOZ_NARRADOR`), subtítulos arriba y «DÍA n/30». Cada día acaba con «Mañana: …», así que
+**hay que tener listo el día siguiente antes de publicar uno**. Va en el primer hueco de la mañana (7:30 de Canarias), que es
+el único que despega. El texto de la publicación es corto: gancho, qué hacer hoy y «mañana…» (no repite el guion).
+
+| Día | Tema (slug) | Publicación | Mañana anuncia |
+|-----|-------------|-------------|----------------|
+| 1 | ¿A dónde se va tu sueldo? Apunta cada gasto 7 días y etiquétalo (`es-reto-01`) | 10 nov 2026, 7:30 | El gasto que se te escapa sin darte cuenta |
+| 2 | Suscripciones y cargos que se repiten: cancela uno (`es-reto-02`) | 11 nov 2026, 7:30 | Lo que vale de verdad una hora de tu trabajo |
+
+Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuento en el próximo vídeo. Síguenos» o «La respuesta, en el siguiente vídeo».
+
 ## Pendientes (preguntas abiertas)
 
 - ES: ¿Qué parte de lo que pagas en el súper le llega de verdad al agricultor? ← abierta en el #7.
