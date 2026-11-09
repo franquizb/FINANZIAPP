@@ -76,8 +76,11 @@ async function publicarCola() {
       await admin.storage().bucket(BUCKET).file(it.objeto).delete().catch(() => {});
       logger.info('Cola: ' + it.estado, { id: it.id, cuenta: it.cuenta, enlace: it.enlace });
     } catch (e) {
-      Object.assign(it, { estado: 'error', error: e.message });
-      logger.error('Cola: error al publicar', { id: it.id, error: e.message });
+      // Hasta 3 intentos (uno por pasada, cada 15 min) mientras la URL firmada siga viva; después queda en error.
+      it.intentos = (it.intentos || 0) + 1;
+      const reintenta = it.intentos < 3 && Date.now() - Date.parse(it.cuando) < 2.5 * 3600e3;
+      Object.assign(it, { estado: reintenta ? 'pendiente' : 'error', error: e.message });
+      logger.error('Cola: error al publicar', { id: it.id, error: e.message, intentos: it.intentos, reintenta });
     }
     hechos++;
     await guardarJson('cola', cola);

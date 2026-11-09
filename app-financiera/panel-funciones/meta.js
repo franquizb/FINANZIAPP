@@ -271,7 +271,12 @@ async function publicarReelIg(token, it, datos) {
     await new Promise(ok => setTimeout(ok, 5000));
   }
   if (it.ensayo) return { ensayo: true, contenedor: cont.id };
-  const pub = await cli.pedir(`${c.ig}/media_publish`, { creation_id: cont.id }, 'POST');
+  // A veces Meta dice FINISHED y aún responde «no está listo para publicar»: se espera y se reintenta.
+  let pub = null;
+  for (let i = 0; !pub; i++) {
+    try { pub = await cli.pedir(`${c.ig}/media_publish`, { creation_id: cont.id }, 'POST'); }
+    catch (e) { if (i >= 8 || !/no est[aá] listo|not ready|9007/i.test(e.message + ' ' + (e.codigo || ''))) throw e; await new Promise(ok => setTimeout(ok, 15000)); }
+  }
   const info = await cli.pedir(pub.id, { fields: 'permalink' });
   return { id: pub.id, permalink: info.permalink };
 }

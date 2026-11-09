@@ -25,7 +25,7 @@ const pildoras = {
         [1, 'Desde 2022, en España, la garantía legal de un producto nuevo es de §{ding}*tres años*, §no dos.'],
         [2, 'Y lo mejor: §si falla en los dos primeros años, la ley da por hecho que *ya venía de fábrica*. §{pop}En el tercero, te toca demostrarlo.'],
         [3, '¿A quién reclamas? §No al fabricante: §{pop}*a la tienda*, que es quien responde.'],
-        [4, '¿Y sabías que si compras por internet tienes 14 días para devolverlo sin dar explicaciones? [short pause] Si te interesa, *síguenos*.']
+        [4, '¿Y sabías que si compras por internet tienes 14 días para devolverlo sin dar explicaciones? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
       ],
       cierre: '¿14 días para devolverlo? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -58,7 +58,7 @@ Y la siguiente: ¿sabías que si compras por internet tienes 14 días para devol
         [1, 'En compras a distancia tienes §{ding}*14 días naturales* para devolverlo, §sin dar explicaciones.'],
         [2, 'Y si la tienda no te informa de ese derecho, §el plazo normal es de 14 días, §{pop}*pero se alarga doce meses más*.'],
         [3, 'Ojo: §en una tienda física *no es obligatorio*. §{pop}Solo si la tienda lo ofrece.'],
-        [4, '¿Y por qué el paquete grande no siempre sale más barato? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y por qué el paquete grande no siempre sale más barato? [short pause] Te lo cuento en el próximo vídeo. *Síguenos*.']
       ],
       cierre: '¿El paquete grande, más caro? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -91,7 +91,7 @@ Y la siguiente: ¿por qué el paquete grande no siempre sale más barato? Sígue
         [1, 'Por ley, la etiqueta tiene que darte el §{ding}*precio por kilo o por litro*. Es esa cifra pequeñita.'],
         [2, 'Mira: un paquete de medio kilo por 2 euros §te sale a *4 euros el kilo*. §{pop}Y el de un kilo por 4,50, *a 4,50 el kilo*.'],
         [3, 'Así que no compares paquetes: §compara §{pop}*el precio por kilo*.'],
-        [4, '¿Y sabes cuánto te cuesta al año el café de cada mañana? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y sabes cuánto te cuesta al año el café de cada mañana? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
       ],
       cierre: '¿Cuánto cuesta tu café al año? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -124,7 +124,7 @@ Y la siguiente: ¿cuánto te cuesta al año el café de cada mañana? Síguenos 
         [1, '1,50 por 22 días al mes, §por 12 meses: §{caja}*396 euros al año*.'],
         [2, 'No te digo que lo dejes. §Te digo que *lo elijas*: §{ding}si te lo tomas, que sea porque lo disfrutas.'],
         [3, 'Y si lo haces en casa la mitad de los días, §te quedan 198, §{pop}*casi 200 euros al año* en tu bolsillo.'],
-        [4, '¿Y cómo se reparte el sueldo para que te sobre a final de mes? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y cómo se reparte el sueldo para que te sobre a final de mes? [short pause] Te lo cuento en el próximo vídeo. *Síguenos*.']
       ],
       cierre: '¿Cómo repartir el sueldo? <span class="c">Síguenos</span> para no perdértelo.'
     } },

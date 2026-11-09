@@ -4,7 +4,7 @@ const fs = require('fs'), path = require('path');
 module.exports = function cargar(slug) {
   const f = path.join(__dirname, slug + '.js');
   if (fs.existsSync(f)) return require(f);
-  for (const n of fs.readdirSync(__dirname).filter(x => /^lote.*\.js$/.test(x))) {
+  for (const n of fs.readdirSync(__dirname).filter(x => /^(lote|reto).*\.js$/.test(x))) {
     const m = require(path.join(__dirname, n));
     if (m.pildoras && m.pildoras[slug]) return m.pildoras[slug];
   }

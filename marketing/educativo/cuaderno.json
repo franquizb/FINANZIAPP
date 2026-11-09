@@ -82,7 +82,52 @@
         },
         {
           "fecha": "2026-11-10",
-          "hora": "07:30",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "Tu contrato dice 2.000 euros al mes. Pero en tu cuenta entra bastante menos.",
+          "estado": "listo",
+          "slug": "es-nomina-bruto-neto",
+          "nota": "Programado en Instagram y Facebook · 33.39 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "20:30",
+          "tipo": "Reel",
+          "tema": "¿Pagas extra prorrateadas o en junio y diciembre? ¿Cuál te da más dinero?",
+          "estado": "listo",
+          "slug": "es-pagas-extra",
+          "nota": "Programado en Instagram y Facebook · 29.09 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Todo el mundo habla de las Letras del Tesoro. Te lo explico en treinta segundos.",
+          "estado": "listo",
+          "slug": "es-letras-tesoro",
+          "nota": "Programado en Instagram y Facebook · 27.28 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
+          "estado": "listo",
+          "slug": "es-fondo-emergencia",
+          "nota": "Programado en Instagram y Facebook · 28.3 s"
+        },
+        {
+          "fecha": "2026-11-11",
+          "hora": "20:30",
+          "tipo": "Reel",
+          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
+          "estado": "listo",
+          "slug": "es-reduflacion",
+          "nota": "Programado en Instagram y Facebook · 28.84 s"
+        },
+        {
+          "fecha": "2026-11-10",
+          "hora": "13:00",
           "tipo": "Reel",
           "tema": "¿Cobras y a final de mes no sabes dónde ha ido el dinero? Prueba esto.",
           "estado": "listo",
@@ -91,48 +136,12 @@
         },
         {
           "fecha": "2026-11-10",
-          "hora": "13:00",
-          "tipo": "Reel",
-          "tema": "Tu contrato dice 2.000 euros al mes. Pero en tu cuenta entra bastante menos.",
-          "estado": "listo",
-          "slug": "es-nomina-bruto-neto",
-          "nota": "Programado en Instagram y Facebook · 30.73 s"
-        },
-        {
-          "fecha": "2026-11-10",
-          "hora": "17:30",
-          "tipo": "Reel",
-          "tema": "¿Pagas extra prorrateadas o en junio y diciembre? ¿Cuál te da más dinero?",
-          "estado": "listo",
-          "slug": "es-pagas-extra",
-          "nota": "Programado en Instagram y Facebook · 28.49 s"
-        },
-        {
-          "fecha": "2026-11-10",
-          "hora": "20:30",
-          "tipo": "Reel",
-          "tema": "Todo el mundo habla de las Letras del Tesoro. Te lo explico en treinta segundos.",
-          "estado": "listo",
-          "slug": "es-letras-tesoro",
-          "nota": "Programado en Instagram y Facebook · 26.13 s"
-        },
-        {
-          "fecha": "2026-11-11",
           "hora": "07:30",
           "tipo": "Reel",
-          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
+          "tema": "Día 1/30 · ¿A dónde se va tu sueldo?",
           "estado": "listo",
-          "slug": "es-fondo-emergencia",
-          "nota": "Programado en Instagram y Facebook · 27.54 s"
-        },
-        {
-          "fecha": "2026-11-11",
-          "hora": "13:00",
-          "tipo": "Reel",
-          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
-          "estado": "listo",
-          "slug": "es-reduflacion",
-          "nota": "Programado en Instagram y Facebook · 26.78 s"
+          "slug": "es-reto-01",
+          "nota": "Programado en Instagram y Facebook · 28.96 s"
         }
       ],
       "pendientes": [

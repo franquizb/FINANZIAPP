@@ -44,6 +44,15 @@ const VOZ = {
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: CERCANO_ES, tempo: 1.15, pausaMax: 0.38 }
 };
 
+// Voz «narrador» (9 nov 2026), para los vídeos en 3D: como los perfiles de referencia que le gustan al propietario
+// (@resultaaquee, @bigshortmedia): narrador tranquilo y seguro, frases cortas, casi sin pausas, unas 3,5 palabras/s.
+const NARRADOR = 'You are the narrator of a short, documentary-style explainer video: calm, confident and clear, close to the listener, speaking at a brisk, steady pace with very short pauses. Natural and conversational, like explaining something fascinating to a friend. Understated, never theatrical.';
+const NARRADOR_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. ' + NARRADOR;
+const VOZ_NARRADOR = {
+  en: { modelo: MODELO, nombre: 'Puck', idioma: 'en-US', estilo: NARRADOR + ' Natural American English.', tempo: 1.2, pausaMax: 0.26 },
+  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: NARRADOR_ES, tempo: 1.2, pausaMax: 0.26 }
+};
+
 // Ayudas de página para animar muñecos en cualquier escena (incluir en `script` del Reel):
 //   posar(g, { pa, pb, pa2, pb2, ba, bb, ba2, bb2, y, x })  ángulos en grados (0 = colgando);
 //     brazos: negativo = hacia delante/arriba (derecha), positivo = hacia atrás (izquierda).
@@ -221,4 +230,4 @@ const cierreCon = (variante = 'moneda') => ({
 });
 const cierre = cierreCon('moneda');
 
-module.exports = { C, icono, VOZ, VOZ_V1, VOZ_V2, CIERRE, CSS, bucle, cierre, cierreCon, muneco, SCRIPT_MUNECO };
+module.exports = { C, icono, VOZ, VOZ_V1, VOZ_V2, VOZ_NARRADOR, CIERRE, CSS, bucle, cierre, cierreCon, muneco, SCRIPT_MUNECO };

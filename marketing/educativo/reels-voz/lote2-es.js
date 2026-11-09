@@ -28,7 +28,7 @@ const pildoras = {
         [1, 'Primero, la Seguridad Social: §en 2026 el trabajador cotiza el §{ding}*6,5 %*. §Con 2.000 euros, 130 al mes.'],
         [2, 'Después, la retención del IRPF, §que depende de tu sueldo y de tu situación.'],
         [3, 'Y ojo: §la retención *no es un impuesto extra*. §{pop}Es un adelanto de tu declaración de la renta.'],
-        [4, '¿Y qué es mejor, cobrar las pagas extra prorrateadas o en junio y diciembre? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y qué es mejor, cobrar las pagas extra prorrateadas o en junio y diciembre? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
       ],
       cierre: '¿Pagas extra prorrateadas o no? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -62,7 +62,7 @@ Y la siguiente: ¿qué es mejor, pagas extra prorrateadas o en junio y diciembre
         [1, 'Ninguna. §Doce pagas o catorce, §{ding}*el sueldo bruto del año es el mismo*.'],
         [2, 'Y Hacienda calcula la retención sobre lo que ganas en el año, §{pop}así que al final pagas lo mismo.'],
         [3, 'La diferencia es solo §*cuándo* te llega. §Prorrateadas, más cada mes. §{pop}En junio y diciembre, un colchón obligado.'],
-        [4, '¿Y qué son las Letras del Tesoro y por qué todo el mundo habla de ellas? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y qué son las Letras del Tesoro y por qué todo el mundo habla de ellas? [short pause] Te lo cuento en el próximo vídeo. *Síguenos*.']
       ],
       cierre: '¿Letras del Tesoro? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -95,7 +95,7 @@ Y la siguiente: ¿qué son las Letras del Tesoro y por qué todo el mundo habla 
         [1, 'Le prestas dinero al Estado §a 3, 6, 9 o 12 meses. §{ding}*Esa es la Letra*.'],
         [2, 'Cada una vale 1.000 euros al vencer, §pero la compras *un poco más barata*. §{caja}Esa diferencia es lo que ganas.'],
         [3, 'Y la puedes comprar directamente §en la web del Tesoro, §{pop}*sin comisiones*.'],
-        [4, '¿Y cuánto dinero deberías tener guardado para imprevistos? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y cuánto dinero deberías tener guardado para imprevistos? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
       ],
       cierre: '¿Cuánto guardar para imprevistos? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -128,7 +128,7 @@ Y la siguiente: ¿cuánto dinero deberías tener guardado para imprevistos? Síg
         [1, 'Para eso está el §{ding}*fondo de emergencia*: §dinero solo para imprevistos.'],
         [2, 'La regla habitual: §de 3 a 6 meses de gastos. §{caja}Si gastas 1.200 al mes, entre 3.600 y 7.200 euros.'],
         [3, 'Y guárdalo donde lo puedas sacar rápido, §{pop}*no invertido en bolsa*.'],
-        [4, '¿Y por qué la bolsa de patatas trae cada vez menos patatas? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y por qué la bolsa de patatas trae cada vez menos patatas? [short pause] Te lo cuento en el próximo vídeo. *Síguenos*.']
       ],
       cierre: '¿Por qué hay menos patatas? <span class="c">Síguenos</span> para no perdértelo.'
     } },
@@ -161,7 +161,7 @@ Y la siguiente: ¿por qué la bolsa de patatas trae cada vez menos patatas? Síg
         [1, 'Se llama §{ding}*reduflación*: §te dan menos producto por el mismo precio.'],
         [2, 'Si la bolsa pasa de 150 a 130 gramos al mismo precio, §{caja}*te sale un 15 % más caro el kilo*.'],
         [3, 'Tu defensa: §mira el precio por kilo §{pop}y compáralo con el de la última vez.'],
-        [4, '¿Y qué parte de lo que pagas en el súper le llega de verdad al agricultor? [short pause] Si te pica, *síguenos*.']
+        [4, '¿Y qué parte de lo que pagas en el súper le llega de verdad al agricultor? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
       ],
       cierre: '¿Cuánto le llega al agricultor? <span class="c">Síguenos</span> para no perdértelo.'
     } },

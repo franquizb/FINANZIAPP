@@ -21,7 +21,7 @@ const [, , idioma, video, textoArchivo] = process.argv;
 const op = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const publicar = process.argv.includes('--publicar'), programar = op('--programar');
 const pagina = PAGINA[idioma];
-if (!pagina || !video || !textoArchivo) { console.error('Uso: node publicar-facebook.cjs es|en <video.mp4> <texto.txt> [--publicar] [--programar fecha]'); process.exit(1); }
+if (!pagina || (!op('--borrar-programado') && (!video || !textoArchivo))) { console.error('Uso: node publicar-facebook.cjs es|en <video.mp4> <texto.txt> [--publicar] [--programar fecha]'); process.exit(1); }
 
 let pt = null;   // token de la página (solo en memoria)
 const fb = async (ruta, params = {}, metodo = 'GET') => {
@@ -29,6 +29,25 @@ const fb = async (ruta, params = {}, metodo = 'GET') => {
   const r = metodo === 'GET' ? await fetch(`${G}/${ruta}?${q}`) : await fetch(`${G}/${ruta}`, { method: metodo, body: q });
   const j = await r.json(); if (j.error) throw new Error(j.error.error_user_msg || j.error.message); return j;
 };
+
+// --borrar-programado <slug>: quita de la página los Reels de ese vídeo que estén programados y aún sin publicar
+// (para reemplazarlos o cambiarles la hora). Nunca toca uno ya publicado.
+if (op('--borrar-programado')) {
+  (async () => {
+    const slug = op('--borrar-programado'), reg = path.join(__dirname, 'publicados.json'), j = JSON.parse(fs.readFileSync(reg, 'utf8'));
+    pt = (await fb(pagina, { fields: 'access_token' })).access_token;
+    let n = 0;
+    for (const [id, s] of Object.entries(j.facebook || {})) {
+      if (s !== slug) continue;
+      let v; try { v = await fb(id, { fields: 'published,from{id}' }); } catch { continue; }   // de la otra página o ya no existe
+      if (!v.from || v.from.id !== pagina || v.published !== false) continue;
+      await fb(id, {}, 'DELETE'); delete j.facebook[id]; n++;
+    }
+    fs.writeFileSync(reg, JSON.stringify(j, null, 2) + '\n');
+    console.log(`✓ Facebook (${idioma}): ${n} programado(s) de «${slug}» retirado(s)`);
+  })().catch(e => { console.error('error:', e.message); process.exit(1); });
+  return;
+}
 
 (async () => {
   let cuando = null;

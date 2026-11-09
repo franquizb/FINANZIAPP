@@ -14,6 +14,8 @@
 // reel.arranque = 'lleno': fotograma 0 completo (1.ª escena, texto de arriba y 1.ª frase ya visibles),
 // porque los datos dicen que la gente se va en los primeros segundos. reel.inicio: cuándo empieza la voz.
 // reel.suelo: suelo común a 900 px de la escena (1190 en pantalla) que llena la parte de abajo.
+// reel.tres (función): coreografía 3D sobre el mundo de reels-voz/tres.js (maniquíes); reel.fijo: capa fija (HUD);
+// reel.sub = { max, largo }: tamaño de los golpes de subtítulo.
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
 // retención); se oculta en la última escena (el cierre).
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
@@ -69,13 +71,14 @@ function tiemposPalabras(voces, frases, lang) {
 }
 
 // Golpes de subtítulo de 1–3 palabras (cortando en la puntuación), con el momento de cada palabra.
-function golpes(p, tiempos, ini, finFrase) {
+function golpes(p, tiempos, ini, finFrase, op = {}) {
+  const maxPal = op.max || 3, maxLargo = op.largo || 13;
   const out = [];
   let g = [];
   p.palabras.forEach((w, k) => {
     g.push({ txt: w.txt, res: w.res, ini: ini + tiempos[k][0], fin: ini + tiempos[k][1] });
     const largo = g.map(x => x.txt).join(' ').length;
-    if (largo >= 13 || /[.,!?:;…»”]$/.test(w.txt) || g.length === 3) { out.push(g); g = []; }
+    if (largo >= maxLargo || /[.,!?:;…»”]$/.test(w.txt) || g.length === maxPal) { out.push(g); g = []; }
   });
   if (g.length) out.push(g);
   return out.map((ws, i) => ({ ini: ws[0].ini, fin: i < out.length - 1 ? out[i + 1][0].ini : finFrase, palabras: ws }));
@@ -112,7 +115,7 @@ function linea(reel, lang, voces) {
     const s_ = (reel.sonidos || {}).escena === undefined ? 'whoosh' : reel.sonidos.escena;
     if (k > 0 && s_) sonidos.push({ sonido: s_, t: Math.max(0, e.ini - 0.12) });
   });
-  const subs = frases.flatMap(f => golpes(f.p, f.tw, f.ini, f.ini + f.dur + 0.12));
+  const subs = frases.flatMap(f => golpes(f.p, f.tw, f.ini, f.ini + f.dur + 0.12, reel.sub));
   return { frases, escenas, subs, total, sonidos };
 }
 
@@ -135,10 +138,13 @@ function pagina(reel, lang, L) {
     ${reel.css || ''}
   </style></head><body>
   ${reel.cabecera ? `<div class="pag"><div class="arriba"><span class="kicker">${t.kicker}</span>${firma()}</div></div>` : ''}
+  ${reel.tres ? '<canvas id="c3d" style="position:absolute;left:0;top:0;width:1080px;height:1920px"></canvas><div class="vin"></div>' : ''}
   ${reel.suelo ? `<div style="position:absolute;left:0;right:0;top:1190px;bottom:0;background:linear-gradient(#131c30,#0b1222);border-top:4px solid #24324d"></div>` : ''}
   ${reel.escenas.map((e, i) => `<div class="escena" data-n="${i}">${e.html(t, lang)}</div>`).join('')}
   <div id="sub"></div>
+  ${reel.fijo ? reel.fijo(t, lang) : ''}
   ${t.retencion ? `<div id="retencion"><span class="caja">${t.retencion}</span></div>` : ''}
+  ${reel.tres ? `<script src="file://${path.join(__dirname, 'node_modules/three/build/three.min.js')}"></script>` : ''}
   <script>
   const LANG = ${JSON.stringify(lang)}, D = ${JSON.stringify(reel.datos ? reel.datos(lang) : {})};
   const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg })))};
@@ -151,6 +157,7 @@ function pagina(reel, lang, L) {
   const dinero = (n) => { const e = String(Math.round(Math.abs(n))).replace(/\\B(?=(\\d{3})+(?!\\d))/g, LANG === 'en' ? ',' : '.'); return (n < 0 ? '−' : '') + (LANG === 'en' ? '$' + e : e + '\\u00a0€'); };
   ${reel.script || ''}
   const ANIM = [${reel.escenas.map(e => (e.anim ? e.anim.toString() : 'null')).join(',\n')}];
+  const TRES = ${typeof reel.tres === 'function' ? reel.tres.toString() : 'null'};   // coreografía 3D: (t, k, s, e, W3)
   const nodos = [...document.querySelectorAll('.escena')], sub = document.getElementById('sub');
   let subActual = -1;
   function pintar(t) {
@@ -166,6 +173,9 @@ function pagina(reel, lang, L) {
       });
       if (ANIM[i]) ANIM[i](s, e, el);
     });
+    // Mundo 3D (reels-voz/tres.js): un solo plano por escena, con corte seco; después, la capa fija (reloj…).
+    if (TRES && typeof W3 !== 'undefined') { let k = 0; ESC.forEach((e, i) => { if (t >= e.ini) k = i; }); W3.fotograma(t, k, t - ESC[k].ini, ESC[k], TRES); }
+    if (typeof alPintar === 'function') alPintar(t);
     const ret = document.getElementById('retencion');
     if (ret) ret.style.opacity = Math.min(LLENO ? 1 : tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
     // Subtítulos palabra a palabra: el golpe entero a la vista, la palabra que suena resaltada y las que vienen, más tenues.
@@ -267,7 +277,7 @@ async function grabar(browser, reel, lang, op) {
   const idiomas = args.filter(a => ['en', 'es'].includes(a));
   const esc = args.find(a => a.startsWith('--escena='));
   const op = { vista: args.includes('--vista'), sinVoz: args.includes('--sin-voz'), escena: esc ? +esc.split('=')[1] : null };
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });   // WebGL por software para las escenas 3D
   for (const lang of idiomas.length ? idiomas : Object.keys(reel.T)) {   // cada Reel puede ser de una sola cuenta
     const ini = Date.now();
     const { total, real } = await grabar(browser, reel, lang, op);
