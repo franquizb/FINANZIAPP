@@ -135,7 +135,7 @@
           "nota": "Programado en Instagram y Facebook · 24.5 s"
         },
         {
-          "fecha": "2026-11-12",
+          "fecha": "2026-11-13",
           "hora": "17:30",
           "tipo": "Reel",
           "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
@@ -144,13 +144,22 @@
           "nota": "Programado en Instagram y Facebook · 28.3 s"
         },
         {
-          "fecha": "2026-11-12",
-          "hora": "20:30",
+          "fecha": "2026-11-14",
+          "hora": "17:00",
           "tipo": "Reel",
           "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
           "estado": "listo",
           "slug": "es-reduflacion",
           "nota": "Programado en Instagram y Facebook · 28.84 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "13:00",
+          "tipo": "Reel",
+          "tema": "Día 3/30 · Lo que vale de verdad una hora de tu trabajo",
+          "estado": "listo",
+          "slug": "es-reto-03",
+          "nota": "Programado en Instagram y Facebook · 28.08 s"
         }
       ],
       "pendientes": [
