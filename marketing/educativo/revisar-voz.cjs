@@ -43,7 +43,7 @@ Listen to this line of a voice-over and answer ONLY with JSON:
         console.log(`${ok ? '✓' : '✗'} ${lang} ${String(i + 1).padStart(2)} toma ${n} · ${v.dur.toFixed(1)} s${lang === 'es' ? ` · ${j.acento} ${j.peninsular}/10` : ''}${j.coincide ? '' : ' · NO COINCIDE: «' + j.transcripcion + '»'} · ${j.nota}`);
         if (ok) break;
         if (n === intentos) { malas++; break; }
-        for (const f of [v.archivo, v.archivo.replace(/-p\d+-t\d+\.wav$/, '.wav')]) if (fs.existsSync(f)) fs.unlinkSync(f);
+        for (const f of [v.archivo, v.archivo + '.palabras.json', v.archivo.replace(/-p\d+-t\d+\.wav$/, '.wav')]) if (fs.existsSync(f)) fs.unlinkSync(f);   // también los tiempos de la toma mala (si no, los subtítulos usan los de la toma anterior)
       }
     }
   }

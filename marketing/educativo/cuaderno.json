@@ -135,15 +135,6 @@
           "nota": "Programado en Instagram y Facebook · 24.5 s"
         },
         {
-          "fecha": "2026-11-13",
-          "hora": "17:30",
-          "tipo": "Reel",
-          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
-          "estado": "listo",
-          "slug": "es-fondo-emergencia",
-          "nota": "Programado en Instagram y Facebook · 28.3 s"
-        },
-        {
           "fecha": "2026-11-14",
           "hora": "17:00",
           "tipo": "Reel",
@@ -169,6 +160,24 @@
           "estado": "listo",
           "slug": "es-contraste-vivienda-30",
           "nota": "Programado en Instagram y Facebook · 82.64 s"
+        },
+        {
+          "fecha": "2026-11-13",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
+          "estado": "listo",
+          "slug": "es-fondo-emergencia",
+          "nota": "Programado en Instagram y Facebook · 28.3 s"
+        },
+        {
+          "fecha": "2026-11-13",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "Día 4/30 · El truco de las 24 horas antes de comprar",
+          "estado": "listo",
+          "slug": "es-reto-04",
+          "nota": "Programado en Instagram y Facebook · 27.18 s"
         }
       ],
       "pendientes": [

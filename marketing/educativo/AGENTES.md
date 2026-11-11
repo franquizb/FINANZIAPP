@@ -51,6 +51,8 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
 
 - El filtro de Google bloquea a veces frases inocentes: reescribe la frase con otras palabras y vuelve a lanzar.
 - Evita frases de una o dos palabras sueltas: únelas a la anterior con `[short pause]`.
+- Si `revisar-voz.cjs` repite una toma, borra también sus tiempos de palabras (lo hace solo desde el 11 nov 2026). Para
+  comprobar que ningún Reel usa tiempos más viejos que su audio: `node tomas-viejas.cjs "$PWD"` (debe decir 0).
 - En el guion: `*resaltado*` marca palabras en los subtítulos; `§` es un momento para la animación; `§{pop}`, `§{ding}`,
   `§{caja}` y `§{tic}` añaden además un efecto de sonido. La voz nunca lee nada de eso.
 
