@@ -12,7 +12,7 @@
 //     W.heroe({ x, z, gira, luz, brazos, visible })   el maniquí turquesa (luz 0..1 = de gris a encendido)
 //     W.zonas([q0, q1, q2])                    intensidad de las tres zonas del suelo (con su rótulo)
 //     W.multitud(t, { directo })               directo(i, a) → { x, z, rot, amp, fase, esc, color, cq… } lleva a ese maniquí de la mano
-//     W.etiqueta(clave, texto, x, y, z, op, css)   rótulo flotante · W.puerta({ x, z, luz })   puerta luminosa roja
+//     W.etiqueta(clave, texto, x, y, z, op, css, tam)   rótulo flotante (tam: escala, 1 por defecto) · W.puerta({ x, z, luz })   puerta luminosa roja
 //     W.niebla(cerca, lejos) · W.T = THREE · W.gente · W.GRUPOS
 // Se renderiza por software (SwiftShader) a 0,8× y el navegador lo escala: nítido de sobra para vídeo.
 const { C, VOZ_NARRADOR } = require('./_comun');
@@ -161,7 +161,7 @@ const W3 = (() => {
 
   // ——— etiquetas flotantes (una por clave; se ocultan solas si un fotograma no las pide) ———
   const etiquetas = {};
-  function etiqueta(k, texto, x, y, z, op, css) {
+  function etiqueta(k, texto, x, y, z, op, css, tam) {
     css = css || '#5eead4'; let e = etiquetas[k + css];
     if (!e) {
       const tx = lienzo(512, 144, (c, w, h) => { c.fillStyle = 'rgba(9,14,27,.94)'; c.strokeStyle = css; c.lineWidth = 9; c.beginPath(); c.roundRect(7, 7, w - 14, h - 14, 44); c.fill(); c.stroke();
@@ -169,6 +169,7 @@ const W3 = (() => {
       const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, transparent: true, depthWrite: false })); sp.scale.set(1.25, 0.352, 1); S.add(sp);
       e = etiquetas[k + css] = { sp };
     }
+    tam = tam || 1; e.sp.scale.set(1.25 * tam, 0.352 * tam, 1);
     e.sp.position.set(x, y, z); e.sp.material.opacity = op == null ? 1 : op; e.usada = e.sp.material.opacity > 0.01;
   }
 
