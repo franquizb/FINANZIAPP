@@ -108,24 +108,6 @@
           "nota": "Programado en Instagram y Facebook · 27.28 s"
         },
         {
-          "fecha": "2026-11-11",
-          "hora": "17:30",
-          "tipo": "Reel",
-          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
-          "estado": "listo",
-          "slug": "es-fondo-emergencia",
-          "nota": "Programado en Instagram y Facebook · 28.3 s"
-        },
-        {
-          "fecha": "2026-11-11",
-          "hora": "20:30",
-          "tipo": "Reel",
-          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
-          "estado": "listo",
-          "slug": "es-reduflacion",
-          "nota": "Programado en Instagram y Facebook · 28.84 s"
-        },
-        {
           "fecha": "2026-11-10",
           "hora": "13:00",
           "tipo": "Reel",
@@ -151,6 +133,24 @@
           "estado": "listo",
           "slug": "es-reto-02",
           "nota": "Programado en Instagram y Facebook · 24.5 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "17:30",
+          "tipo": "Reel",
+          "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
+          "estado": "listo",
+          "slug": "es-fondo-emergencia",
+          "nota": "Programado en Instagram y Facebook · 28.3 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "20:30",
+          "tipo": "Reel",
+          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
+          "estado": "listo",
+          "slug": "es-reduflacion",
+          "nota": "Programado en Instagram y Facebook · 28.84 s"
         }
       ],
       "pendientes": [
