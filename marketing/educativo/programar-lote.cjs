@@ -1,14 +1,17 @@
-// Programa un lote de Reels ya renderizados: 4 al día por cuenta, en las franjas de su audiencia (distintas entre semana
-// y en fin de semana). Instagram → cola del panel (encolar-instagram.cjs); Facebook → programación nativa
+// Programa un lote de Reels ya renderizados: 2 al día por cuenta (--por-dia N), en franjas de su audiencia elegidas al azar
+// cada día (distintas entre semana y en fin de semana) y a un minuto suelto, nunca en punto (horario.cjs; --exacta lo quita).
+// Facebook sale unos minutos después que Instagram. Instagram → cola del panel (encolar-instagram.cjs); Facebook → programación nativa
 // (publicar-facebook.cjs). Apunta cada vídeo en el cuaderno del panel (estadisticas/cuaderno) con su hora de Canarias.
 // Solo cuando el propietario ha pedido publicar en volumen. Sin --programar solo enseña el plan.
-// Uso: node programar-lote.cjs <dir google-auth-library> <credencial.json> --desde 2026-11-09 es:slug1,slug2 en:slugA,slugB [--programar] [--solo-ig]
+// Uso: node programar-lote.cjs <dir google-auth-library> <credencial.json> --desde 2026-11-09 es:slug1,slug2 en:slugA,slugB [--por-dia 2] [--exacta] [--programar] [--solo-ig]
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 const [, , fbt, sa] = process.argv;
 const op = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
-const programar = process.argv.includes('--programar'), soloIg = process.argv.includes('--solo-ig');
+const programar = process.argv.includes('--programar'), soloIg = process.argv.includes('--solo-ig'), exacta = process.argv.includes('--exacta');
+const { alAzar, despuesDe, elegir, iso: aIso } = require('./horario.cjs');
+const porDia = Math.max(1, Math.min(4, +(op('--por-dia') || 2)));
 
-// Franjas (hora de la audiencia): 4 al día por cuenta, separadas al menos 3 horas. Revisarlas con «Cuándo publicar» en el panel.
+// Franjas (hora de la audiencia), separadas al menos 3 horas; cada día se usan --por-dia de ellas, al azar. Revisarlas con «Cuándo publicar» en el panel.
 const FRANJAS = {
   es: { zona: 'Europe/Madrid', laborable: ['08:30', '14:00', '18:30', '21:30'], finde: ['10:30', '13:30', '18:00', '21:00'] },
   en: { zona: 'America/New_York', laborable: ['08:00', '12:30', '16:30', '19:30'], finde: ['10:00', '13:00', '16:00', '19:00'] }
@@ -40,14 +43,19 @@ const finde = (dia, zona) => ['Sat', 'Sun'].includes(new Intl.DateTimeFormat('en
   const plan = [];
   for (const [cuenta, slugs] of lotes) {
     const F = FRANJAS[cuenta];
-    // Huecos libres: no repetir una hora ya ocupada en la cola de esa cuenta ni programar a menos de 20 minutos.
-    const ocupados = new Set(cola.items.filter(x => x.cuenta === cuenta && ['pendiente', 'publicando'].includes(x.estado)).map(x => x.cuando.slice(0, 16)));
+    // Huecos libres: a más de 90 minutos de lo que ya hay en la cola de esa cuenta y a más de 20 minutos de ahora.
+    const ocupados = cola.items.filter(x => x.cuenta === cuenta && ['pendiente', 'publicando'].includes(x.estado)).map(x => Date.parse(x.cuando));
+    const libre = (t) => ocupados.every(o => Math.abs(o - t) > 90 * 60e3);
     const huecos = [];
     for (let k = 0; huecos.length < slugs.length && k < 30; k++) {
       const dia = new Date(Date.parse(desde + 'T12:00:00Z') + k * 864e5).toISOString().slice(0, 10);
-      for (const hora of F[finde(dia, F.zona) ? 'finde' : 'laborable']) {
-        const t = instante(dia, hora, F.zona);
-        if (t - Date.now() > 20 * 60e3 && !ocupados.has(t.toISOString().slice(0, 16)) && huecos.length < slugs.length) huecos.push(t);
+      const delDia = F[finde(dia, F.zona) ? 'finde' : 'laborable'];
+      // Los días que ya tienen algo en la cola cuentan: entre lo que hay y lo nuevo, no más de --por-dia.
+      const yaHay = ocupados.filter(o => enZona(new Date(o), F.zona, { year: 'numeric', month: '2-digit', day: '2-digit' }) === dia).length;
+      const libres = delDia.filter(x => libre(instante(dia, x, F.zona).getTime())), cuantas = exacta ? libres.length : Math.max(0, porDia - yaHay);
+      for (const hora of cuantas ? elegir(libres, cuantas) : []) {
+        const t = exacta ? instante(dia, hora, F.zona) : alAzar(instante(dia, hora, F.zona));
+        if (t - Date.now() > 20 * 60e3 && huecos.length < slugs.length) huecos.push(t);
       }
     }
     // Nunca dos veces el mismo vídeo: si ya está pendiente en la cola, se salta.
@@ -63,9 +71,9 @@ const finde = (dia, zona) => ['Sat', 'Sun'].includes(new Intl.DateTimeFormat('en
   }
   if (!programar) { console.log('\n(plan: añade --programar para encolar en Instagram y programar en Facebook)'); return; }
   for (const p of plan) {
-    const iso = p.cuando.toISOString().replace(/\.\d{3}Z$/, 'Z'), video = path.join(p.dir, 'reel.mp4'), texto = path.join(p.dir, 'texto.txt');
+    const iso = aIso(p.cuando), isoFb = exacta ? iso : aIso(despuesDe(p.cuando)), video = path.join(p.dir, 'reel.mp4'), texto = path.join(p.dir, 'texto.txt');
     if ((p.cuando - Date.now()) <= 6.5 * 864e5) execFileSync('node', [path.join(__dirname, 'encolar-instagram.cjs'), fbt, sa, p.cuenta, video, texto, iso, '--portada-ms', String(p.meta.portada_ms)], { stdio: 'inherit' });
-    if (!soloIg) execFileSync('node', [path.join(__dirname, 'publicar-facebook.cjs'), p.cuenta, video, texto, '--publicar', '--programar', iso], { stdio: 'inherit' });
+    if (!soloIg) execFileSync('node', [path.join(__dirname, 'publicar-facebook.cjs'), p.cuenta, video, texto, '--publicar', '--programar', isoFb], { stdio: 'inherit' });
     // Cuaderno: una entrada por vídeo (fecha y hora de Canarias), estado «listo».
     const cu = cuaderno.cuentas[p.cuenta] = cuaderno.cuentas[p.cuenta] || { proximos: [], pendientes: [] };
     cu.proximos = cu.proximos.filter(x => x.slug !== p.slug);

@@ -135,26 +135,8 @@
           "nota": "Programado en Instagram y Facebook · 24.5 s"
         },
         {
-          "fecha": "2026-11-14",
-          "hora": "17:00",
-          "tipo": "Reel",
-          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
-          "estado": "listo",
-          "slug": "es-reduflacion",
-          "nota": "Programado en Instagram y Facebook · 28.84 s"
-        },
-        {
           "fecha": "2026-11-12",
-          "hora": "13:00",
-          "tipo": "Reel",
-          "tema": "Día 3/30 · Lo que vale de verdad una hora de tu trabajo",
-          "estado": "listo",
-          "slug": "es-reto-03",
-          "nota": "Programado en Instagram y Facebook · 28.08 s"
-        },
-        {
-          "fecha": "2026-11-12",
-          "hora": "07:30",
+          "hora": "07:22",
           "tipo": "Reel",
           "tema": "¿Bajaría la vivienda un 30 % quitando impuestos?",
           "estado": "listo",
@@ -162,8 +144,26 @@
           "nota": "Programado en Instagram y Facebook · 82.64 s"
         },
         {
+          "fecha": "2026-11-12",
+          "hora": "13:34",
+          "tipo": "Reel",
+          "tema": "Día 3/30 · Lo que vale de verdad una hora de tu trabajo",
+          "estado": "listo",
+          "slug": "es-reto-03",
+          "nota": "Programado en Instagram y Facebook · 28.08 s"
+        },
+        {
           "fecha": "2026-11-13",
-          "hora": "17:30",
+          "hora": "07:48",
+          "tipo": "Reel",
+          "tema": "Día 4/30 · El truco de las 24 horas antes de comprar",
+          "estado": "listo",
+          "slug": "es-reto-04",
+          "nota": "Programado en Instagram y Facebook · 27.18 s"
+        },
+        {
+          "fecha": "2026-11-13",
+          "hora": "17:29",
           "tipo": "Reel",
           "tema": "Se te rompe la lavadora y el coche el mismo mes. ¿Tienes con qué pagarlo?",
           "estado": "listo",
@@ -171,13 +171,13 @@
           "nota": "Programado en Instagram y Facebook · 28.3 s"
         },
         {
-          "fecha": "2026-11-13",
-          "hora": "07:30",
+          "fecha": "2026-11-14",
+          "hora": "17:33",
           "tipo": "Reel",
-          "tema": "Día 4/30 · El truco de las 24 horas antes de comprar",
+          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
           "estado": "listo",
-          "slug": "es-reto-04",
-          "nota": "Programado en Instagram y Facebook · 27.18 s"
+          "slug": "es-reduflacion",
+          "nota": "Programado en Instagram y Facebook · 28.84 s"
         }
       ],
       "pendientes": [
@@ -287,15 +287,6 @@
           "nota": "Programado en Instagram y Facebook · 30.47 s"
         },
         {
-          "fecha": "2026-11-12",
-          "hora": "00:30",
-          "tipo": "Reel",
-          "tema": "Five bucks a day. Coffee, a snack, an app. Let’s do the math.",
-          "estado": "listo",
-          "slug": "en-5-dollars-a-day",
-          "nota": "Programado en Instagram y Facebook · 34.03 s"
-        },
-        {
           "fecha": "2026-11-10",
           "hora": "13:00",
           "tipo": "Reel",
@@ -339,6 +330,15 @@
           "estado": "listo",
           "slug": "en-emergency-fund",
           "nota": "Programado en Instagram y Facebook · 35.56 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "00:58",
+          "tipo": "Reel",
+          "tema": "Five bucks a day. Coffee, a snack, an app. Let’s do the math.",
+          "estado": "listo",
+          "slug": "en-5-dollars-a-day",
+          "nota": "Programado en Instagram y Facebook · 34.03 s"
         }
       ],
       "pendientes": [

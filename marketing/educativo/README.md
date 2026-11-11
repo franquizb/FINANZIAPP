@@ -97,7 +97,12 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   (tarjetas, rótulos) y `tres` la coreografía 3D por fotograma (`W.multitud`, `W.heroe`, `W.zonas`, `W.puerta`,
   `W.etiqueta`, `W.camara`). Se renderiza por software (SwiftShader), unos 7–10 min por vídeo de 30 s.
   Voz: `VOZ_NARRADOR` (tranquila, ~3,4 palabras/s). Subtítulos arriba (`sub: { max, largo }`) y capa fija `fijo` (HUD).
-- **Cambiar algo ya programado** (otro archivo u otra hora) sin duplicar: `node reprogramar.cjs <…> <…> es|en <slug> [fecha ISO]`.
+- **Cambiar algo ya programado** (otro archivo u otra hora) sin duplicar: `node reprogramar.cjs <…> <…> es|en <slug> [fecha ISO] [--al-azar]`.
+- **Horas que no parezcan de máquina** (`horario.cjs`): Instagram le pidió al propietario la prueba de «no soy un robot»
+  dos veces el 11 nov 2026, cuando todo salía a las 7:30, 13:00, 17:30 y 20:30 exactas. Desde entonces: minuto suelto dentro
+  de la franja (`--al-azar` en `reprogramar.cjs`; por defecto en `programar-lote.cjs`), Facebook unos minutos después que
+  Instagram, 2 vídeos al día por cuenta (`--por-dia`) en franjas elegidas al azar, y la función publica con una pausa distinta
+  cada vez. `--exacta` vuelve a la hora en punto.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.
@@ -140,7 +145,7 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   Los dos scripts anotan en `publicados.json` qué vídeo es cada publicación.
   **Programar en Instagram** (la API no programa): `node encolar-instagram.cjs <…> <…> es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms N]`
   deja el vídeo en la cola (`estadisticas/cola`, bucket privado, URL firmada) y la función `panelPublicar`
-  lo publica a esa hora (mira cada 15 min). Máximo 23 h antes, porque el bucket borra a las 24 h.
+  lo publica a esa hora (mira cada 5 min y espera una pausa al azar). Hasta 6,5 días antes (la URL firmada dura 7).
   `--ensayo` lo deja procesado sin publicar. En el panel se ve en «Qué toca ahora» y se puede cancelar.
 - **Token de Meta**: lo inyecta el proxy del entorno en `graph.facebook.com`
   (formulario seguro, nunca en el código) y está también en Secret Manager como `META_TOKEN`.

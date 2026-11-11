@@ -1,5 +1,5 @@
 // Deja un Reel en la cola de publicación de Instagram: se publica solo a la hora indicada (la función panelPublicar
-// mira la cola cada 15 minutos). El vídeo espera en el bucket privado finanziapp-publicar (carpeta cola/, se borra a los 9 días)
+// mira la cola cada 5 minutos). El vídeo espera en el bucket privado finanziapp-publicar (carpeta cola/, se borra a los 9 días)
 // y la hora tiene que estar dentro de los próximos 6,5 días (la URL firmada dura 7 días como mucho). Solo cuando el propietario pide publicar algo concreto.
 // Con --ensayo, Instagram lo prepara y lo procesa pero no lo publica (para comprobar que todo funciona).
 // Uso: node encolar-instagram.cjs <dir google-auth-library> <credencial.json> es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms 3500] [--ensayo]

@@ -1,7 +1,7 @@
 // Panel de redes de FinanziApp (franquizb.com), codebase «panel»:
 // - panelActualizar: cada hora lee Instagram y Facebook de las dos cuentas y lo guarda en Firestore (colección estadisticas,
 //   que solo puede leer el propietario según firestore.rules; aquí se escribe con el SDK de administración).
-// - panelPublicar: cada 15 minutos publica en Instagram lo que toque de la cola (estadisticas/cola).
+// - panelPublicar: cada 5 minutos publica en Instagram lo que toque de la cola (estadisticas/cola), tras una pausa al azar.
 // - panelAccion: acciones desde el panel (actualizar ya, responder u ocultar comentarios, cancelar un vídeo de la cola,
 //   editar el cuaderno y los referentes).
 //   Solo el propietario.
@@ -55,9 +55,12 @@ async function publicarCola() {
   const cola = await leerJson('cola', { items: [] });
   let hechos = 0;
   for (const it of cola.items) {
-    if (it.estado !== 'pendiente' || Date.parse(it.cuando) > Date.now() + 5 * 60e3) continue;
+    if (it.estado !== 'pendiente' || Date.parse(it.cuando) > Date.now()) continue;
     it.estado = 'publicando'; it.intento = new Date().toISOString();
     await guardarJson('cola', cola);
+    // Una pausa distinta cada vez: con la hora de la cola en un minuto suelto y la pasada cada 5 minutos, la publicación
+    // no cae nunca en el mismo minuto del reloj.
+    await new Promise(r => setTimeout(r, (8 + Math.random() * 100) * 1000));
     try {
       const [datos] = it.url ? [null] : await admin.storage().bucket(BUCKET).file(it.objeto).download();
       const r = await meta.publicarReelIg(META_TOKEN.value(), it, datos);
@@ -76,9 +79,9 @@ async function publicarCola() {
       await admin.storage().bucket(BUCKET).file(it.objeto).delete().catch(() => {});
       logger.info('Cola: ' + it.estado, { id: it.id, cuenta: it.cuenta, enlace: it.enlace });
     } catch (e) {
-      // Hasta 3 intentos (uno por pasada, cada 15 min) mientras la URL firmada siga viva; después queda en error.
+      // Hasta 4 intentos (uno por pasada, cada 5 min) mientras la URL firmada siga viva; después queda en error.
       it.intentos = (it.intentos || 0) + 1;
-      const reintenta = it.intentos < 3 && Date.now() - Date.parse(it.cuando) < 2.5 * 3600e3;
+      const reintenta = it.intentos < 4 && Date.now() - Date.parse(it.cuando) < 2.5 * 3600e3;
       Object.assign(it, { estado: reintenta ? 'pendiente' : 'error', error: e.message });
       logger.error('Cola: error al publicar', { id: it.id, error: e.message, intentos: it.intentos, reintenta });
     }
@@ -88,7 +91,7 @@ async function publicarCola() {
   return hechos;
 }
 
-exports.panelPublicar = onSchedule({ schedule: 'every 15 minutes', timeZone: 'Europe/Madrid', secrets: [META_TOKEN], timeoutSeconds: 540, memory: '1GiB', retryCount: 0 }, async () => {
+exports.panelPublicar = onSchedule({ schedule: 'every 5 minutes', timeZone: 'Europe/Madrid', secrets: [META_TOKEN], timeoutSeconds: 540, memory: '1GiB', retryCount: 0 }, async () => {
   const n = await publicarCola();
   if (n) await actualizar();   // que el panel lo enseñe enseguida
 });
