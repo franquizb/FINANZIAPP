@@ -13,6 +13,8 @@
 //     W.zonas([q0, q1, q2])                    intensidad de las tres zonas del suelo (con su rótulo)
 //     W.multitud(t, { directo })               directo(i, a) → { x, z, rot, amp, fase, esc, color, cq… } lleva a ese maniquí de la mano
 //     W.etiqueta(clave, texto, x, y, z, op, css, tam)   rótulo flotante (tam: escala, 1 por defecto) · W.puerta({ x, z, luz })   puerta luminosa roja
+//     W.casa({ x, z, rot, esc, bloque(i) → { color, q, brillo, op, dz, dy, esc } })   casa de 100 bloques (1 bloque = 1 %)
+//     W.casitas([{ x, z, rot, esc, color, q }…])   hasta 5 casas pequeñas
 //     W.niebla(cerca, lejos) · W.T = THREE · W.gente · W.GRUPOS
 // Se renderiza por software (SwiftShader) a 0,8× y el navegador lo escala: nítido de sobra para vídeo.
 const { C, VOZ_NARRADOR } = require('./_comun');
@@ -190,11 +192,54 @@ const W3 = (() => {
     matP.emissiveIntensity = 0.1 + 0.6 * l; velo.material.opacity = 0.5 * l; luzP.intensity = 2.8 * l; charcoP.material.opacity = 0.3 * l;
   }
 
+  // ——— casa de 100 bloques (cada bloque = 1 % de lo que pagas): tejado escalonado (filas de 2, 4, 6 y 8) y muro de 8 × 10.
+  // Los bloques se numeran de arriba abajo y de izquierda a derecha: 0–19 el tejado, 20–29 la fila de arriba del muro…
+  // W.casa({ x, z, rot, esc, bloque: (i) => ({ color, q, brillo, op, dz, dy, esc }) })  · W.casa(null) la apaga.
+  const casaG = new T.Group(); casaG.visible = false; S.add(casaG);
+  const LADO_B = 0.5, geoB = new T.BoxGeometry(LADO_B * 0.9, LADO_B * 0.9, LADO_B * 1.8), bloques = [];
+  const FILAS_CASA = [2, 4, 6, 8, 10, 10, 10, 10, 10, 10, 10, 10];
+  FILAS_CASA.forEach((n, f) => {
+    const y = (FILAS_CASA.length - 1 - f) * LADO_B + LADO_B / 2;
+    for (let c = 0; c < n; c++) {
+      const m = new T.Mesh(geoB, new T.MeshStandardMaterial({ color: 0xb4bac6, roughness: 0.55, metalness: 0.05, transparent: true }));
+      m.position.set((c - (n - 1) / 2) * LADO_B, y, 0); m.castShadow = true; m.receiveShadow = true; casaG.add(m);
+      bloques.push({ m, x: m.position.x, y });
+    }
+  });
+  function casa(o) {
+    if (!o) { casaG.visible = false; return; }
+    casaG.visible = true; casaG.position.set(o.x || 0, 0, o.z || 0); casaG.rotation.y = o.rot || 0; casaG.scale.setScalar(o.esc || 1);
+    bloques.forEach((b, i) => {
+      const d = (o.bloque && o.bloque(i)) || {}, mt = b.m.material, q = d.q == null ? 1 : d.q;
+      mt.color.copy(GRIS); mt.emissive.copy(NEGRO);
+      if (d.color != null) { mt.color.lerp(color(d.color), q); mt.emissive.lerp(color(d.color), (d.brillo == null ? 0.35 : d.brillo) * q); }
+      mt.opacity = d.op == null ? 1 : d.op; mt.depthWrite = mt.opacity > 0.99;
+      b.m.position.set(b.x, b.y + (d.dy || 0), d.dz || 0); b.m.scale.setScalar(Math.max(0.001, d.esc == null ? 1 : d.esc)); b.m.visible = mt.opacity > 0.01;
+    });
+  }
+
+  // ——— casitas (hasta 5): W.casitas([{ x, z, rot, esc, color, q }]) · W.casitas(null) las apaga ———
+  const casitasM = Array.from({ length: 5 }, () => {
+    const g = new T.Group(), mt = new T.MeshStandardMaterial({ color: 0xb4bac6, roughness: 0.55, metalness: 0.05 });
+    const cuerpo = new T.Mesh(new T.BoxGeometry(1.3, 1.1, 1.3), mt); cuerpo.position.y = 0.55;
+    const tejado = new T.Mesh(new T.ConeGeometry(1.08, 0.75, 4), mt); tejado.position.y = 1.1 + 0.375; tejado.rotation.y = Math.PI / 4;
+    [cuerpo, tejado].forEach(m => { m.castShadow = true; m.receiveShadow = true; g.add(m); });
+    g.visible = false; S.add(g); return { g, mt };
+  });
+  function casitas(lista) {
+    casitasM.forEach((c, k) => {
+      const o = lista && lista[k]; c.g.visible = !!o; if (!o) return;
+      c.g.position.set(o.x || 0, 0, o.z || 0); c.g.rotation.y = o.rot || 0; c.g.scale.setScalar(o.esc || 1);
+      c.mt.color.copy(GRIS); c.mt.emissive.copy(NEGRO);
+      if (o.color != null) { const q = o.q == null ? 1 : o.q; c.mt.color.lerp(color(o.color), q); c.mt.emissive.lerp(color(o.color), 0.3 * q); }
+    });
+  }
+
   function camara(px, py, pz, lx, ly, lz) { cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); }
   function niebla(cerca, lejos) { S.fog.near = cerca; S.fog.far = lejos; }
-  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color };
+  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas };
   W.fotograma = (t, k, s, e, coreo) => {
-    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); for (const q in etiquetas) etiquetas[q].usada = false;
+    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); for (const q in etiquetas) etiquetas[q].usada = false;
     coreo(t, k, s, e, W);
     for (const q in etiquetas) etiquetas[q].sp.visible = etiquetas[q].usada;
     R.render(S, cam);
