@@ -160,6 +160,15 @@
           "estado": "listo",
           "slug": "es-reto-03",
           "nota": "Programado en Instagram y Facebook · 28.08 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "07:30",
+          "tipo": "Reel",
+          "tema": "¿Bajaría la vivienda un 30 % quitando impuestos?",
+          "estado": "listo",
+          "slug": "es-contraste-vivienda-30",
+          "nota": "Programado en Instagram y Facebook · 82.64 s"
         }
       ],
       "pendientes": [

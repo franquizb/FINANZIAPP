@@ -15,6 +15,8 @@
 //     W.etiqueta(clave, texto, x, y, z, op, css, tam)   rótulo flotante (tam: escala, 1 por defecto) · W.puerta({ x, z, luz })   puerta luminosa roja
 //     W.casa({ x, z, rot, esc, bloque(i) → { color, q, brillo, op, dz, dy, esc } })   casa de 100 bloques (1 bloque = 1 %)
 //     W.casitas([{ x, z, rot, esc, color, q }…])   hasta 5 casas pequeñas
+//     W.caja({ x, z, rot, luz, op, item: { y, op, color } })   caja abierta turquesa (el carrito) con la compra dentro
+//     W.puerta({ …, color, cq })   la puerta pasa del rojo a otro color (por defecto, roja)
 //     W.niebla(cerca, lejos) · W.T = THREE · W.gente · W.GRUPOS
 // Se renderiza por software (SwiftShader) a 0,8× y el navegador lo escala: nítido de sobra para vídeo.
 const { C, VOZ_NARRADOR } = require('./_comun');
@@ -186,10 +188,32 @@ const W3 = (() => {
   const luzP = new T.PointLight(0xf87171, 0, 13, 1.6); luzP.position.set(0, 1.6, 0.9); puertaG.add(luzP);
   const charcoP = new T.Mesh(new T.PlaneGeometry(9, 9), new T.MeshBasicMaterial({ map: halo, color: 0xf87171, blending: T.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.3 }));
   charcoP.rotation.x = -Math.PI / 2; charcoP.position.set(0, 0.02, 0.7); puertaG.add(charcoP);
+  const P_ROJO = new T.Color(0xef4444), P_ROJO2 = new T.Color(0xf87171);
   function puerta(o) {
     if (!o) { puertaG.visible = false; luzP.intensity = 0; return; }
     const l = o.luz == null ? 1 : o.luz; puertaG.visible = true; puertaG.position.set(o.x || 0, 0, o.z || 0); puertaG.rotation.y = o.rot || 0;
     matP.emissiveIntensity = 0.1 + 0.6 * l; velo.material.opacity = 0.5 * l; luzP.intensity = 2.8 * l; charcoP.material.opacity = 0.3 * l;
+    // color (opcional): la puerta pasa de rojo a ese color con cq (0..1); sin color, roja como siempre.
+    const q = o.color == null ? 0 : (o.cq == null ? 1 : o.cq), c = o.color == null ? P_ROJO : color(o.color);
+    matP.color.copy(P_ROJO).lerp(c, q); matP.emissive.copy(P_ROJO).lerp(c, q);
+    [velo.material.color, luzP.color, charcoP.material.color].forEach(x => x.copy(P_ROJO2).lerp(c, q));
+  }
+
+  // ——— caja abierta (el carrito) y la compra que se guarda dentro ———
+  // W.caja({ x, z, rot, luz, op, item: { y, op, color } }) · W.caja(null) la apaga.
+  const cajaG = new T.Group(); cajaG.visible = false; S.add(cajaG);
+  const matC = new T.MeshStandardMaterial({ color: 0x2dd4bf, emissive: 0x2dd4bf, emissiveIntensity: 0.35, roughness: 0.45, transparent: true });
+  [[1.3, 0.08, 1.0, 0, 0.04, 0], [1.3, 0.75, 0.08, 0, 0.375, 0.46], [1.3, 0.75, 0.08, 0, 0.375, -0.46], [0.08, 0.75, 1.0, 0.61, 0.375, 0], [0.08, 0.75, 1.0, -0.61, 0.375, 0]]
+    .forEach(([w, h, d, x, y, z]) => { const m = new T.Mesh(new T.BoxGeometry(w, h, d), matC); m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; cajaG.add(m); });
+  const matI = new T.MeshStandardMaterial({ color: 0xe2a336, emissive: 0xe2a336, emissiveIntensity: 0.25, roughness: 0.5, transparent: true });
+  const itemC = new T.Mesh(new T.BoxGeometry(0.7, 0.42, 0.5), matI); itemC.castShadow = true; cajaG.add(itemC);
+  function caja(o) {
+    if (!o) { cajaG.visible = false; return; }
+    cajaG.visible = true; cajaG.position.set(o.x || 0, 0, o.z || 0); cajaG.rotation.y = o.rot || 0;
+    matC.opacity = o.op == null ? 1 : o.op; matC.depthWrite = matC.opacity > 0.99; matC.emissiveIntensity = 0.1 + 0.4 * (o.luz == null ? 1 : o.luz);
+    const it = o.item; itemC.visible = !!it && (it.op == null || it.op > 0.01);
+    if (it) { itemC.position.set(0, it.y == null ? 0.45 : it.y, 0); matI.opacity = it.op == null ? 1 : it.op; matI.depthWrite = matI.opacity > 0.99;
+      matI.color.copy(color(it.color || 0xe2a336)); matI.emissive.copy(matI.color); }
   }
 
   // ——— casa de 100 bloques (cada bloque = 1 % de lo que pagas): tejado escalonado (filas de 2, 4, 6 y 8) y muro de 8 × 10.
@@ -237,9 +261,9 @@ const W3 = (() => {
 
   function camara(px, py, pz, lx, ly, lz) { cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); }
   function niebla(cerca, lejos) { S.fog.near = cerca; S.fog.far = lejos; }
-  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas };
+  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas, caja };
   W.fotograma = (t, k, s, e, coreo) => {
-    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); for (const q in etiquetas) etiquetas[q].usada = false;
+    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); caja(null); for (const q in etiquetas) etiquetas[q].usada = false;
     coreo(t, k, s, e, W);
     for (const q in etiquetas) etiquetas[q].sp.visible = etiquetas[q].usada;
     R.render(S, cam);

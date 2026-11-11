@@ -298,8 +298,121 @@ Día 3 de 30 para ordenar tu dinero. Hoy, una cuenta: tu sueldo neto ÷ las hora
 👉 Mañana, día 4: el truco de las 24 horas antes de comprar. Síguenos para no perderte ningún día.
 
 #finanzaspersonales #ahorro #retodeahorro #educacionfinanciera #dinero` }
+  }),
+
+  // Día 4 · La regla de las 24 horas: las ganas de comprar llegan en segundos y muchas veces se van solas.
+  // Sin datos ni estadísticas: es una regla práctica. Enlaza con el día 3 (pasar el precio a horas de trabajo).
+  'es-reto-04': pildora3d({
+    slug: 'es-reto-04', cuenta: 'es',
+    T: { es: {
+      titulo: 'Día 4/30 · El truco de las 24 horas antes de comprar',
+      guion: [
+        [0, '¿Lo quieres, §o lo quieres *ahora*? No es lo mismo.'],
+        [1, 'Las ganas de comprar llegan en segundos. §Y muchas veces, §{pop}se van solas *en un día*.'],
+        [2, '*Día cuatro*. §Si no es comida ni una urgencia, §{tic}espera *24 horas* antes de pagar.'],
+        [3, 'Déjalo en el carrito y §pásalo a horas de trabajo, como ayer. §{ding}Si mañana lo sigues queriendo, *cómpralo tranquilo*.'],
+        [4, 'Y si mañana ni te acuerdas, §{caja}ese dinero *se queda contigo*.'],
+        [5, 'Día cuatro de treinta para *ordenar tu dinero*. §Mañana: *págate a ti primero*, el mismo día que cobras.']
+      ]
+    } },
+    fijo: () => hud(4, TOTAL),
+    cssExtra: `
+      .reloj24 { position: absolute; left: 50%; top: 520px; text-align: center; background: rgba(9,14,27,.88); border: 3px solid rgba(245,185,74,.7);
+        border-radius: 26px; padding: 14px 44px 20px; white-space: nowrap; opacity: 0; }
+      .reloj24 small { display: block; font: 700 23px/1.35 'DejaVu Sans Mono', monospace; letter-spacing: .14em; color: #f5b94a; }
+      .reloj24 b { display: block; font: 800 112px/1.05 'DejaVu Sans Mono', monospace; color: #fff; letter-spacing: -.02em; }`,
+    escenas: [
+      // 0 · El héroe ante la puerta roja: «LO QUIERO» → «LO QUIERO YA».
+      { html: () => '', anim: null },
+      // 1 · Las ganas (rojas) corren hacia la puerta; en el pop se apagan y se dispersan.
+      { html: () => '', anim: null },
+      // 2 · Reloj de 24 horas que empieza a correr en el tic.
+      { html: () => `<div class="reloj24" data-t="translateX(-50%)"><small>SI NO ES COMIDA NI UNA URGENCIA</small><b>24:00:00</b></div>
+          <div class="rotulo" data-t="translateX(-50%)" style="top:790px">Espera 24 horas antes de pagar</div>`,
+        anim: function (s, e, el) {
+          const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 0.8, m1 = M[1] != null ? M[1] : 2.5, r = el.querySelector('.reloj24');
+          aparece3(r, rebote(tramo(s, m0 - 0.1, m0 + 0.3))); aparece3(el.querySelector('.rotulo'), rebote(tramo(s, m1 - 0.1, m1 + 0.3)));
+          const q = Math.max(0, 24 * 3600 - Math.max(0, s - m1) * 900), h = Math.floor(q / 3600), mi = Math.floor(q / 60) % 60, se = Math.floor(q) % 60;
+          r.querySelector('b').textContent = [h, mi, se].map(x => String(x).padStart(2, '0')).join(':'); } },
+      // 3 · El carrito (caja turquesa) guarda la compra: «= 12 horas de trabajo»; en el ding la puerta se vuelve turquesa.
+      { html: () => `<div class="rotulo" data-t="translateX(-50%)" style="top:560px">= 12 horas de trabajo</div>
+          <div class="rotulo" data-t="translateX(-50%)" style="top:660px">¿Mañana lo quieres? Cómpralo tranquilo</div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, r = el.querySelectorAll('.rotulo');
+          aparece3(r[0], rebote(tramo(s, (M[0] != null ? M[0] : 1.5) - 0.1, (M[0] != null ? M[0] : 1.5) + 0.3)));
+          aparece3(r[1], rebote(tramo(s, (M[1] != null ? M[1] : 3.5) - 0.1, (M[1] != null ? M[1] : 3.5) + 0.3))); } },
+      // 4 · La compra se desvanece y las doce horas de ayer vuelven contigo, en turquesa.
+      { html: () => `<div class="dato" data-t="translateX(-50%)" style="top:540px"><small>SE QUEDA CONTIGO</small><b>12 horas</b></div>`,
+        anim: function (s, e, el) { const m = e.seg[0].marcas[0] != null ? e.seg[0].marcas[0] : 1.2; aparece3(el.querySelector('.dato'), rebote(tramo(s, m + 0.4, m + 0.8))); } },
+      finSerie({ dia: 4, total: TOTAL, serie: SERIE, etiquetaManana: 'MAÑANA · DÍA 5', manana: 'Págate a ti primero, el mismo día que cobras', sigue: '<b>Síguenos</b> para no perderte ningún día' })
+    ],
+    tres: function (t, k, s, e, W) {
+      const p = Math.min(1, s / (e.fin - e.ini)), DZ = -6, HX = 0, HZ = 1.5, CX = 1.7, CZ = 2.3, NQ = 12;
+      const mk = (kk, j, def) => ESC[kk].ini + (ESC[kk].seg[0].marcas[j] != null ? ESC[kk].seg[0].marcas[j] : def);
+      const ROJO = 0xef4444, TURQ = 0x2dd4bf, AMBAR = 0xe2a336;
+      const fuera = { x: -60, z: -60, esc: 0 };
+      let directo = () => fuera;
+      W.puerta({ x: 0, z: DZ, luz: k === 2 ? 0.55 : 1 });
+      if (k === 0) {
+        const m0 = mk(0, 0, 1);
+        W.heroe({ x: HX, z: HZ, gira: Math.PI, luz: 0.15, senala: sale(tramo(t, m0, m0 + 0.4)) });
+        const ya = sale(tramo(t, m0 - 0.05, m0 + 0.3));
+        W.etiqueta('quiero', 'LO QUIERO', 0, 3.35, DZ, 1 - ya, '#f87171', 1.7);
+        W.etiqueta('quieroya', 'LO QUIERO YA', 0, 3.35, DZ, ya, '#f87171', 1.7 * (1 + 0.06 * Math.sin(t * 9) * ya));
+        W.camara(1.5 - 0.3 * p, 2.3, 6.6 - 0.8 * p, 0, 1.7, DZ + 1);
+      } else if (k === 1) {
+        const tP = mk(1, 1, 2.6);
+        directo = (i, a) => {
+          if (i >= 9) return fuera;
+          const x0 = (i % 3 - 1) * 0.9, z0 = 4.6 + Math.floor(i / 3) * 1.1, tt = Math.min(t, tP) - e.ini, z = z0 - 3.1 * tt;
+          const d = sale(tramo(t, tP, tP + 1.2)), lado = i % 2 ? 1 : -1, ang = lado * (0.6 + (i % 3) * 0.35);
+          return { x: x0 + Math.sin(ang) * 3.2 * d, z: z - Math.cos(ang) * 0.4 * d, rot: Math.PI - ang * d, amp: 1 - 0.75 * d, fase: t * 10 * (1 - 0.6 * d),
+            esc: 1 - 0.85 * sale(tramo(t, tP + 0.6, tP + 1.6)), color: ROJO, cq: 0.92 * (1 - d), brillo: 0.25 };
+        };
+        W.niebla(10, 40);
+        W.camara(4.4 - 0.8 * p, 3.4, 11 - 0.6 * p, 0, 1.0, -2.4);
+      } else if (k === 2) {
+        W.heroe({ x: HX, z: HZ, gira: Math.PI * (1 - sale(tramo(s, 0.1, 0.9))), luz: 0.4 + 0.6 * sale(tramo(s, 0.3, 1)) });
+        W.niebla(9, 34);
+        W.camara(1.8 - 0.4 * p, 2.0, HZ + 6 - 0.6 * p, 0, 2.25, HZ - 2);
+      } else if (k === 3) {
+        const m0 = mk(3, 0, 1.5), m1 = mk(3, 1, 3.5), ca = sale(tramo(s, 0.15, 0.85)), va = tramo(t, m1 + 0.3, m1 + 4.5);
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1, item: { y: 0.45 + 2.2 * (1 - ca) * (1 - ca) } });
+        W.etiqueta('doceh', '12 HORAS', CX, 1.75, CZ, sale(tramo(t, m0 - 0.05, m0 + 0.3)), '#e2a336', 1.2);
+        W.puerta({ x: 0, z: DZ, luz: 1, color: TURQ, cq: sale(tramo(t, m1 - 0.05, m1 + 0.5)) });
+        W.heroe({ x: HX, z: HZ + (DZ - 0.5 - HZ) * va, gira: va > 0 ? Math.PI : -0.4, luz: 1, amp: va > 0 && va < 1 ? 0.75 : 0, fase: t * 6 });
+        W.camara(6.2 - 0.8 * p, 4.6, 11.8 - 0.8 * p, 0.2, 1.2, -2.2);
+      } else if (k === 4) {
+        const tC = mk(4, 0, 1.2);
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1, item: { op: 1 - sale(tramo(s, 0.1, 0.9)) } });
+        W.heroe({ x: HX, z: HZ, gira: 0, luz: 1 });
+        directo = (i, a) => {
+          if (i >= NQ) return fuera;
+          const x0 = 1.3 + (i % 2) * 0.8, z0 = DZ + 1.4 + Math.floor(i / 2) * 0.9, x1 = -1.6 - (i % 2) * 0.8, z1 = 0.9 - Math.floor(i / 2) * 0.9;
+          const t0 = tC + (i % 2) * 0.1 + Math.floor(i / 2) * 0.08, q = tramo(t, t0, t0 + 2.2), ee = q * q * (3 - 2 * q);
+          return { x: x0 + (x1 - x0) * ee, z: z0 + (z1 - z0) * ee, rot: q <= 0 ? 0 : q < 1 ? Math.atan2(x1 - x0, z1 - z0) : 0, amp: q > 0 && q < 1 ? 1 : 0, fase: (t - t0) * 7,
+            color: AMBAR, cq: 0.9, brillo: 0.3, color2: TURQ, c2q: sale(tramo(t, t0, t0 + 0.6)) };
+        };
+        W.etiqueta('doce', '12 HORAS', -2, 2.6, -1.6, sale(tramo(t, tC + 2.2, tC + 2.7)), '#5eead4', 1.2);
+        W.camara(0.4 - 0.3 * p, 6.8, 12.6 - 0.6 * p, -0.2, 0.4, -2);
+      } else {
+        W.heroe({ x: HX, z: HZ, luz: 1 });
+        directo = (i, a) => i >= NQ ? fuera : { x: -1.6 - (i % 2) * 0.8, z: 0.9 - Math.floor(i / 2) * 0.9, color: TURQ, cq: 0.9, brillo: 0.3 };
+        const a = 0.25 * p; W.camara(3 + Math.sin(a) * 3, 8 + p, 11, -0.5, 0.4, -2);
+      }
+      W.multitud(t, { directo });
+    },
+    texto: { es: `¿Lo quieres, o lo quieres ahora? No es lo mismo. ⏳
+
+Día 4 de 30 para ordenar tu dinero. La regla de hoy: si no es comida ni una urgencia, espera 24 horas antes de pagar. Déjalo en el carrito y pásalo a horas de trabajo, con la cuenta de ayer (precio ÷ lo que vale tu hora).
+Un truco para que funcione: borra la tarjeta guardada en las tiendas online. Tener que sacarla otra vez te da esos segundos para pensarlo.
+
+💾 Guárdalo para tu próxima compra.
+👉 Mañana, día 5: págate a ti primero, el mismo día que cobras. Síguenos para no perderte ningún día.
+
+#finanzaspersonales #ahorro #retodeahorro #educacionfinanciera #dinero` }
   })
 };
+
 
 
 module.exports = { pildoras };

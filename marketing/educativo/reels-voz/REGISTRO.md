@@ -35,8 +35,18 @@ el único que despega. El texto de la publicación es corto: gancho, qué hacer 
 | 1 | ¿A dónde se va tu sueldo? Apunta cada gasto 7 días y etiquétalo (`es-reto-01`) | 10 nov 2026, 7:30 | El gasto que se te escapa sin darte cuenta |
 | 2 | Suscripciones y cargos que se repiten: cancela uno (`es-reto-02`) | 11 nov 2026, 7:30 | Lo que vale de verdad una hora de tu trabajo |
 | 3 | Lo que vale de verdad una hora de tu trabajo: calcula tu hora y pasa los precios a horas (`es-reto-03`) | 12 nov 2026, 13:00 (programado) | El truco de las 24 horas antes de comprar |
+| 4 | El truco de las 24 horas: si no es comida ni urgencia, espera un día antes de pagar (`es-reto-04`) | pendiente de programar | Págate a ti primero, el mismo día que cobras |
 
 Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuento en el próximo vídeo. Síguenos» o «La respuesta, en el siguiente vídeo».
+
+## «Hacemos la cuenta» (vídeos de contraste de noticias, España)
+
+Un dato de actualidad de nuestro ámbito, comprobado con fuentes: dosier y guion verificado en `investigacion/`. Se comprueba
+la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publica nada de política en jornada de reflexión.
+
+| N.º | Tema (slug) | Publicado | Cierre |
+|---|---|---|---|
+| 1 | ¿Bajaría la vivienda un 30 % quitando impuestos? (`es-contraste-vivienda-30`; final B sin guiño: `…-30b`) | 12 nov 2026, 7:30 (programado) | «¿Qué te pareció la entrevista?» |
 
 ## Pendientes (preguntas abiertas)
 

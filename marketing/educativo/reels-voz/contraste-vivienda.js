@@ -70,17 +70,19 @@ const CSS = `
   .tj { position: absolute; left: 50%; background: rgba(9,14,27,.9); border: 2px solid rgba(148,163,184,.32); border-radius: 24px;
     padding: 16px 40px 20px; text-align: center; opacity: 0; white-space: nowrap; }
   .tj small { display: block; font: 700 23px/1.35 ${MONO}; letter-spacing: .14em; color: #94a3b8; margin-bottom: 4px; }
-  .tj .l { display: block; font-size: 50px; line-height: 1.2; font-weight: 850; letter-spacing: -.015em; color: #fff; font-variant-numeric: tabular-nums; }
+  .tj .l { display: block; font-size: 50px; line-height: 1.15; font-weight: 850; letter-spacing: -.015em; color: #fff; font-variant-numeric: tabular-nums; }
   .tj .l.p { font-size: 40px; font-weight: 750; color: #cbd5e1; }
   .tj .t { color: #5eead4; } .tj .r { color: #f87171; } .tj .a { color: #f5b94a; }
   .tj.turq { border-color: rgba(94,234,212,.6); } .tj.amb { border-color: rgba(245,185,74,.6); } .tj.roja { border-color: rgba(248,113,113,.6); }
   .grande { position: absolute; left: 50%; font-size: 150px; line-height: 1; font-weight: 900; letter-spacing: -.04em; color: #f87171;
     text-shadow: 0 6px 40px rgba(0,0,0,.7); opacity: 0; white-space: nowrap; }
-  .fuente { position: absolute; left: 70px; right: 70px; top: 1448px; text-align: center; font: 600 25px/1.3 ${MONO}; letter-spacing: .03em;
+  .fuente { position: absolute; left: 70px; right: 70px; top: 1452px; text-align: center; font: 600 25px/1.3 ${MONO}; letter-spacing: .03em;
     color: #a5b4c8; text-shadow: 0 2px 10px rgba(0,0,0,.9); }
   .fuente b { color: #e2e8f0; font-weight: 700; }
-  .nota { position: absolute; left: 90px; right: 90px; top: 1338px; text-align: center; font-size: 29px; line-height: 1.25; font-weight: 650; color: #e2e8f0;
-    background: rgba(9,14,27,.82); border-radius: 14px; padding: 8px 18px; opacity: 0; }
+  .nota { position: absolute; left: 50%; top: 1400px; text-align: center; font-size: 25px; line-height: 1.2; font-weight: 650; color: #e2e8f0; white-space: nowrap;
+    background: rgba(9,14,27,.82); border-radius: 12px; padding: 6px 14px; opacity: 0; }
+  .chip { position: absolute; top: 1300px; font-size: 32px; font-weight: 850; letter-spacing: .02em; color: #fff; background: rgba(9,14,27,.92);
+    border: 3px solid #5eead4; border-radius: 16px; padding: 8px 18px; opacity: 0; white-space: nowrap; box-shadow: 0 0 22px rgba(94,234,212,.35); }
   .cadena { position: absolute; left: 50%; display: flex; gap: 10px; align-items: center; white-space: nowrap; }
   .cadena span { font-size: 36px; font-weight: 850; color: #fff; background: rgba(9,14,27,.9); border: 2px solid rgba(245,185,74,.55); border-radius: 14px; padding: 8px 16px; opacity: 0; }
   .cadena i { font-style: normal; font-size: 32px; color: #f5b94a; opacity: 0; }
@@ -109,18 +111,19 @@ const ESCENAS = [
   { html: () => `<div class="grande" data-t="translateX(-50%)" style="top:540px;opacity:1">¿−30 %?</div>`,
     anim: function (s, e, el) { const g = el.querySelector('.grande'); g.style.transform = 'translateX(-50%) scale(' + (1 + 0.03 * Math.sin(s * 6)) + ')'; } },
   // 1 · La propuesta, con la cita y «según algunas crónicas».
-  { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="-1" style="top:520px"><small>LA REVUELTA · 9 NOV 2026</small>
-        <span class="l">Quitar impuestos a la compra</span><span class="l">de la primera vivienda</span></div>
-      <div class="tj roja" data-t="translateX(-50%)" data-m="1" style="top:760px"><small>SEGÚN ALGUNAS CRÓNICAS</small>
-        <span class="l" style="font-size:66px">«al menos un <span class="r">30 %</span>»</span><span class="l p">más barata</span></div>
-      ${fuente('Fuente: crónicas de prensa de la entrevista (9 y 10 nov 2026)')}`, anim: an },
+  { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="-1" style="top:500px"><small>LA REVUELTA · 9 NOV 2026</small>
+        <span class="l" style="font-size:44px">Quitar impuestos a la compra</span><span class="l" style="font-size:44px">de la primera vivienda</span></div>
+      <div class="tj roja" data-t="translateX(-50%)" data-m="1" style="top:682px"><small>SEGÚN ALGUNAS CRÓNICAS</small>
+        <span class="l" style="font-size:60px">«al menos un <span class="r">30 %</span>»</span><span class="l p" style="font-size:36px">más barata</span></div>
+      ${fuente('Crónicas de prensa de la entrevista, 9 y 10 nov 2026')}`, anim: an },
   // 2 · Obra nueva: IVA + AJD = 21.000–23.000 € → en torno a un 10 %, no un 30.
-  { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="-1" style="top:510px"><small>VIVIENDA NUEVA · ${mil(PRECIO)} €</small>
-        <span class="l" data-m="0" data-t="">IVA 10 % → ${mil(PRECIO * IVA)} €</span>
-        <span class="l" data-m="1" data-t="">+ AJD 0,5–1,5 % → ${mil(PRECIO * AJD[0])}–${mil(PRECIO * AJD[1])} €</span>
-        <span class="l t" data-m="2" data-t="">= ${mil(IMP[0])}–${mil(IMP[1])} €</span></div>
-      <div class="tj turq" data-t="translateX(-50%)" data-m="3" style="top:820px"><span class="l" style="font-size:64px"><span class="t">≈ 10 %</span> · no 30</span></div>
-      <div class="nota" data-m="-1" data-t="">Península y Baleares. En Canarias, Ceuta y Melilla el impuesto es otro</div>
+  { html: () => `<div class="tj" data-t="translateX(-50%)" style="top:492px;opacity:1;transform:translateX(-50%)"><small>VIVIENDA NUEVA</small>
+        <span class="l" style="font-size:56px">Precio: ${mil(PRECIO)} €</span>
+        <span class="l" data-m="0" data-t="" style="font-size:44px">IVA 10 % → ${mil(PRECIO * IVA)} €</span>
+        <span class="l" data-m="1" data-t="" style="font-size:44px">+ AJD 0,5–1,5 % → ${mil(PRECIO * AJD[0])}–${mil(PRECIO * AJD[1])} €</span>
+        <span class="l t" data-m="2" data-t="" style="font-size:48px">= ${mil(IMP[0])}–${mil(IMP[1])} €</span>
+        <span class="l" data-m="3" data-t="" style="font-size:44px"><span class="t">≈ 10 %</span> de lo que pagas · <span class="r">no 30</span></span></div>
+      <div class="nota" data-m="-1" data-t="translateX(-50%)">Península y Baleares. En Canarias, Ceuta y Melilla el impuesto es otro</div>
       ${fuente('Ley del IVA, art. 91 · Ley del ITP y AJD, art. 31')}`, anim: an },
   // 3 · Segunda mano: 4 de cada 5; transmisiones, 6–10 %.
   { html: () => `<div class="tj amb" data-t="translateX(-50%)" data-m="-1" style="top:520px"><small>COMPRAS DE VIVIENDA</small>
@@ -129,14 +132,17 @@ const ESCENAS = [
         <span class="l"><span class="a">6–10 %</span> del precio</span><span class="l p">en casi toda España</span></div>
       ${fuente('INE, agosto de 2026 · Ley del ITP y AJD, art. 11')}`, anim: an },
   // 4 · De dónde puede salir el 30: toda la cadena de una vivienda nueva.
-  { html: () => `<div class="cadena" style="top:505px;transform:translateX(-50%)"><span data-m="0" data-t="">Suelo</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Licencias</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Obra</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Venta</span></div>
-      <div class="tj roja" data-t="translateX(-50%)" data-m="0" style="top:600px"><small>PROGRAMA DE VOX (2025)</small>
-        <span class="l"><span class="r">hasta un 30 %</span></span><span class="l p">trabas y cargas de la construcción</span></div>
-      <div class="tj amb" data-t="translateX(-50%)" data-m="1" style="top:830px"><small>PROMOTORES DE MADRID (EY, 2026)</small>
-        <span class="l"><span class="a">más del 26 %</span></span><span class="l p">IVA incluido</span></div>
+  { html: () => `<div class="cadena" style="top:492px;transform:translateX(-50%)"><span data-m="0" data-t="">Suelo</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Licencias</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Obra</span><i data-m="0" data-t="">→</i><span data-m="0" data-t="">Venta</span></div>
+      <div class="tj roja" data-t="" data-m="0" style="top:572px;left:auto;right:548px;padding:14px 24px 18px"><small style="font-size:20px">PROGRAMA DE VOX (2025)</small>
+        <span class="l" style="font-size:46px"><span class="r">hasta un 30 %</span></span><span class="l p" style="font-size:30px">trabas y cargas</span><span class="l p" style="font-size:30px">de la construcción</span></div>
+      <div class="tj amb" data-t="" data-m="1" style="top:572px;left:548px;padding:14px 24px 18px"><small style="font-size:20px">PROMOTORES DE MADRID</small>
+        <span class="l" style="font-size:46px"><span class="a">más del 26 %</span></span><span class="l p" style="font-size:30px">EY, 2026</span><span class="l p" style="font-size:30px">IVA incluido</span></div>
       ${fuente('Programa de Vox, 2025 · EY para ASPRIMA, junio de 2026 · IVA incluido')}`, anim: an },
   // 5 · Tres manos: Estado, comunidades, ayuntamientos; las Cortes pueden cambiarlo, compensando.
-  { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="3" style="top:540px"><span class="l">Las Cortes pueden cambiarlo,</span><span class="l p">pero habría que compensarles</span></div>
+  { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="3" style="top:510px"><span class="l">Las Cortes pueden cambiarlo,</span><span class="l p">pero habría que compensarles</span></div>
+      <div class="chip" data-m="0" data-t="translateX(-50%)" style="left:240px">ESTADO</div>
+      <div class="chip" data-m="1" data-t="translateX(-50%)" style="left:540px;top:1374px">COMUNIDADES</div>
+      <div class="chip" data-m="2" data-t="translateX(-50%)" style="left:840px">AYUNTAMIENTOS</div>
       ${fuente('Ley del IVA · Ley 22/2009 (impuestos cedidos) · Ley de Haciendas Locales')}`, anim: an },
   // 6 · La rebaja no llega entera: de cada 100 £, unas 60 al comprador.
   { html: () => `<div class="tj" data-t="translateX(-50%)" data-m="0" style="top:520px"><small>REINO UNIDO · 2008–2009</small>
@@ -145,9 +151,9 @@ const ESCENAS = [
         <span class="l p" data-m="1" data-t=""><span class="a">≈ 40 £</span> se quedan en el precio</span></div>
       ${fuente('Besley, Meads y Surico, 2014')}`, anim: an },
   // 7 · El resultado: ≈ −10 % de tus ahorros frente al −30 % de toda la cadena.
-  { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="-1" style="top:510px"><small>IMPUESTOS DE LA COMPRA</small>
-        <span class="l"><span class="t">≈ −10 %</span> como mucho</span><span class="l p" data-m="0" data-t="">sale de tus ahorros:</span><span class="l p" data-m="0" data-t="">la hipoteca normalmente no lo cubre</span></div>
-      <div class="tj amb" data-t="translateX(-50%)" data-m="1" style="top:760px"><small>PARA ACERCARSE AL −30 %</small>
+  { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="-1" style="top:500px"><small>IMPUESTOS DE LA COMPRA</small>
+        <span class="l"><span class="t">≈ −10 %</span> como mucho</span><span class="l p" data-m="0" data-t="" style="font-size:36px">sale de tus ahorros:</span><span class="l p" data-m="0" data-t="" style="font-size:36px">la hipoteca normalmente no lo cubre</span></div>
+      <div class="tj amb" data-t="translateX(-50%)" data-m="1" style="top:722px"><small>PARA ACERCARSE AL −30 %</small>
         <span class="l"><span class="a">toda la cadena</span></span></div>
       ${fuente('Ley del IVA · Ley del ITP y AJD · EY para ASPRIMA, 2026')}`, anim: an },
   // 8 · Cierre: el héroe, tranquilo junto a la casa; la pregunta grande en la última marca.
@@ -167,11 +173,11 @@ const TRES = function (t, k, s, e, W) {
   } else if (k === 1) {
     W.casa({ esc: E, bloque: (i) => i < 30 ? { color: ROJO, q: 0.55 + 0.25 * Math.sin(t * 5), brillo: 0.2, dz: 0.14 } : null });
     W.niebla(24, 66);
-    const a = -0.3 + 0.2 * p; W.camara(Math.sin(a) * 22, 4.9, Math.cos(a) * 22, 0, 4.6, 0);
+    const a = -0.3 + 0.2 * p; W.camara(Math.sin(a) * 15, 3.66, Math.cos(a) * 15, 0, 3.16, 0);
   } else if (k === 2) {
     const tP = mk(3, 6), v = sale(tramo(t, tP - 0.05, tP + 0.5));
     W.casa({ esc: E, bloque: (i) => i < 20 ? { color: ROJO, q: 0.9 * (1 - v), brillo: 0.25, dz: 0.14 * (1 - v) } : i < 30 ? { color: v > 0 ? TURQ : ROJO, q: 0.9, brillo: 0.25 + 0.15 * v, dz: 0.14 + 0.3 * v } : null });
-    W.niebla(24, 66); W.camara(2.6 - 1.6 * p, 4.0, 21.6, 0, 3.44, 0);
+    W.niebla(24, 66); W.camara(2.0 - 1.2 * p, 3.45, 15.5, 0, 2.97, 0);
   } else if (k === 3) {
     const SITIO = [[-1.7, -1.2], [0, -1.2], [1.7, -1.2], [-0.85, 0.9], [0.85, 0.9]], NUEVA = 1;
     W.casitas(SITIO.map(([x, z], j) => ({ x, z, color: j === NUEVA ? null : AMBAR, q: sale(tramo(s, 0.3 + j * 0.15, 0.7 + j * 0.15)) })));
@@ -183,17 +189,16 @@ const TRES = function (t, k, s, e, W) {
     W.casa({ esc: E, bloque: (i) => {
       const r = i < 30 ? sale(tramo(t, t30, t30 + 0.5)) * (1 - sale(tramo(t, t26, t26 + 0.4))) : 0, am = i < 26 ? sale(tramo(t, t26 + i * 0.025, t26 + i * 0.025 + 0.3)) : 0;
       return am > 0 ? { color: AMBAR, q: am, brillo: 0.3, dz: 0.14 * am } : r > 0 ? { color: ROJO, q: 0.7 * r * (0.75 + 0.25 * Math.sin(t * 6)), brillo: 0.2, dz: 0.1 * r } : null; } });
-    W.niebla(24, 66); const a = -0.5 + 0.2 * p; W.camara(Math.sin(a) * (21 - p), 4.6, Math.cos(a) * (21 - p), 0, 4.26, 0);
+    W.niebla(24, 66); const a = -0.45 + 0.2 * p; W.camara(Math.sin(a) * (13.6 - 0.5 * p), 3.2, Math.cos(a) * (13.6 - 0.5 * p), 0, 2.62, 0);
   } else if (k === 5) {
     W.casa({ esc: E, bloque: (i) => i < 26 ? { color: AMBAR, q: 0.55, brillo: 0.2, dz: 0.14 } : null });
-    const MANOS = [[-2.15, 'ESTADO'], [0, 'COMUNIDADES'], [2.15, 'AYUNTAMIENTOS']];
+    const MANOS = [[-1.6, 'ESTADO'], [0, 'COMUNIDADES'], [1.6, 'AYUNTAMIENTOS']];
     directo = (i, a) => {
       if (i >= 3) return { x: -60, z: -60, esc: 0 };
       const q = sale(tramo(t, mk(i, 1 + i) - 0.1, mk(i, 1 + i) + 0.4));
       return { x: MANOS[i][0], z: 3.1, rot: 0.05 * Math.sin(t + i), color: TURQ, cq: q, brillo: 0.35 };
     };
-    MANOS.forEach(([x, n], j) => W.etiqueta('mano' + j, n, x, 2.3, 3.1, sale(tramo(t, mk(j, 1 + j) - 0.1, mk(j, 1 + j) + 0.3)), '#5eead4', 0.95));
-    W.niebla(20, 60); W.camara(0.5 - 0.5 * p, 2.4, 15.8 - 0.6 * p, 0, 2.2, 1.5);
+    W.niebla(20, 60); W.camara(0, 2.2, 15.1, 0, 1.75, 1.5);   // plano fijo: las etiquetas son 2D, debajo de cada uno
   } else if (k === 6) {
     const CX = -1.35, CZ = -0.8, HX = 1.9, HZ = 2.6, tR = mk(1, 3);
     W.casa({ x: CX, z: CZ, rot: 0.3, esc: 0.5, bloque: (i) => i >= 20 && i < 30 ? { color: AMBAR, q: 0.5, brillo: 0.2 } : null });
@@ -208,11 +213,11 @@ const TRES = function (t, k, s, e, W) {
       const c = llega ? sale(tramo(t, t0 + 1.2, t0 + 1.8)) : sale(tramo(t, t0 + 1.6, t0 + 2.1));
       return { x, z, rot, amp, fase: (t - t0) * 8, esc: 0.6, color: llega ? TURQ : AMBAR, cq: c, brillo: 0.3 };
     };
-    W.camara(0.3, 3.2, 12.5 - 0.6 * p, 0.3, 2.2, 0.8);
+    W.camara(0.3, 2.6, 14.5 - 0.6 * p, 0.3, 1.25, 0.8);
   } else if (k === 7) {
     const t2 = mk(1, 5);
-    W.casa({ esc: E, bloque: (i) => i < 20 ? { color: AMBAR, q: 0.45 + 0.45 * sale(tramo(t, t2, t2 + 0.5)), brillo: 0.15 + 0.2 * sale(tramo(t, t2, t2 + 0.5)), op: 0.55 + 0.45 * sale(tramo(t, t2, t2 + 0.5)), dz: 0.14 } : i < 30 ? { color: TURQ, q: 0.95, brillo: 0.4, dz: 0.44 } : null });
-    W.niebla(24, 66); W.camara(1.6 - 1.2 * p, 4.8, 21 + 1.2 * p, 0, 4.5, 0);
+    W.casa({ esc: E, bloque: (i) => i < 20 ? { color: AMBAR, q: 0.62 + 0.38 * sale(tramo(t, t2, t2 + 0.5)), brillo: 0.12 + 0.28 * sale(tramo(t, t2, t2 + 0.5)), dz: 0.14 } : i < 30 ? { color: TURQ, q: 0.95, brillo: 0.4, dz: 0.44 } : null });
+    W.niebla(24, 66); W.camara(1.2 - 0.8 * p, 3.6, 14.4 + 0.8 * p, 0, 3.1, 0);
   } else {
     const CX = -1.3;
     W.casa({ x: CX, esc: 0.5, bloque: (i) => i >= 20 && i < 30 ? { color: TURQ, q: 0.6, brillo: 0.25, dz: 0.14 } : null });
