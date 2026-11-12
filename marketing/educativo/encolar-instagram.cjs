@@ -34,7 +34,7 @@ const BUCKET = 'finanziapp-publicar', FS = 'https://firestore.googleapis.com/v1/
   let cola = { items: [] };
   try { const r = await c.request({ url: FS, headers: h }); cola = JSON.parse(r.data.fields.json.stringValue); } catch { /* primera vez */ }
   // Se guardan solo los últimos 50 movimientos.
-  cola.items = [...cola.items.slice(-49), { id, cuenta, plataforma: 'ig', slug, objeto, cuando: new Date(hora).toISOString(), texto: fs.readFileSync(textoArchivo, 'utf8').trim(),
+  cola.items = [...cola.items.slice(-49), { id, cuenta, plataforma: 'ig', slug, objeto, cuando: new Date(hora).toISOString(), texto: require('./etiquetas.cjs').variar(fs.readFileSync(textoArchivo, 'utf8').trim(), cuenta),
     url: urlFirmada(JSON.parse(fs.readFileSync(sa, 'utf8')), BUCKET, objeto, Math.min(604800, Math.round((hora - Date.now()) / 1000) + 3 * 3600)),
     thumb_ms: op('--portada-ms') ? +op('--portada-ms') : null, ensayo: process.argv.includes('--ensayo'), estado: 'pendiente', creado: new Date().toISOString(),
     sha1: crypto.createHash('sha1').update(fs.readFileSync(video)).digest('hex').slice(0, 12) }];

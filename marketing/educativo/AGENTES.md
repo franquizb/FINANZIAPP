@@ -9,6 +9,9 @@ publica o programa**. Tú produces, compruebas y entregas un informe.
 - Cada dato lleva su fuente en la cabecera del archivo y cada cuenta se comprueba con `cuadra()` (`reels/_comun.js`).
   Los ejemplos inventados se presentan como ejemplos («si cobras 1.600…»), nunca como estadística.
 - Español de España (cuenta `es`) o inglés de EE. UU. (cuenta `en`): son dos cuentas distintas, no traducciones.
+  En la cuenta `es` tiene que notarse que es España en el gancho o en el texto de la publicación («en España», euros,
+  Hacienda, la nómina, el súper de aquí): sin esas señales Instagram enseña los vídeos sobre todo en México. El hashtag
+  `#españa` y la variación de hashtags los pone solo `etiquetas.cjs` al programar.
 - Prohibido «si te pica» en cualquier forma. Sin marcas comerciales. Sin promesas de rentabilidad.
 - Un solo render a la vez (la máquina tiene 4 núcleos). No lances dos `reel-voz.js` en paralelo.
 - Si algo no cuadra (un dato sin fuente, la voz que no pasa la revisión, un plano que no se entiende), dilo en el informe:

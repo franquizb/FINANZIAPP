@@ -98,6 +98,8 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   `W.etiqueta`, `W.camara`). Se renderiza por software (SwiftShader), unos 7–10 min por vídeo de 30 s.
   Voz: `VOZ_NARRADOR` (tranquila, ~3,4 palabras/s). Subtítulos arriba (`sub: { max, largo }`) y capa fija `fijo` (HUD).
 - **Cambiar algo ya programado** (otro archivo u otra hora) sin duplicar: `node reprogramar.cjs <…> <…> es|en <slug> [fecha ISO] [--al-azar]`.
+- **Hashtags** (`etiquetas.cjs`): al programar se conservan los del tema, se añade `#españa` en la cuenta de España (casi todo
+  el alcance se iba a México: solo el idioma situaba la cuenta) y el resto se elige al azar para que no sean siempre los mismos.
 - **Horas que no parezcan de máquina** (`horario.cjs`): Instagram le pidió al propietario la prueba de «no soy un robot»
   dos veces el 11 nov 2026, cuando todo salía a las 7:30, 13:00, 17:30 y 20:30 exactas. Desde entonces: minuto suelto dentro
   de la franja (`--al-azar` en `reprogramar.cjs`; por defecto en `programar-lote.cjs`), Facebook unos minutos después que

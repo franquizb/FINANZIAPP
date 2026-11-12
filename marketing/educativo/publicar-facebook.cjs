@@ -56,7 +56,7 @@ if (op('--borrar-programado')) {
     const falta = cuando - Date.now() / 1000;
     if (!(falta > 600 && falta < 30 * 86400)) throw new Error('--programar tiene que estar entre 10 minutos y 30 días desde ahora');
   }
-  const texto = fs.readFileSync(textoArchivo, 'utf8').trim(), datos = fs.readFileSync(video);
+  const texto = require('./etiquetas.cjs').variar(fs.readFileSync(textoArchivo, 'utf8').trim(), idioma), datos = fs.readFileSync(video);
   const p = await fb(pagina, { fields: 'name,access_token' });
   pt = p.access_token;
 
