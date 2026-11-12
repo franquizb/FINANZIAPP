@@ -339,6 +339,24 @@
           "estado": "listo",
           "slug": "en-5-dollars-a-day",
           "nota": "Programado en Instagram y Facebook · 34.03 s"
+        },
+        {
+          "fecha": "2026-11-12",
+          "hora": "22:58",
+          "tipo": "Reel",
+          "tema": "Why every gas price ends in 9/10 of a cent",
+          "estado": "listo",
+          "slug": "en-gas-nine-tenths",
+          "nota": "Programado en Instagram y Facebook · 33.34 s"
+        },
+        {
+          "fecha": "2026-11-13",
+          "hora": "23:04",
+          "tipo": "Reel",
+          "tema": "Day 1/30 · Where does your paycheck actually go?",
+          "estado": "listo",
+          "slug": "en-reto-01",
+          "nota": "Programado en Instagram y Facebook · 29.69 s"
         }
       ],
       "pendientes": [

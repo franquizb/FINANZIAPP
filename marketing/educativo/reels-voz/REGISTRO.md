@@ -39,6 +39,13 @@ el único que despega. El texto de la publicación es corto: gancho, qué hacer 
 
 Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuento en el próximo vídeo. Síguenos» o «La respuesta, en el siguiente vídeo».
 
+## Cuenta de EE. UU. desde el 12 nov 2026 (3D, voz de narrador «Iapetus»)
+
+| Serie | Vídeo (slug) | Publicado | Anuncia |
+|---|---|---|---|
+| Money, explained | Why every gas price ends in 9/10 of a cent (`en-gas-nine-tenths`) | 12 nov 2026, ~18:00 NY (programado) | — |
+| 30 days to get your money in order | Day 1: where your paycheck goes (`en-reto-01`) | 13 nov 2026, ~18:00 NY (programado) | The charges that hit your account every month |
+
 ## «Hacemos la cuenta» (vídeos de contraste de noticias, España)
 
 Un dato de actualidad de nuestro ámbito, comprobado con fuentes: dosier y guion verificado en `investigacion/`. Se comprueba
