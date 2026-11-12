@@ -1,6 +1,10 @@
 {
   "es": [
     {
+      "titulo": "Casi todo el alcance se iba a México",
+      "texto": "Nada situaba la cuenta en España salvo el idioma. Desde el 12 nov: #españa en cada publicación, hashtags que rotan y señales de España en el gancho o en el texto. Revisar el reparto por países el 19 nov."
+    },
+    {
       "titulo": "Solo despega el primero de la mañana",
       "texto": "De 4 vídeos al día, el único que pasa de ~130 reproducciones es el primero (8:43 el domingo: 1.534; 7:32 el lunes: 1.448). Ese hueco es para lo mejor: desde el 10 nov, la serie en 3D «30 días para ordenar tu dinero»."
     },
@@ -23,8 +27,8 @@
   ],
   "en": [
     {
-      "titulo": "Ninguno despega todavía",
-      "texto": "Los vídeos de EE. UU. se quedan en 120–155 reproducciones a cualquier hora. Siguiente prueba: llevar allí la serie en 3D con la voz de narrador y ganchos de curiosidad."
+      "titulo": "Por qué no despega (revisión del 12 nov)",
+      "texto": "La gente se va a los 5–7 s (15–30 % del vídeo). Tres causas medidas: la voz «cercana» sonaba a anuncio (≈225 Hz y 2,3 palabras/s; el narrador de referencia va a ≈139 Hz y 3,6); todos los vídeos en 2D parecen el mismo y casi no se mueven en los primeros 6 s; y los temas de manual (Roth, fondo de emergencia, 5 $ al día: 15–17 %) retienen la mitad que los de curiosidad y precios (79.900 millas 41 %, el penique 33 %). Cambio: 3D, voz de narrador grave («Iapetus») y ganchos de curiosidad, un vídeo al día."
     },
     {
       "titulo": "Full first frame works",

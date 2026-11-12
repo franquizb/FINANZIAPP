@@ -49,7 +49,9 @@ const VOZ = {
 const NARRADOR = 'You are the narrator of a short, documentary-style explainer video: calm, confident and clear, close to the listener, speaking at a brisk, steady pace with very short pauses. Natural and conversational, like explaining something fascinating to a friend. Understated, never theatrical.';
 const NARRADOR_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. ' + NARRADOR;
 const VOZ_NARRADOR = {
-  en: { modelo: MODELO, nombre: 'Puck', idioma: 'en-US', estilo: NARRADOR + ' Natural American English.', tempo: 1.2, pausaMax: 0.26 },
+  // EE. UU. (12 nov 2026): «Iapetus», la más grave y creíble de ocho candidatas (tono ≈154 Hz; la de referencia, ≈139 Hz).
+  // La voz «cercana» con Puck de los vídeos en 2D salía a ≈225 Hz y 2,3 palabras/s: sonaba a anuncio y la gente se iba a los 5 s.
+  en: { modelo: MODELO, nombre: 'Iapetus', idioma: 'en-US', estilo: NARRADOR + ' Natural American English.', tempo: 1.3, pausaMax: 0.26 },
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: NARRADOR_ES, tempo: 1.2, pausaMax: 0.26 }
 };
 
