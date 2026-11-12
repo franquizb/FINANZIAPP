@@ -17,6 +17,7 @@
 //     W.casitas([{ x, z, rot, esc, color, q }…])   hasta 5 casas pequeñas
 //     W.caja({ x, z, rot, luz, op, item: { y, op, color } })   caja abierta turquesa (el carrito) con la compra dentro
 //     W.puerta({ …, color, cq })   la puerta pasa del rojo a otro color (por defecto, roja)
+//     W.cartel({ x, z, rot, esc, titulo, precio, frac, fracEsc, fracColor, color, op, fracOp })   cartel de precios de gasolinera
 //     W.niebla(cerca, lejos) · W.T = THREE · W.gente · W.GRUPOS
 // Se renderiza por software (SwiftShader) a 0,8× y el navegador lo escala: nítido de sobra para vídeo.
 const { C, VOZ_NARRADOR } = require('./_comun');
@@ -83,7 +84,9 @@ const W3 = (() => {
 
   // ——— multitud ———
   const GRIS = new T.Color(0xb4bac6), NEGRO = new T.Color(0x000000);
-  const GRUPOS = [{ nombre: 'FIJOS', color: new T.Color(0x14b8a6) }, { nombre: 'CAPRICHOS', color: new T.Color(0xe2a336) }, { nombre: 'AHORRO', color: new T.Color(0x8b7cf6) }];
+  // Nombres de las zonas en el idioma del vídeo (LANG lo define el motor antes de este script).
+  const NOMBRES_Z = typeof LANG !== 'undefined' && LANG === 'en' ? ['NEEDS', 'WANTS', 'SAVINGS'] : ['FIJOS', 'CAPRICHOS', 'AHORRO'];
+  const GRUPOS = [{ nombre: NOMBRES_Z[0], color: new T.Color(0x14b8a6) }, { nombre: NOMBRES_Z[1], color: new T.Color(0xe2a336) }, { nombre: NOMBRES_Z[2], color: new T.Color(0x8b7cf6) }];
   const N = 44, L = 32, REPARTO = [22, 13, 9], ZX = [-2.9, 0, 2.9], PASO_X = 0.82, PASO_Z = 0.95, FRENTE = 3.2;
   let semilla = 7; const azar = () => { semilla = (semilla * 1664525 + 1013904223) % 4294967296; return semilla / 4294967296; };
   const gente = [], cacheCol = {}, color = (hex) => cacheCol[hex] || (cacheCol[hex] = new T.Color(hex));
@@ -259,11 +262,40 @@ const W3 = (() => {
     });
   }
 
+  // ——— cartel de precios de gasolinera (tablero con postes; el texto se redibuja solo cuando cambia) ———
+  // W.cartel({ x, z, rot, esc, titulo, precio, frac, fracEsc, fracColor, color, op, fracOp }) · W.cartel(null) lo apaga.
+  const cartelG = new T.Group(); cartelG.visible = false; S.add(cartelG);
+  const lc = document.createElement('canvas'); lc.width = 1024; lc.height = 576; const lx = lc.getContext('2d');
+  const ltx = new T.CanvasTexture(lc); ltx.encoding = T.sRGBEncoding; ltx.anisotropy = 4;
+  const matLado = new T.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6, metalness: 0.2 });
+  const tablero = new T.Mesh(new T.BoxGeometry(3.4, 1.92, 0.2), [matLado, matLado, matLado, matLado, new T.MeshBasicMaterial({ map: ltx, toneMapped: false }), matLado]);
+  tablero.position.y = 3.35; tablero.castShadow = true; cartelG.add(tablero);
+  [-1.15, 1.15].forEach(x => { const po = new T.Mesh(new T.CylinderGeometry(0.08, 0.1, 2.5, 12), matLado); po.position.set(x, 1.25, 0); po.castShadow = true; cartelG.add(po); });
+  const luzCartel = new T.PointLight(0xffffff, 1.2, 8, 1.6); luzCartel.position.set(0, 3.3, 1.6); cartelG.add(luzCartel);
+  let claveCartel = '';
+  function cartel(o) {
+    if (!o) { cartelG.visible = false; luzCartel.intensity = 0; return; }
+    cartelG.visible = true; luzCartel.intensity = 1.2; cartelG.position.set(o.x || 0, 0, o.z || 0); cartelG.rotation.y = o.rot || 0; cartelG.scale.setScalar(o.esc || 1);
+    const fe = Math.round((o.fracEsc == null ? 1 : o.fracEsc) * 40) / 40, op = Math.round((o.op == null ? 1 : o.op) * 40) / 40, fo = Math.round((o.fracOp == null ? 1 : o.fracOp) * 40) / 40;
+    const clave = [o.titulo, o.precio, o.frac, fe, o.fracColor, o.color, op, fo].join('|');
+    if (clave === claveCartel) return; claveCartel = clave;
+    const W_ = lc.width, H_ = lc.height;
+    lx.clearRect(0, 0, W_, H_); lx.fillStyle = '#0a1120'; lx.beginPath(); lx.roundRect(6, 6, W_ - 12, H_ - 12, 36); lx.fill();
+    lx.strokeStyle = '#334155'; lx.lineWidth = 10; lx.stroke();
+    lx.fillStyle = '#94a3b8'; lx.font = '800 56px Inter, sans-serif'; lx.textAlign = 'left'; lx.textBaseline = 'alphabetic'; lx.fillText(o.titulo || '', 60, 104);
+    let fm = 270, ff = 112 * fe; const medir = () => { lx.font = '900 ' + fm + 'px Inter, sans-serif'; const a = lx.measureText(o.precio || '').width; lx.font = '900 ' + ff + 'px Inter, sans-serif'; return [a, o.frac ? lx.measureText(o.frac).width + 18 : 0]; };
+    let [wa, wf] = medir(); const k = Math.min(1, 930 / (wa + wf)); fm *= k; ff *= k; [wa, wf] = medir();
+    const x0 = (W_ - wa - wf) / 2, base = 470;
+    lx.globalAlpha = op; lx.fillStyle = o.color || '#ffffff'; lx.font = '900 ' + fm + 'px Inter, sans-serif'; lx.fillText(o.precio || '', x0, base);
+    if (o.frac) { lx.globalAlpha = fo; lx.fillStyle = o.fracColor || '#f87171'; lx.font = '900 ' + ff + 'px Inter, sans-serif'; lx.fillText(o.frac, x0 + wa + 18, base - fm * 0.62 + ff * 0.72); }
+    lx.globalAlpha = 1; ltx.needsUpdate = true;
+  }
+
   function camara(px, py, pz, lx, ly, lz) { cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); }
   function niebla(cerca, lejos) { S.fog.near = cerca; S.fog.far = lejos; }
-  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas, caja };
+  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas, caja, cartel };
   W.fotograma = (t, k, s, e, coreo) => {
-    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); caja(null); for (const q in etiquetas) etiquetas[q].usada = false;
+    niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); caja(null); cartel(null); for (const q in etiquetas) etiquetas[q].usada = false;
     coreo(t, k, s, e, W);
     for (const q in etiquetas) etiquetas[q].sp.visible = etiquetas[q].usada;
     R.render(S, cam);
