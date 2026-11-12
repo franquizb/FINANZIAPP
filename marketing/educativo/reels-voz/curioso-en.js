@@ -195,6 +195,7 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
       .barras .b span { display: flex; align-items: center; justify-content: center; white-space: nowrap; }
       .barras .gas { background: #e2a336; color: #1f1406; } .barras .tienda { background: #2dd4bf; color: #06201c; }
       .leyenda { display: flex; gap: 26px; justify-content: center; font-size: 30px; font-weight: 750; color: #cbd5e1; margin-top: 4px; }
+      .tj .fte, .barras .fte { display: block; margin-top: 8px; text-align: center; font: 600 21px/1.3 ${MONO}; color: #94a3b8; }
       .leyenda i { display: inline-block; width: 22px; height: 22px; border-radius: 6px; margin-right: 8px; vertical-align: -2px; }`,
     scriptExtra: SCRIPT,
     escenas: [
@@ -204,21 +205,19 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
       { html: () => `<div class="barras" data-t="" data-m="-1">
             <div class="bfila" data-t="" data-m="-1"><small>SHARE OF SALES</small><div class="b"><span class="gas" style="width:${GAS_V}%">${GAS_V}%</span><span class="tienda" style="width:${100 - GAS_V}%">${100 - GAS_V}%</span></div></div>
             <div class="bfila" data-t="" data-m="0"><small>SHARE OF GROSS PROFIT</small><div class="b"><span class="gas" style="width:${GAS_B}%">${Math.round(GAS_B)}%</span><span class="tienda" style="width:${100 - GAS_B}%">${Math.round(100 - GAS_B)}%</span></div></div>
-            <div class="leyenda"><span><i style="background:#e2a336"></i>Fuel</span><span><i style="background:#2dd4bf"></i>Inside the store</span></div></div>
-          <div class="fuente" style="top:845px">NACS State of the Industry, 2025 data</div>`, anim: an },
+            <div class="leyenda"><span><i style="background:#e2a336"></i>Fuel</span><span><i style="background:#2dd4bf"></i>Inside the store</span></div>
+            <span class="fte">NACS State of the Industry, 2025 data</span></div>`, anim: an },
       // 2 · Unos 40¢ por galón; un depósito de 15 galones ≈ 6 $.
       { html: () => `<div class="tj amb" data-t="translateX(-50%)" data-m="0" style="top:1250px"><small>EXAMPLE · 15-GALLON FILL-UP</small>
             <span class="l">15 gal × ${Math.round(MARGEN * 100)}¢ ≈ <span class="a">$${Math.round(15 * MARGEN)}</span></span></div>
           <div class="fuente" style="top:1395px">NACS: fuel margins averaged over 40¢ a gallon in 2025</div>`, anim: an },
       // 3 · Dentro: un tercio de las ventas, más del 60 % del beneficio bruto.
       { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="1" style="top:500px"><small>INSIDE THE STORE</small>
-            <span class="l">${100 - GAS_V}% of sales → <span class="t">${Math.round(100 - GAS_B)}% of gross profit</span></span></div>
-          <div class="fuente" style="top:615px">NACS State of the Industry, 2025 data</div>`, anim: an },
+            <span class="l">${100 - GAS_V}% of sales → <span class="t">${Math.round(100 - GAS_B)}% of gross profit</span></span><span class="fte">NACS State of the Industry, 2025 data</span></div>`, anim: an },
       // 4 · Después de los costes: −7¢ por compra dentro; el surtidor sostiene la tienda.
       { html: () => `<div class="tj roja" data-t="translateX(-50%)" data-m="1" style="top:500px"><small>AFTER ALL COSTS · 2025</small>
-            <span class="l">Average inside purchase: <span class="r">−7¢</span></span></div>
-          <div class="rotulo" data-t="translateX(-50%)" data-m="2" style="top:680px;background:#e2a336">Fuel kept stores profitable</div>
-          <div class="fuente" style="top:780px">NACS State of the Industry Summit, 2026 (2025 data)</div>`, anim: an },
+            <span class="l">Average inside purchase: <span class="r">−7¢</span></span><span class="fte">NACS State of the Industry Summit, 2026 (2025 data)</span></div>
+          <div class="rotulo" data-t="translateX(-50%)" data-m="2" style="top:700px;background:#e2a336">Fuel kept stores profitable</div>`, anim: an },
       // 5 · La pregunta y «Follow for the next one».
       { html: () => `<div class="pregunta" data-t="" data-m="0" style="top:520px;font-size:72px">Store pays for the pump, or <b style="color:#f5b94a">pump pays for the store</b>?<small><i>Follow</i> for the next one</small></div>`, anim: an }
     ],
@@ -246,7 +245,7 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
       } else if (k === 1) {
         W.cartel({ x: SX, z: 0, rot: 0.3, ...cart });
         W.niebla(10, 34);
-        W.camara(-0.3 + 0.5 * p, 2.8, 14.5, 0.15, 3.5, -0.6);
+        W.camara(-0.3 + 0.5 * p, 2.8, 14.5, 0.15, 4.1, -0.6);
       } else if (k === 2) {
         const m2 = mk(1, 3);
         cart = t > m2 ? { titulo: '15-GALLON FILL-UP', precio: '≈ $6', frac: '', color: AMB } : { titulo: 'STORE KEEPS', precio: '≈ 40¢', frac: '/gal', fracColor: '#cbd5e1', color: AMB };

@@ -148,23 +148,44 @@ Día 1 de 30 para ordenar tu dinero. Hoy, solo una cosa: durante 7 días apunta 
           color: 0xef4444, cq: 0.92, brillo: 0.2, color2: i === kc && t > tC ? 0x475569 : 0xe2a336, c2q: i === kc && t > tC ? 1 : f.visto };
       };
       const rotulos = (alto) => { for (let i = 0; i < NF; i++) { const f = fila(i); if (f.esc > 0.6) W.etiqueta('f' + i, NOMBRES[i], 0, alto || 2.28, f.z, (f.esc - 0.6) / 0.4, f.visto > 0.5 ? '#e2a336' : '#f87171'); } };
+      // En inglés (en-reto-02): como mucho 4 rótulos a la vez, los de los maniquíes más cercanos, enteros dentro del cuadro
+      // (márgenes de 60 px), sin pisarse y todos con el mismo tamaño de letra (W.rotulo). Se llama después de W.camara.
+      const rotulosEN = () => {
+        const y = 2.28, cand = [];
+        for (let i = 0; i < NF; i++) { const f = fila(i); if (f.esc > 0.6) cand.push({ i, f }); }
+        cand.sort((a, b) => W.cam.position.distanceTo(new W.T.Vector3(0, y, a.f.z)) - W.cam.position.distanceTo(new W.T.Vector3(0, y, b.f.z)));
+        const ok = [];
+        for (const c of cand) {
+          if (ok.length >= 4) break;
+          const P = W.pantalla(0, y, c.f.z), d = W.cam.position.distanceTo(new W.T.Vector3(0, y, c.f.z));
+          if (P.z > 1) continue;
+          const ppm = 1920 / (2 * d * Math.tan(23 * Math.PI / 180)), ancho = W.anchoRotulo(NOMBRES[c.i]) * ppm / 2, alto = 0.352 * ppm / 2;
+          if (P.x - ancho < 60 || P.x + ancho > 1020 || P.y - alto < 480 || P.y + alto > 1500) continue;
+          if (ok.some(o => Math.abs(o.x - P.x) < o.w + ancho + 10 && Math.abs(o.y - P.y) < o.h + alto + 8)) continue;
+          ok.push({ x: P.x, y: P.y, w: ancho, h: alto });
+          W.rotulo('f' + c.i, NOMBRES[c.i], 0, y, c.f.z, (c.f.esc - 0.6) / 0.4, c.f.visto > 0.5 ? '#e2a336' : '#f87171');
+        }
+      };
       const luzPuerta = t > tC ? 1 - 0.5 * sale(tramo(t, tC, tC + 0.6)) : 1;
       W.puerta({ x: 0, z: PZ, luz: luzPuerta }); W.multitud(t, { directo });
       if (k === 0) {
         W.camara(5.4 - 1.4 * p, 6.4 - p, 13.5 - 2.5 * p, 0, 1.2, -3);
       } else if (k === 1) {
-        rotulos(); W.niebla(11, 36);
+        if (!EN) rotulos(); W.niebla(11, 36);
         const cz = 5 - 0.9 * s; W.camara(4.4, 2.5, cz + 6, 0, 1.55, cz - 2.5);   // tres cuartos, acompañando a la fila
+        if (EN) rotulosEN();
       } else if (k === 2) {
         W.niebla(9, 30);
         W.camara(-3.7 + 0.5 * p, 2.0, -0.8 - 0.6 * p, 0.2, 1.75, -7.2);
       } else if (k === 3) {
-        rotulos(); W.heroe({ x: HX, z: HZ, luz: sale(tramo(s, 0.05, 0.55)), gira: -Math.PI / 2 });
+        if (!EN) rotulos(); W.heroe({ x: HX, z: HZ, luz: sale(tramo(s, 0.05, 0.55)), gira: -Math.PI / 2 });
         W.camara(6.4 - 0.8 * p, 4.3, HZ + 9 - p, 0.9, 1.5, HZ - 2.2);
+        if (EN) rotulosEN();
       } else if (k === 4) {
-        rotulos(); W.heroe({ x: HX, z: HZ, luz: 1, gira: -Math.PI / 2, senala: sale(tramo(t, tC - 0.4, tC - 0.05)) });
+        if (!EN) rotulos(); W.heroe({ x: HX, z: HZ, luz: 1, gira: -Math.PI / 2, senala: sale(tramo(t, tC - 0.4, tC - 0.05)) });
         W.etiqueta('hecho', EN ? 'CANCELED ✓' : 'CANCELADA ✓', 0, 1.5, HZ, sale(tramo(t, tC + 0.7, tC + 1.1)), '#5eead4');
         W.camara(3.3 - 0.3 * p, 2.05, HZ + 8 - 0.5 * p, 1.05, 1.9, HZ);
+        if (EN) rotulosEN();
       } else {
         W.heroe({ x: HX, z: HZ, luz: 1, gira: -Math.PI / 2 + 0.9 * sale(tramo(s, 0, 0.8)) });
         const a = 0.25 * p; W.camara(4 + Math.sin(a) * 3, 8.5 + p, HZ + 10.5, 0, 0.6, HZ - 3.5);

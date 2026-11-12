@@ -180,6 +180,23 @@ const W3 = (() => {
     e.sp.position.set(x, y, z); e.sp.material.opacity = op == null ? 1 : op; e.usada = e.sp.material.opacity > 0.01;
   }
 
+  // ——— rótulo flotante con la letra siempre del mismo tamaño (el ancho se ajusta al texto); comparte el registro de etiquetas ———
+  // W.rotulo(clave, texto, x, y, z, op, css, alto) · W.anchoRotulo(texto) → ancho en metros con alto 0,352 · W.pantalla(x, y, z) → px
+  const medidor = document.createElement('canvas').getContext('2d');
+  function anchoRotulo(texto) { medidor.font = '800 72px Inter, sans-serif'; return 0.352 * (Math.ceil(medidor.measureText(texto).width) + 110) / 144; }
+  function rotulo(k, texto, x, y, z, op, css, alto) {
+    css = css || '#5eead4'; alto = alto || 0.352; const clave = 'R|' + k + '|' + texto + '|' + css; let e = etiquetas[clave];
+    if (!e) {
+      medidor.font = '800 72px Inter, sans-serif'; const w = Math.ceil(medidor.measureText(texto).width) + 110;
+      const tx = lienzo(w, 144, (c, w_, h_) => { c.fillStyle = 'rgba(9,14,27,.94)'; c.strokeStyle = css; c.lineWidth = 9; c.beginPath(); c.roundRect(7, 7, w_ - 14, h_ - 14, 44); c.fill(); c.stroke();
+        c.fillStyle = '#fff'; c.font = '800 72px Inter, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(texto, w_ / 2, h_ / 2 + 4); });
+      const sp = new T.Sprite(new T.SpriteMaterial({ map: tx, transparent: true, depthWrite: false })); S.add(sp);
+      e = etiquetas[clave] = { sp, prop: w / 144 };
+    }
+    e.sp.scale.set(alto * e.prop, alto, 1); e.sp.position.set(x, y, z); e.sp.material.opacity = op == null ? 1 : op; e.usada = e.sp.material.opacity > 0.01;
+  }
+  function pantalla(x, y, z) { cam.updateMatrixWorld(); const v = new T.Vector3(x, y, z).project(cam); return { x: (v.x + 1) / 2 * ANCHO, y: (1 - v.y) / 2 * ALTO, z: v.z }; }
+
   // ——— puerta luminosa (por donde «se va» el dinero) ———
   const puertaG = new T.Group(); puertaG.visible = false; S.add(puertaG);
   const matP = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.7, roughness: 0.4 });
@@ -293,7 +310,7 @@ const W3 = (() => {
 
   function camara(px, py, pz, lx, ly, lz) { cam.position.set(px, py, pz); cam.lookAt(lx, ly, lz); }
   function niebla(cerca, lejos) { S.fog.near = cerca; S.fog.far = lejos; }
-  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas, caja, cartel };
+  const W = { T, S, cam, gente, GRUPOS, H, camara, multitud, heroe, zonas, niebla, andar, etiqueta, puerta, color, casa, casitas, caja, cartel, rotulo, anchoRotulo, pantalla };
   W.fotograma = (t, k, s, e, coreo) => {
     niebla(14, 46); zonas(null); heroe({ visible: false }); puerta(null); casa(null); casitas(null); caja(null); cartel(null); for (const q in etiquetas) etiquetas[q].usada = false;
     coreo(t, k, s, e, W);

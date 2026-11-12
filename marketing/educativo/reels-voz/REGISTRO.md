@@ -46,6 +46,8 @@ Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuent
 |---|---|---|---|
 | Money, explained | Why every gas price ends in 9/10 of a cent (`en-gas-nine-tenths`) | 12 nov 2026, ~18:00 NY (programado) | — |
 | 30 days to get your money in order | Day 1: where your paycheck goes (`en-reto-01`) | 13 nov 2026, ~18:00 NY (programado) | The charges that hit your account every month |
+| 30 days to get your money in order | Day 2: charges that repeat, cancel one (`en-reto-02`) | 14 nov 2026, ~18:30 NY (programado) | What one hour of your work is really worth |
+| Money, explained | Gas stations barely make money on gas… or do they? (`en-curious-gas-stations`) | 15 nov 2026, ~18:00 NY (programado) | — |
 
 ## «Hacemos la cuenta» (vídeos de contraste de noticias, España)
 
