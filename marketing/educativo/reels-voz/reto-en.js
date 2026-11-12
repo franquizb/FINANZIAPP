@@ -48,6 +48,48 @@ What do you think will surprise you most? 👇
 👉 Tomorrow, day 2: the charges that hit your account every month. Follow so you don’t miss a day.
 
 #budgeting #moneychallenge #spendingtracker` }
+  }),
+
+  // Day 2 · Subscriptions and charges that repeat: a red line walking out the red door while you don't look; cancel one.
+  // Same choreography as es-reto-02 (its 3D function picks the English labels by language). No external data.
+  'en-reto-02': pildora3d({
+    slug: 'en-reto-02', cuenta: 'en',
+    T: { en: {
+      titulo: 'Day 2/30 · The charges that hit your account every month',
+      guion: [
+        [0, 'There’s money leaving your account *every single month*… §and you never even look.'],
+        [1, 'Streaming, apps, a free trial that never ended, the gym you don’t go to. §They charge you on their own, §{tic}*one by one*.'],
+        [2, 'They’re small. §That’s exactly why *you never check them*.'],
+        [3, '*Day two*. §Open your bank app §and find every charge that *repeats*. Write them all down.'],
+        [4, 'And today, §{ding}*cancel one* you don’t use. Just one.'],
+        [5, 'Day two of thirty to *get your money in order*. §Tomorrow: what one hour of your work is *really worth*.']
+      ]
+    } },
+    fijo: () => hud(2, TOTAL, 'DAY'),
+    escenas: [
+      { html: () => `<div class="dato" data-t="translateX(-50%)" style="top:1230px;left:69%"><small>CHARGES ITSELF</small><b class="rojo">every month</b></div>`,
+        anim: ES['es-reto-02'].escenas[0].anim },
+      { html: () => '', anim: null },
+      { html: () => `<div class="dato" data-t="translateX(-50%)" style="top:540px"><small>AUTOMATIC CHARGES</small><b class="rojo">0</b></div>`,
+        anim: ES['es-reto-02'].escenas[2].anim },
+      { html: () => `<div class="rotulo" data-t="translateX(-50%)" style="top:580px">Find what repeats</div>`,
+        anim: ES['es-reto-02'].escenas[3].anim },
+      { html: () => `<div class="rotulo" data-t="translateX(-50%)" style="top:580px">Today: cancel one</div>`,
+        anim: ES['es-reto-02'].escenas[4].anim },
+      finSerie({ dia: 2, total: TOTAL, serie: SERIE, etiquetaManana: 'TOMORROW · DAY 3', manana: 'What one hour of your work is really worth', sigue: SIGUE })
+    ],
+    tres: ES['es-reto-02'].tres,
+    texto: { en: `There’s money leaving your account every month… and you never even look. 👻
+
+Day 2 of 30 to get your money in order: open your bank app, find every charge that repeats (subscriptions, apps, memberships) and write them all down. Then cancel one you don’t use. Just one.
+Free trials are the sneaky ones: when you sign up, set a reminder for the day before the first charge.
+
+Which one are you canceling? 👇
+
+💾 Save this for tonight.
+👉 Tomorrow, day 3: what one hour of your work is really worth. Follow so you don’t miss a day.
+
+#subscriptions #budgeting #moneychallenge` }
   })
 };
 

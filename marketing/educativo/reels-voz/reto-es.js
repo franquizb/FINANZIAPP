@@ -8,6 +8,11 @@ const { cuadra } = require('../reels/_comun');
 
 // Día 3: sin datos externos; es un ejemplo inventado y se presenta como tal («si cobras 1.600…»).
 const SUELDO = 1600, HORAS = 160, PRECIO = 120, HORA = SUELDO / HORAS;
+// Día 5: ejemplo (no estadística). 5 % de 1.600 € = 80 € al mes; × 12 = 960 € al año; la nómina en pantalla son 20 maniquíes de 80 €.
+const PCT = 5, MES5 = SUELDO * PCT / 100;
+cuadra('reto-05 mes', MES5, 80);
+cuadra('reto-05 año', MES5 * 12, 960);
+cuadra('reto-05 maniquíes', SUELDO / 20, MES5);
 cuadra('reto-03 hora', HORA, 10);
 cuadra('reto-03 horas', PRECIO / HORA, 12);
 
@@ -125,7 +130,9 @@ Día 1 de 30 para ordenar tu dinero. Hoy, solo una cosa: durante 7 días apunta 
       const zFila = (i, tt) => 16 - (((tt * VEL + i * PASO) % LARGO) + LARGO) % LARGO;
       let kc = 0, mejor = 1e9; for (let i = 0; i < NF; i++) { const d = Math.abs(zFila(i, tA) - 2.5); if (d < mejor) { mejor = d; kc = i; } }
       const HZ = zFila(kc, tA);
-      const NOMBRES = ['STREAMING', 'GIMNASIO', 'APP', 'NUBE', 'MÚSICA', 'JUEGOS', 'REVISTA', 'SEGURO', 'PRUEBA GRATIS'];
+      const EN = typeof LANG !== 'undefined' && LANG === 'en';   // la misma coreografía sirve al día 2 en inglés (reto-en.js)
+      const NOMBRES = EN ? ['STREAMING', 'GYM', 'APP', 'CLOUD', 'MUSIC', 'GAMES', 'NEWS', 'INSURANCE', 'FREE TRIAL']
+        : ['STREAMING', 'GIMNASIO', 'APP', 'NUBE', 'MÚSICA', 'JUEGOS', 'REVISTA', 'SEGURO', 'PRUEBA GRATIS'];
       const fila = (i) => {   // estado de cada uno de la fila en este instante
         const z = zFila(i, Math.min(t, tA)), parado = t > tA, retraso = 0.1 * Math.max(0, (HZ + 6 - z) / PASO);
         const visto = parado ? sale(tramo(t, tA + retraso, tA + retraso + 0.45)) : 0, fuera = i === kc ? sale(tramo(t, tC + 0.25, tC + 1.1)) : 0;
@@ -156,7 +163,7 @@ Día 1 de 30 para ordenar tu dinero. Hoy, solo una cosa: durante 7 días apunta 
         W.camara(6.4 - 0.8 * p, 4.3, HZ + 9 - p, 0.9, 1.5, HZ - 2.2);
       } else if (k === 4) {
         rotulos(); W.heroe({ x: HX, z: HZ, luz: 1, gira: -Math.PI / 2, senala: sale(tramo(t, tC - 0.4, tC - 0.05)) });
-        W.etiqueta('hecho', 'CANCELADA ✓', 0, 1.5, HZ, sale(tramo(t, tC + 0.7, tC + 1.1)), '#5eead4');
+        W.etiqueta('hecho', EN ? 'CANCELED ✓' : 'CANCELADA ✓', 0, 1.5, HZ, sale(tramo(t, tC + 0.7, tC + 1.1)), '#5eead4');
         W.camara(3.3 - 0.3 * p, 2.05, HZ + 8 - 0.5 * p, 1.05, 1.9, HZ);
       } else {
         W.heroe({ x: HX, z: HZ, luz: 1, gira: -Math.PI / 2 + 0.9 * sale(tramo(s, 0, 0.8)) });
@@ -410,8 +417,139 @@ Un truco para que funcione: borra la tarjeta guardada en las tiendas online. Ten
 👉 Mañana, día 5: págate a ti primero, el mismo día que cobras. Síguenos para no perderte ningún día.
 
 #finanzaspersonales #ahorro #retodeahorro #educacionfinanciera #dinero` }
+  }),
+
+  // Día 5 · Págate a ti primero: transferencia automática el mismo día que cobras. Ejemplo (no estadística): si cobras
+  // 1.600 €, un 5 % son 80 € al mes y 960 € al año. En pantalla, la nómina son 20 maniquíes: cada uno, 80 € (el 5 %).
+  'es-reto-05': pildora3d({
+    slug: 'es-reto-05', cuenta: 'es',
+    T: { es: {
+      titulo: 'Día 5/30 · Págate a ti primero, el mismo día que cobras',
+      guion: [
+        [0, 'Si ahorras lo que te sobra a final de mes, §ya sabes cuánto te sobra: §{pop}*nada*.'],
+        [1, 'El truco es darle la vuelta. §El día que cobras la nómina, §lo primero que pagas *eres tú*.'],
+        [2, '*Día cinco*. §Programa una transferencia automática a otra cuenta §{tic}*el mismo día que cobras*.'],
+        [3, 'Empieza pequeño: §un 5 % del sueldo. §Si cobras 1.600 euros, §{caja}*80 al mes*.'],
+        [4, 'Lo que no ves en tu cuenta, §{ding}*no te lo gastas*. §Y en un año son *960 euros*.'],
+        [5, 'Día cinco de treinta para *ordenar tu dinero*. §Mañana: *las comisiones del banco* que puedes dejar de pagar.']
+      ]
+    } },
+    fijo: () => hud(5, TOTAL),
+    cssExtra: `
+      .cal { position: absolute; left: 50%; top: 510px; text-align: center; background: rgba(9,14,27,.9); border: 3px solid rgba(245,185,74,.75);
+        border-radius: 24px; padding: 12px 40px 18px; white-space: nowrap; opacity: 0; }
+      .cal small { display: block; font: 700 23px/1.35 'DejaVu Sans Mono', monospace; letter-spacing: .14em; color: #f5b94a; }
+      .cal b { display: block; font-size: 66px; line-height: 1.1; font-weight: 900; color: #fff; letter-spacing: -.02em; }
+      .cuenta5 { position: absolute; left: 50%; top: 510px; background: rgba(9,14,27,.9); border: 2px solid rgba(94,234,212,.5); border-radius: 24px;
+        padding: 14px 42px 18px; text-align: center; white-space: nowrap; opacity: 0; }
+      .cuenta5 small { display: block; font: 700 23px/1.35 'DejaVu Sans Mono', monospace; letter-spacing: .14em; color: #94a3b8; }
+      .cuenta5 .l { display: block; font-size: 54px; line-height: 1.18; font-weight: 900; color: #fff; font-variant-numeric: tabular-nums; }
+      .cuenta5 .t { color: #5eead4; }`,
+    escenas: [
+      // 0 · Fin de mes: la nómina se ha ido por la puerta; el héroe mira la caja de «lo que sobra»: 0 €.
+      { html: () => '', anim: null },
+      // 1 · Día de cobro: entra la nómina (20 maniquíes) y el primero se vuelve turquesa y se aparta: eres tú.
+      { html: () => '', anim: null },
+      // 2 · La caja «AHORRO», el calendario ámbar «DÍA DE COBRO» y, en el tic, «AUTOMÁTICO».
+      { html: () => `<div class="cal" data-t="translateX(-50%)"><small>CADA MES</small><b>DÍA DE COBRO</b></div>
+          <div class="rotulo" data-t="translateX(-50%)" style="top:700px">Transferencia AUTOMÁTICA</div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 0.6, m1 = M[1] != null ? M[1] : 3;
+          aparece3(el.querySelector('.cal'), rebote(tramo(s, m0 - 0.1, m0 + 0.3))); aparece3(el.querySelector('.rotulo'), rebote(tramo(s, m1 - 0.1, m1 + 0.3))); } },
+      // 3 · La cuenta: 5 % de 1.600 € = 80 € al mes (uno de los 20 maniquíes).
+      { html: () => `<div class="cuenta5" data-t="translateX(-50%)"><small>SI COBRAS ${SUELDO.toLocaleString('es-ES', { useGrouping: 'always' })} €</small>
+          <span class="l">${SUELDO.toLocaleString('es-ES', { useGrouping: 'always' })} € × ${PCT} %</span><span class="l t">= ${MES5} € al mes</span></div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, c = el.querySelector('.cuenta5'), l = c.querySelectorAll('.l');
+          aparece3(c, rebote(tramo(s, (M[1] != null ? M[1] : 1.2) - 0.1, (M[1] != null ? M[1] : 1.2) + 0.3)));
+          const m = M[2] != null ? M[2] : 2.4, q = rebote(tramo(s, m - 0.1, m + 0.3)); l[1].style.opacity = Math.min(1, q * 1.5); l[1].style.transform = 'scale(' + (0.7 + 0.3 * q) + ')'; } },
+      // 4 · El turquesa entra en la caja y el resto se va al mes; contador «12 meses → 960 €».
+      { html: () => `<div class="cuenta5" data-t="translateX(-50%)"><small>EN UN AÑO</small><span class="l"><span class="mes">1 mes</span> → <span class="t eur">80 €</span></span></div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, m = M[1] != null ? M[1] : 2.2, c = el.querySelector('.cuenta5');
+          aparece3(c, rebote(tramo(s, m - 0.1, m + 0.3))); const n = 1 + Math.round(11 * tramo(s, m + 0.1, m + 1.4));
+          c.querySelector('.mes').textContent = n + (n === 1 ? ' mes' : ' meses'); c.querySelector('.eur').textContent = (n * 80).toLocaleString('es-ES') + ' €'; } },
+      finSerie({ dia: 5, total: TOTAL, serie: SERIE, etiquetaManana: 'MAÑANA · DÍA 6', manana: 'Las comisiones del banco que puedes dejar de pagar', sigue: '<b>Síguenos</b> para no perderte ningún día' })
+    ],
+    tres: function (t, k, s, e, W) {
+      const p = Math.min(1, s / (e.fin - e.ini)), N = 20, DX = -1.4, DZ = -7.5, HX = 0.7, HZ = 2.9, CX = 2.3, CZ = 1.6;
+      const mk = (kk, j, def) => ESC[kk].ini + (ESC[kk].seg[0].marcas[j] != null ? ESC[kk].seg[0].marcas[j] : def);
+      const TURQ = 0x2dd4bf, ROJO = 0xef4444;
+      const fuera = { x: -60, z: -60, esc: 0 };
+      const rejilla = (i) => [-2.6 + (i % 4) * 0.8, 0.6 - Math.floor(i / 4) * 0.9];
+      const yo = [1.45, 2.35];   // el «tú» turquesa, junto al héroe y la caja
+      let directo = () => fuera, cajaItem = null;
+      W.puerta({ x: DX, z: DZ, luz: k === 0 || k === 4 ? 1 : 0.5 });
+      const tYo = mk(1, 1, 3);   // «lo primero que pagas eres tú»
+      if (k === 0) {
+        const m1 = mk(0, 1, 2.6);
+        directo = (i, a) => {   // la nómina, en fila india hacia la puerta (en bucle)
+          if (i >= 10) return fuera;
+          const L = 12, z = DZ + L - (((t * 1.3 + i * L / 10) % L) + L) % L;
+          return { x: DX, z, rot: Math.PI, amp: 1, fase: t * 6, color: ROJO, cq: 0.85, brillo: 0.2, esc: Math.min(1, Math.max(0, (z - DZ + 0.2) / 1.2)) * Math.min(1, (DZ + L - z) / 1.5) };
+        };
+        W.heroe({ x: HX, z: HZ, luz: 0.15, gira: 1.15 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 0.4 });
+        W.etiqueta('sobra', 'LO QUE SOBRA', CX, 1.55, CZ, 1, '#e2a336', 1.1);
+        W.etiqueta('cero', '0 €', CX, 2.15, CZ, sale(tramo(t, m1 - 0.05, m1 + 0.3)), '#f87171', 1.3 + 0.15 * rebote(tramo(t, m1, m1 + 0.4)));
+        W.camara(5.0 - 0.5 * p, 3.6, 10.2 - 0.5 * p, 0.0, 1.3, -1.5);
+      } else if (k === 1) {
+        directo = (i, a) => {
+          if (i >= N) return fuera;
+          const [gx, gz] = rejilla(i), t0 = e.ini + 0.1 + (i % 4) * 0.05 + Math.floor(i / 4) * 0.18, q = tramo(t, t0, t0 + 1.6), ee = q * q * (3 - 2 * q), x0 = gx - 7;
+          let x = x0 + (gx - x0) * ee, z = gz, rot = Math.PI / 2, amp = q < 1 ? 1 : 0;
+          if (q >= 1) rot = giro(Math.PI / 2, 0, tramo(t, t0 + 1.6, t0 + 1.9));
+          if (i === 0) { const v = tramo(t, tYo + 0.2, tYo + 1.5), ev = v * v * (3 - 2 * v); if (v > 0) { x = gx + (yo[0] - gx) * ev; z = gz + (yo[1] - gz) * ev; rot = v < 1 ? Math.atan2(yo[0] - gx, yo[1] - gz) : 0; amp = v < 1 ? 1 : 0; } }
+          return { x, z, rot, amp, fase: (t - t0) * 7, color: i === 0 ? TURQ : null, cq: i === 0 ? sale(tramo(t, tYo - 0.05, tYo + 0.4)) : 0, brillo: 0.35 };
+        };
+        W.heroe({ x: HX, z: HZ, luz: 0.3 + 0.7 * sale(tramo(t, tYo, tYo + 0.6)), gira: -0.6 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 0.4 });
+        W.etiqueta('nomina', 'NÓMINA', -1.4, 2.6, -1.2, sale(tramo(t, mk(1, 0, 1.5) - 0.05, mk(1, 0, 1.5) + 0.3)), '#cbd5e1', 1.2);
+        W.camara(2.6 - 0.4 * p, 6.4, 11.4 - 0.6 * p, -0.4, 0.4, -1);
+      } else if (k === 2) {
+        directo = (i, a) => i >= N ? fuera : i === 0 ? { x: yo[0], z: yo[1], rot: 0.3, color: TURQ, cq: 1, brillo: 0.35 } : { x: rejilla(i)[0], z: rejilla(i)[1], rot: 0 };
+        W.heroe({ x: HX, z: HZ, luz: 1, gira: 0.5 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1 });
+        W.etiqueta('ahorro', 'AHORRO', CX, 1.45, CZ, 1, '#5eead4', 0.9);
+        W.camara(4.6 - 0.5 * p, 2.4, 7.2 - 0.6 * p, 1.4, 1.35, 1.0);
+      } else if (k === 3) {
+        const m2 = mk(3, 2, 2.4);
+        directo = (i, a) => i >= N ? fuera : i === 0 ? { x: yo[0], z: yo[1], rot: 0.3, color: TURQ, cq: 1, brillo: 0.35 } : { x: rejilla(i)[0], z: rejilla(i)[1], rot: 0.04 * Math.sin(t + i) };
+        W.heroe({ x: HX, z: HZ, luz: 1, gira: -0.5 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1 });
+        W.etiqueta('mil6', '1.600 €', -1.4, 2.55, -1.2, sale(tramo(s, 0.2, 0.6)), '#cbd5e1', 1.2);
+        W.etiqueta('ochenta', '80 €', yo[0], 2.3, yo[1], sale(tramo(t, m2 - 0.05, m2 + 0.3)), '#5eead4', 1.1);
+        W.camara(1.2 - 0.4 * p, 7.0, 12.2 - 0.5 * p, -0.4, 2.2, -0.4);
+      } else if (k === 4) {
+        const tD = mk(4, 0, 1.2), entra = tramo(s, 0.1, 1.2);
+        directo = (i, a) => {
+          if (i >= N) return fuera;
+          if (i === 0) { const ee = entra * entra * (3 - 2 * entra); return { x: yo[0] + (CX - yo[0]) * ee, z: yo[1] + (CZ - yo[1]) * ee, rot: Math.atan2(CX - yo[0], CZ - yo[1]), amp: entra < 1 ? 1 : 0, fase: t * 7, esc: 1 - sale(tramo(s, 0.8, 1.3)), color: TURQ, cq: 1, brillo: 0.35 }; }
+          const [gx, gz] = rejilla(i), t0 = e.ini + 0.4 + i * 0.08, q = tramo(t, t0, t0 + 3), ee = q * q * (3 - 2 * q);
+          const x = gx + (DX - gx) * ee, z = gz + (DZ - gz) * ee;
+          return { x, z, rot: q > 0 ? Math.atan2(DX - gx, DZ - gz) : 0, amp: q > 0 && q < 1 ? 1 : 0, fase: (t - t0) * 7, esc: 1 - sale(tramo(t, t0 + 2.4, t0 + 3)) };
+        };
+        cajaItem = { y: 0.42, op: sale(tramo(s, 1.0, 1.4)), color: TURQ };
+        W.heroe({ x: HX, z: HZ, luz: 1, gira: 0.9, brazos: sale(tramo(t, tD, tD + 0.4)) });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1, item: cajaItem });
+        W.camara(5.4 - 0.6 * p, 4.4, 9.6 - 0.6 * p, 0.2, 1.0, -1.6);
+      } else {
+        W.heroe({ x: HX, z: HZ, luz: 1, brazos: 1 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 1, item: { y: 0.42, color: TURQ } });
+        const a = 0.25 * p; W.camara(3 + Math.sin(a) * 3, 6 + p, 9.5, 0.8, 0.8, 0);
+      }
+      function giro(a, b, q) { return a + (b - a) * q; }
+      W.multitud(t, { directo });
+    },
+    texto: { es: `Si ahorras lo que te sobra a final de mes, ya sabes cuánto te sobra. 🫠
+
+Día 5 de 30 para ordenar tu dinero. Hoy: programa una transferencia automática a otra cuenta el mismo día que cobras la nómina. Empieza por un 5 %: si cobras 1.600 €, son 80 € al mes.
+Ponle nombre a esa cuenta («Colchón», «Viaje»…), así sabes para qué es. Y si cobras en fecha variable, prográmala para el día siguiente al que suele llegar la nómina.
+
+💾 Guárdalo y prográmala hoy.
+👉 Mañana, día 6: las comisiones del banco que puedes dejar de pagar. Síguenos para no perderte ningún día.
+
+#ahorro #finanzaspersonales #retodeahorro` }
   })
 };
+
 
 
 

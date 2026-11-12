@@ -36,6 +36,7 @@ el único que despega. El texto de la publicación es corto: gancho, qué hacer 
 | 2 | Suscripciones y cargos que se repiten: cancela uno (`es-reto-02`) | 11 nov 2026, 7:30 | Lo que vale de verdad una hora de tu trabajo |
 | 3 | Lo que vale de verdad una hora de tu trabajo: calcula tu hora y pasa los precios a horas (`es-reto-03`) | 12 nov 2026, 13:00 (programado) | El truco de las 24 horas antes de comprar |
 | 4 | El truco de las 24 horas: si no es comida ni urgencia, espera un día antes de pagar (`es-reto-04`) | 13 nov 2026, 7:30 (programado) | Págate a ti primero, el mismo día que cobras |
+| 5 | Págate a ti primero: transferencia automática el día que cobras (`es-reto-05`) | 14 nov 2026, ~10:30 Madrid (programado) | Las comisiones del banco que puedes dejar de pagar |
 
 Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuento en el próximo vídeo. Síguenos» o «La respuesta, en el siguiente vídeo».
 
