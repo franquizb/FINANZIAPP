@@ -72,6 +72,19 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
 
 ## Formato de cada vídeo
 
+- **Estructura en tres actos** (método que compartió el propietario el 12 nov 2026, de @resueltaestudio): inicio = contexto y
+  problema en una sola frase; nudo = la información ordenada de menos a más sorprendente; desenlace = qué hacer + pregunta o
+  anuncio del siguiente. Cada frase tiene una función (gancho, problema, mito, dato, giro, acción, cierre): la que no la tiene
+  se quita.
+- **Cada vídeo lleva al menos un mito desmentido o un dato que casi nadie sabe**, y el más fuerte va en el último tercio. Nuestros
+  datos lo confirman: retienen 41–49 % los de «lo que crees es falso» o «un derecho que no sabías» (garantía de 3 años, la
+  milésima de la gasolinera, 14 días para devolver, 79.900 millas) y 15–24 % los de manual (fondo de emergencia, 50/30/20,
+  Roth, 5 $ al día). Un tema de manual solo entra reformulado como mito («todo el mundo dice X; para ti es Y»).
+- En el vídeo de la vivienda (82 s, 24 %) el dato estrella llegó a los 25 s y después la curva bajó: en los largos, el primer
+  pico antes de los 5 s y el mayor al final.
+- No sirve puntuar el guion con un juez automático solo con el texto: lo probamos con 16 vídeos publicados y no predijo la
+  retención (el día 1 de la serie, 86 %, sacó la nota más baja).
+
 - **Arranque lleno**: el fotograma 0 ya tiene la escena completa y la primera frase.
 - 25–35 s las píldoras; hasta 90 s un vídeo de contraste si cada 5–8 s pasa algo nuevo en pantalla.
 - **Texto de la publicación**: gancho de una línea, 2–3 líneas que aporten algo que no está en el vídeo, qué hacer hoy y

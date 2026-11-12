@@ -25,6 +25,22 @@ cuadra('gas: por conductor', +(GALONES / CONDUCTORES * NUEVE).toFixed(2), 5.12);
 cuadra('gas: ejemplo 1933', 20 + 1.5, 21.5);
 cuadra('gas: 3.499 redondeado', Math.round(3.499 * 100) / 100, 3.5);
 
+// en-curious-gas-stations · Sources (checked 13 Nov 2026), all NACS (National Association of Convenience Stores), 2025 data:
+// - Fuel = 65.0% of total sales dollars but 38.8% of gross profit dollars; in-store sales $341.2 billion; foodservice 28.5% of
+//   in-store sales and 38.9% of in-store gross profit: NACS, «U.S. Convenience In-Store Sales Top $340 Billion» (15 Apr 2026).
+// - «In 2025, fuel margins averaged over 40 cents per gallon»: NACS Magazine, «5 Key Metrics Defining the Convenience Industry's
+//   Health» (June 2026). → example: 15 gal × 40¢ = $6 (gross margin, before costs).
+// - «Every transaction inside the store lost 7 cents» in 2025 (after all expenses; +1¢ in 2024); «fuel margins were the reason
+//   that stores were profitable in 2025»; basket $7.69; labor $1.60 per in-store transaction: NACS Magazine, «5 Big Takeaways
+//   From the 2026 NACS State of the Industry Summit» (June 2026).
+// - Average gas price $3.11 in 2025 (sign): NACS via Convenience Store Dive (2026).
+// Not claimed (no solid source): that a gallon earns less than a coffee. The data is for convenience stores that sell fuel,
+// which the hook calls «gas stations».
+const GAS_V = 65.0, GAS_B = 38.8, MARGEN = 0.4;
+cuadra('estaciones: dentro ventas', +(100 - GAS_V).toFixed(1), 35);
+cuadra('estaciones: dentro beneficio', +(100 - GAS_B).toFixed(1), 61.2);
+cuadra('estaciones: depósito', +(15 * MARGEN).toFixed(2), 6);
+
 const MONO = `'DejaVu Sans Mono', 'Liberation Mono', monospace`;
 const CSS = `
   .tj { position: absolute; left: 50%; background: rgba(9,14,27,.9); border: 2px solid rgba(148,163,184,.32); border-radius: 24px;
@@ -152,7 +168,121 @@ Had you ever noticed it? Do you round up in your head? 👇
 Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 · FHWA, licensed drivers 2024 · Thomas & Morwitz (2005).
 
 #gasprices #pricing #moneyfacts` }
+  }),
+
+  // en-curious-gas-stations · Where gas stations make their money. On paper (gross profit), most of it is inside; after costs,
+  // in 2025 the inside lost money on the average purchase and fuel margins kept stores profitable. Sources in the header.
+  'en-curious-gas-stations': pildora3d({
+    slug: 'en-curious-gas-stations', cuenta: 'en',
+    T: { en: {
+      titulo: 'Where gas stations really make their money',
+      guion: [
+        [0, 'You’d think gas stations make their money on gas. §{pop}On paper, *most of it comes from inside*.'],
+        [1, 'In 2025, gas was about *two-thirds* of what U.S. convenience stores sold, §but only *39 percent* of their gross profit.'],
+        [2, 'They keep about *forty cents* a gallon. §A fifteen-gallon fill-up: §{caja}about *six dollars*.'],
+        [3, 'Inside, it’s the opposite: §about a third of the sales, §{ding}*over sixty percent* of the gross profit.'],
+        [4, 'But after wages and every other cost, §the average purchase inside §{pop}*lost seven cents* in 2025. §The pump kept stores profitable.'],
+        [5, 'So who pays for whom: §{pop}the store, or the pump? Follow for the next one.']
+      ]
+    } },
+    fijo: () => `<div class="hud i">MONEY, EXPLAINED</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
+    cssExtra: CSS + `
+      .barras { position: absolute; left: 70px; right: 70px; top: 500px; background: rgba(9,14,27,.9); border: 2px solid rgba(148,163,184,.32);
+        border-radius: 24px; padding: 18px 28px 22px; opacity: 0; }
+      .barras .bfila { margin: 6px 0 14px; opacity: 0; }
+      .barras small { display: block; font: 700 23px/1.35 ${MONO}; letter-spacing: .14em; color: #94a3b8; margin-bottom: 6px; }
+      .barras .b { display: flex; height: 72px; border-radius: 14px; overflow: hidden; font-size: 38px; font-weight: 900; }
+      .barras .b span { display: flex; align-items: center; justify-content: center; white-space: nowrap; }
+      .barras .gas { background: #e2a336; color: #1f1406; } .barras .tienda { background: #2dd4bf; color: #06201c; }
+      .leyenda { display: flex; gap: 26px; justify-content: center; font-size: 30px; font-weight: 750; color: #cbd5e1; margin-top: 4px; }
+      .leyenda i { display: inline-block; width: 22px; height: 22px; border-radius: 6px; margin-right: 8px; vertical-align: -2px; }`,
+    scriptExtra: SCRIPT,
+    escenas: [
+      // 0 · El cartel y la tienda (puerta turquesa); la gente va de los surtidores a la tienda.
+      { html: () => '', anim: null },
+      // 1 · Barras: ventas (65 / 35) y, en la marca, beneficio bruto (39 / 61).
+      { html: () => `<div class="barras" data-t="" data-m="-1">
+            <div class="bfila" data-t="" data-m="-1"><small>SHARE OF SALES</small><div class="b"><span class="gas" style="width:${GAS_V}%">${GAS_V}%</span><span class="tienda" style="width:${100 - GAS_V}%">${100 - GAS_V}%</span></div></div>
+            <div class="bfila" data-t="" data-m="0"><small>SHARE OF GROSS PROFIT</small><div class="b"><span class="gas" style="width:${GAS_B}%">${Math.round(GAS_B)}%</span><span class="tienda" style="width:${100 - GAS_B}%">${Math.round(100 - GAS_B)}%</span></div></div>
+            <div class="leyenda"><span><i style="background:#e2a336"></i>Fuel</span><span><i style="background:#2dd4bf"></i>Inside the store</span></div></div>
+          <div class="fuente" style="top:845px">NACS State of the Industry, 2025 data</div>`, anim: an },
+      // 2 · Unos 40¢ por galón; un depósito de 15 galones ≈ 6 $.
+      { html: () => `<div class="tj amb" data-t="translateX(-50%)" data-m="0" style="top:1250px"><small>EXAMPLE · 15-GALLON FILL-UP</small>
+            <span class="l">15 gal × ${Math.round(MARGEN * 100)}¢ ≈ <span class="a">$${Math.round(15 * MARGEN)}</span></span></div>
+          <div class="fuente" style="top:1395px">NACS: fuel margins averaged over 40¢ a gallon in 2025</div>`, anim: an },
+      // 3 · Dentro: un tercio de las ventas, más del 60 % del beneficio bruto.
+      { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="1" style="top:500px"><small>INSIDE THE STORE</small>
+            <span class="l">${100 - GAS_V}% of sales → <span class="t">${Math.round(100 - GAS_B)}% of gross profit</span></span></div>
+          <div class="fuente" style="top:615px">NACS State of the Industry, 2025 data</div>`, anim: an },
+      // 4 · Después de los costes: −7¢ por compra dentro; el surtidor sostiene la tienda.
+      { html: () => `<div class="tj roja" data-t="translateX(-50%)" data-m="1" style="top:500px"><small>AFTER ALL COSTS · 2025</small>
+            <span class="l">Average inside purchase: <span class="r">−7¢</span></span></div>
+          <div class="rotulo" data-t="translateX(-50%)" data-m="2" style="top:680px;background:#e2a336">Fuel kept stores profitable</div>
+          <div class="fuente" style="top:780px">NACS State of the Industry Summit, 2026 (2025 data)</div>`, anim: an },
+      // 5 · La pregunta y «Follow for the next one».
+      { html: () => `<div class="pregunta" data-t="" data-m="0" style="top:520px;font-size:72px">Store pays for the pump, or <b style="color:#f5b94a">pump pays for the store</b>?<small><i>Follow</i> for the next one</small></div>`, anim: an }
+    ],
+    tres: function (t, k, s, e, W) {
+      const p = Math.min(1, s / (e.fin - e.ini)), M = e.seg.flatMap(g => g.marcas);
+      const mk = (j, def) => e.ini + (M[j] != null ? M[j] : def);
+      const TURQ = 0x2dd4bf, AMB = '#f5b94a', TQ = '#5eead4';
+      const SX = -1.4, PX = 1.8, PZ = -1.8;   // cartel a la izquierda; puerta de la tienda (turquesa) a la derecha
+      const fuera = { x: -60, z: -60, esc: 0 };
+      // Clientes: salen de la zona de surtidores (delante del cartel) y entran en la tienda, en bucle.
+      const clientes = (n, brillo) => (i, a) => {
+        if (i >= n) return fuera;
+        const L = 7.5, u = (((t * 1.1 + i * L / n) % L) + L) % L, q = u / L;
+        const x0 = SX + 0.6 + (i % 3) * 0.4, z0 = 2.6 + (i % 2) * 0.6, x = x0 + (PX - x0) * q, z = z0 + (PZ + 0.2 - z0) * q;
+        return { x, z, rot: Math.atan2(PX - x0, PZ - z0), amp: 1, fase: t * 6 + i, esc: Math.min(1, q * 6) * Math.min(1, (1 - q) * 6),
+          color: TURQ, cq: brillo * q, brillo: 0.3 };
+      };
+      let directo = clientes(8, 0.8), cart = { titulo: 'REGULAR', precio: '$3.11', frac: '', color: '#ffffff' };
+      W.puerta({ x: PX, z: PZ, rot: -0.35, color: TURQ, cq: 1, luz: 1 });
+      if (k === 0) {
+        const m0 = mk(0, 2), g = sale(tramo(t, m0 - 0.05, m0 + 0.4));
+        W.etiqueta('inside', 'INSIDE', PX, 3.25, PZ, g, '#5eead4', 1.5 + 0.1 * Math.sin(t * 7) * g);
+        W.cartel({ x: SX, z: 0, rot: 0.3, ...cart });
+        W.camara(0.3 - 0.4 * p, 3.2, 14 - 0.8 * p, 0.15, 3.15, -0.5);
+      } else if (k === 1) {
+        W.cartel({ x: SX, z: 0, rot: 0.3, ...cart });
+        W.niebla(10, 34);
+        W.camara(-0.3 + 0.5 * p, 2.8, 14.5, 0.15, 3.5, -0.6);
+      } else if (k === 2) {
+        const m2 = mk(1, 3);
+        cart = t > m2 ? { titulo: '15-GALLON FILL-UP', precio: '≈ $6', frac: '', color: AMB } : { titulo: 'STORE KEEPS', precio: '≈ 40¢', frac: '/gal', fracColor: '#cbd5e1', color: AMB };
+        W.cartel({ x: 0, z: 0, ...cart });
+        directo = () => fuera;
+        W.camara(0.4 - 0.5 * p, 3.4, 7.8 - 0.7 * p, 0, 3.1, 0);
+      } else if (k === 3) {
+        directo = clientes(10, 1);
+        W.camara(PX + 3.4 - 0.8 * p, 2.4, PZ + 8.5 - 0.6 * p, PX - 0.6, 2.4, PZ);
+      } else if (k === 4) {
+        const m1 = mk(1, 2.5), m2 = mk(2, 4), luz = sale(tramo(t, m2 - 0.05, m2 + 0.4));
+        W.puerta({ x: PX, z: PZ, rot: -0.35, color: TURQ, cq: 1 - 0.7 * sale(tramo(t, m1 - 0.05, m1 + 0.4)), luz: 1 - 0.5 * sale(tramo(t, m1, m1 + 0.4)) });
+        W.etiqueta('menos7', '−7¢', PX, 3.3, PZ, sale(tramo(t, m1 - 0.05, m1 + 0.3)), '#f87171', 1.4);
+        W.cartel({ x: SX, z: 0, rot: 0.3, ...cart, color: luz > 0.5 ? AMB : '#ffffff' });
+        directo = clientes(8, 0.4);
+        W.camara(0.3, 3.0, 14.5 - 0.6 * p, 0.15, 3.6, -0.5);
+      } else {
+        W.cartel({ x: SX, z: 0, rot: 0.3, ...cart, color: AMB });
+        W.heroe({ x: 0.4, z: 1.8, luz: 1, gira: 0.35 * Math.sin(s * 1.2) });
+        directo = clientes(6, 0.8);
+        const a = 0.12 - 0.24 * p; W.camara(Math.sin(a) * 13.5, 2.6, Math.cos(a) * 13.5, 0.15, 3.9, -0.5);
+      }
+      W.multitud(t, { directo });
+    },
+    texto: { en: `Gas stations sell you gas… but where do they actually make their money? ⛽
+
+Food is the star inside: 28.5% of in-store sales, but almost 39% of in-store gross profit.
+And the average convenience-store basket was $7.69 in 2025, with labor alone costing about $1.60 per transaction.
+
+So who’s paying for whom: the store for the pump, or the pump for the store? 👇
+
+Sources: NACS State of the Industry (2025 data) and NACS State of the Industry Summit 2026, via NACS and NACS Magazine.
+
+#gasstation #convenience #moneyfacts` }
   })
 };
+
 
 module.exports = { pildoras };
