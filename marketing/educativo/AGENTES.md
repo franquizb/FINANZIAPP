@@ -76,6 +76,10 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
   problema en una sola frase; nudo = la información ordenada de menos a más sorprendente; desenlace = qué hacer + pregunta o
   anuncio del siguiente. Cada frase tiene una función (gancho, problema, mito, dato, giro, acción, cierre): la que no la tiene
   se quita.
+- **Los 3 primeros segundos deciden si Instagram reparte el vídeo** («Tasa de omisión»: los que despegaron tenían 24–30 %;
+  los que no, 40–87 %). La primera frase es un caso concreto con una contradicción o una cifra que no cuadra («Ese capricho
+  de 120 € no cuesta 120 €», «A car with 79,900 miles sells for $200 more»), nunca una pregunta de manual ni una definición,
+  y el fotograma 0 ya enseña esa contradicción en grande.
 - **Cada vídeo lleva al menos un mito desmentido o un dato que casi nadie sabe**, y el más fuerte va en el último tercio. Nuestros
   datos lo confirman: retienen 41–49 % los de «lo que crees es falso» o «un derecho que no sabías» (garantía de 3 años, la
   milésima de la gasolinera, 14 días para devolver, 79.900 millas) y 15–24 % los de manual (fondo de emergencia, 50/30/20,

@@ -494,7 +494,7 @@
   }
 
   const COLS = [['fecha', 'Fecha'], ['plataforma', 'Red'], ['tipo', 'Tipo'], ['tema', 'Tema'], ['vistas', 'Reprod.', 1], ['alcance', 'Alcance', 1], ['retencion', 'Retención'],
-    ['visto_medio_s', 'Visto medio', 1], ['guardados', 'Guard.', 1], ['compartidos', 'Compart.', 1], ['megusta', 'Me gusta', 1], ['comentarios', 'Coment.', 1], ['seguidores', 'Seguid.', 1], ['enlace', '']];
+    ['omision', 'Se saltan', 1], ['visto_medio_s', 'Visto medio', 1], ['guardados', 'Guard.', 1], ['compartidos', 'Compart.', 1], ['megusta', 'Me gusta', 1], ['comentarios', 'Coment.', 1], ['seguidores', 'Seguid.', 1], ['enlace', '']];
   function filasFiltradas() {
     const f = S.filtro, q = f.q.trim().toLowerCase();
     return publicaciones().filter(p => (f.plat === 'todas' || p.plataforma === f.plat) && (f.tipo === 'todos' || p.tipo === f.tipo) && (!q || (nombreTema(p) + ' ' + (p.texto || '')).toLowerCase().includes(q)))
@@ -507,6 +507,7 @@
       <tbody>${filas.map(p => `<tr data-pub="${esc(p.id)}"><td>${fechaZona(p.fecha, MI.zona, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td>${chipPlat(p.plataforma)}</td><td>${esc(p.tipo)}</td>
         <td class="tema">${esc(nombreTema(p))}</td><td class="num"><b>${num(p.vistas)}</b></td><td class="num">${num(p.alcance)}</td>
         <td>${p.retencion != null ? `<div class="ret"><div class="pista"><div class="bar" style="width:${Math.min(100, p.retencion)}%"></div></div><span>${p.retencion} %</span></div>` : '<span style="color:var(--suave)">—</span>'}</td>
+        <td class="num" title="Se lo saltan en los 3 primeros segundos (objetivo: menos del 30 %)" style="${p.omision == null ? '' : p.omision <= 30 ? 'color:var(--verde)' : p.omision >= 45 ? 'color:var(--rojo)' : ''}">${p.omision != null ? num(p.omision, 1) + ' %' : '—'}</td>
         <td class="num">${p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—'}</td><td class="num">${num(p.guardados)}</td><td class="num">${num(p.compartidos)}</td><td class="num">${num(p.megusta)}</td>
         <td class="num">${num(p.comentarios)}</td><td class="num">${num(p.seguidores)}</td><td>${enlace(p.enlace)}</td></tr>`).join('') || `<tr><td colspan="${COLS.length}" class="vacio">Nada con estos filtros.</td></tr>`}</tbody>`;
     $('t-pubs').querySelectorAll('th.ord').forEach(th => th.onclick = () => { const k2 = th.dataset.k; if (f.orden === k2) f.dir = -f.dir; else { f.orden = k2; f.dir = ['tema', 'tipo', 'plataforma'].includes(k2) ? 1 : -1; } pintarTabla(); });
@@ -633,7 +634,7 @@
       <h3>${esc(nombreTema(p))}</h3>
       <div style="color:var(--suave);font-size:13px">${chipPlat(p.plataforma)} ${esc(p.tipo)} · ${dobleHora(p.fecha, c)} · ${enlace(p.enlace, 'abrir en ' + (p.plataforma === 'ig' ? 'Instagram' : 'Facebook') + ' ↗')}</div>
       ${p.texto ? `<p style="color:var(--texto);font-size:14px;margin-top:10px">${esc(p.texto)}</p>` : ''}
-      <div class="mets">${met('Reproducciones', num(p.vistas))}${met('Alcance', num(p.alcance))}${met('Retención', pct(p.retencion))}
+      <div class="mets">${met('Reproducciones', num(p.vistas))}${met('Alcance', num(p.alcance))}${met('Retención', pct(p.retencion))}${p.omision != null ? met('Se lo saltan en 3 s', num(p.omision, 1) + ' %') : ''}
         ${met('Visto de media', p.visto_medio_s != null ? num(p.visto_medio_s, 1) + ' s' : '—')}${met('Duración', p.duracion_s != null ? num(p.duracion_s, 1) + ' s' : '—')}${met('Tiempo total visto', p.tiempo_total_h != null ? num(p.tiempo_total_h, 1) + ' h' : '—')}
         ${met('Me gusta', num(p.megusta))}${met('Comentarios', num(p.comentarios))}${met('Compartidos', num(p.compartidos))}
         ${met('Guardados', num(p.guardados))}${met('Seguidores ganados', num(p.seguidores))}${met(p.plataforma === 'fb' ? 'Repeticiones' : 'Visitas al perfil', num(p.plataforma === 'fb' ? p.repeticiones : p.visitas_perfil))}</div>

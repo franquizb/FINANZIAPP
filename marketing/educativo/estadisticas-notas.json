@@ -1,6 +1,10 @@
 {
   "es": [
     {
+      "titulo": "Lo que decide el reparto: cuántos se lo saltan en 3 s",
+      "texto": "Métrica «Tasa de omisión» de Instagram (13 nov, 33 Reels): los tres que despegaron en España tenían 24–30 % de omisión; casi todos los que se quedaron en ~130 vistas, 40–87 %. Por debajo del 30 % es necesario pero no basta: en EE. UU. dos Reels con 22–30 % no despegaron (posible problema de la cuenta). Mejores arranques: un caso concreto con una contradicción en la primera frase («Ese capricho de 120 € no cuesta 120 €», «Se te rompe el móvil a los dos años y medio»). Peores: preguntas de manual («Roth or traditional?», 70 %)."
+    },
+    {
       "titulo": "Lo que retiene: mitos y datos que nadie sabe",
       "texto": "Con los 16 vídeos medidos: 41–49 % los de «lo que crees es falso» o «un derecho que no sabías» (garantía, gasolinera, devolución, 79.900 millas) frente a 15–24 % los de manual (fondo de emergencia, 50/30/20, Roth, 5 $ al día). Regla desde el 12 nov: cada vídeo lleva un mito o dato sorprendente y el más fuerte va al final (método de los tres actos y los picos de atención)."
     },
@@ -30,6 +34,10 @@
     }
   ],
   "en": [
+    {
+      "titulo": "Lo que decide el reparto: cuántos se lo saltan en 3 s",
+      "texto": "Métrica «Tasa de omisión» de Instagram (13 nov, 33 Reels): los tres que despegaron en España tenían 24–30 % de omisión; casi todos los que se quedaron en ~130 vistas, 40–87 %. Por debajo del 30 % es necesario pero no basta: en EE. UU. dos Reels con 22–30 % no despegaron (posible problema de la cuenta). Mejores arranques: un caso concreto con una contradicción en la primera frase («Ese capricho de 120 € no cuesta 120 €», «Se te rompe el móvil a los dos años y medio»). Peores: preguntas de manual («Roth or traditional?», 70 %)."
+    },
     {
       "titulo": "Lo que retiene: mitos y datos que nadie sabe",
       "texto": "Con los 16 vídeos medidos: 41–49 % los de «lo que crees es falso» o «un derecho que no sabías» (garantía, gasolinera, devolución, 79.900 millas) frente a 15–24 % los de manual (fondo de emergencia, 50/30/20, Roth, 5 $ al día). Regla desde el 12 nov: cada vídeo lleva un mito o dato sorprendente y el más fuerte va al final (método de los tres actos y los picos de atención)."

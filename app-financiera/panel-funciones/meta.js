@@ -10,7 +10,7 @@ const CUENTAS = {
 const D = 86400;
 const MET = {
   igCuenta: ['views', 'reach', 'accounts_engaged', 'total_interactions', 'likes', 'comments', 'shares', 'saves', 'profile_views', 'website_clicks', 'profile_links_taps', 'replies'],
-  igReel: ['views', 'reach', 'saved', 'shares', 'likes', 'comments', 'total_interactions', 'ig_reels_avg_watch_time', 'ig_reels_video_view_total_time'],
+  igReel: ['views', 'reach', 'saved', 'shares', 'likes', 'comments', 'total_interactions', 'ig_reels_avg_watch_time', 'ig_reels_video_view_total_time', 'reels_skip_rate'],
   igFeed: ['views', 'reach', 'saved', 'shares', 'likes', 'comments', 'total_interactions', 'profile_visits', 'follows'],
   fbPagina: ['page_follows', 'page_daily_follows_unique', 'page_media_view', 'page_total_media_view_unique', 'page_post_engagements', 'page_video_views', 'page_views_total'],
   fbReel: ['blue_reels_play_count', 'fb_reels_total_plays', 'fb_reels_replay_count', 'post_video_avg_time_watched', 'post_video_view_time', 'post_video_social_actions',
@@ -108,7 +108,10 @@ async function instagram(cli, c, config, cache, errores) {
       vistas: met.views ?? null, alcance: met.reach ?? null, megusta: met.likes ?? m.like_count ?? null, comentarios: met.comments ?? m.comments_count ?? null,
       guardados: met.saved ?? null, compartidos: met.shares ?? null, interacciones: met.total_interactions ?? null, visitas_perfil: met.profile_visits ?? null, seguidores: met.follows ?? null,
       visto_medio_s: visto != null ? +visto.toFixed(1) : null, duracion_s: dur ?? null, retencion: visto != null && dur ? Math.round(100 * visto / dur) : null,
-      tiempo_total_h: met.ig_reels_video_view_total_time != null ? +(met.ig_reels_video_view_total_time / 3600000).toFixed(2) : null
+      tiempo_total_h: met.ig_reels_video_view_total_time != null ? +(met.ig_reels_video_view_total_time / 3600000).toFixed(2) : null,
+      // % de reproducciones que se saltan el Reel en los 3 primeros segundos: es lo que decide si Instagram lo reparte
+      // (los tres que despegaron en España tenían 24–30 %; los que se quedaron en ~130, 40–87 %).
+      omision: typeof met.reels_skip_rate === 'number' ? +met.reels_skip_rate.toFixed(1) : null
     });
     if (m.comments_count > 0) {
       try {
