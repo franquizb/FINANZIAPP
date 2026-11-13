@@ -77,6 +77,7 @@ async function publicarCola() {
         }
       }
       await admin.storage().bucket(BUCKET).file(it.objeto).delete().catch(() => {});
+      if (it.portada_url) await admin.storage().bucket(BUCKET).file(it.objeto.replace(/\.mp4$/, '.jpg')).delete().catch(() => {});
       logger.info('Cola: ' + it.estado, { id: it.id, cuenta: it.cuenta, enlace: it.enlace });
     } catch (e) {
       // Hasta 4 intentos (uno por pasada, cada 5 min) mientras la URL firmada siga viva; después queda en error.

@@ -256,6 +256,8 @@ async function publicarReelIg(token, it, datos) {
   if (!c) throw new Error('Cuenta desconocida: ' + it.cuenta);
   const params = { media_type: 'REELS', caption: it.texto || '', share_to_feed: 'true' };
   if (it.thumb_ms != null) params.thumb_offset = String(Math.round(it.thumb_ms));
+  // Portada diseñada (portada.js, subida por encolar-instagram.cjs): manda sobre thumb_offset y es lo que se ve en el perfil.
+  if (it.portada_url) params.cover_url = it.portada_url;
   // Con URL firmada (la crea encolar-instagram.cjs y caduca sola), Instagram descarga el vídeo del bucket privado.
   if (it.url) params.video_url = it.url; else params.upload_type = 'resumable';
   const cont = await cli.pedir(`${c.ig}/media`, params, 'POST');

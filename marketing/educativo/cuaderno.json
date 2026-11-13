@@ -172,21 +172,21 @@
         },
         {
           "fecha": "2026-11-14",
-          "hora": "17:33",
-          "tipo": "Reel",
-          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
-          "estado": "listo",
-          "slug": "es-reduflacion",
-          "nota": "Programado en Instagram y Facebook · 28.84 s"
-        },
-        {
-          "fecha": "2026-11-14",
           "hora": "09:24",
           "tipo": "Reel",
           "tema": "Día 5/30 · Págate a ti primero, el mismo día que cobras",
           "estado": "listo",
           "slug": "es-reto-05",
           "nota": "Programado en Instagram y Facebook · 29.88 s"
+        },
+        {
+          "fecha": "2026-11-14",
+          "hora": "17:33",
+          "tipo": "Reel",
+          "tema": "Mismo precio, mismo paquete… ¿y menos patatas?",
+          "estado": "listo",
+          "slug": "es-reduflacion",
+          "nota": "Programado en Instagram y Facebook · 28.84 s"
         }
       ],
       "pendientes": [
@@ -359,8 +359,8 @@
           "nota": "Programado en Instagram y Facebook · 33.34 s"
         },
         {
-          "fecha": "2026-11-13",
-          "hora": "23:04",
+          "fecha": "2026-11-14",
+          "hora": "00:48",
           "tipo": "Reel",
           "tema": "Day 1/30 · Where does your paycheck actually go?",
           "estado": "listo",
@@ -368,8 +368,8 @@
           "nota": "Programado en Instagram y Facebook · 29.69 s"
         },
         {
-          "fecha": "2026-11-14",
-          "hora": "23:34",
+          "fecha": "2026-11-15",
+          "hora": "00:48",
           "tipo": "Reel",
           "tema": "Day 2/30 · The charges that hit your account every month",
           "estado": "listo",
@@ -377,8 +377,8 @@
           "nota": "Programado en Instagram y Facebook · 28.72 s"
         },
         {
-          "fecha": "2026-11-15",
-          "hora": "23:26",
+          "fecha": "2026-11-16",
+          "hora": "00:54",
           "tipo": "Reel",
           "tema": "Where gas stations really make their money",
           "estado": "listo",

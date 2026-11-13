@@ -77,9 +77,23 @@ if (op('--borrar-programado')) {
     await new Promise(ok => setTimeout(ok, 5000));
   }
 
+  // Portada diseñada (portada.js), si existe: la miniatura que se ve en la página y en las listas de Reels.
+  const portada = path.join(path.dirname(path.resolve(video)), 'portada-diseno.jpg');
+  let conPortada = false;
+  if (fs.existsSync(portada) && !process.argv.includes('--sin-portada')) {
+    try {
+      const f = new FormData();
+      f.append('source', new Blob([fs.readFileSync(portada)], { type: 'image/jpeg' }), 'portada.jpg');
+      f.append('is_preferred', 'true'); f.append('access_token', pt);
+      const rp = await fetch(`${G}/${video_id}/thumbnails`, { method: 'POST', body: f });
+      const jp = await rp.json().catch(() => ({}));
+      conPortada = !!jp.success; if (!conPortada) console.log('· Facebook no acepta la portada: ' + JSON.stringify(jp.error || jp).slice(0, 200));
+    } catch (e) { console.log('· portada de Facebook: ' + e.message); }
+  }
+
   if (!publicar) {
     await fb(video_id, {}, 'DELETE');
-    console.log(`✓ ENSAYO: «${p.name.trim()}» acepta el Reel (subido como borrador, procesado y borrado). No se ha publicado nada (añade --publicar).`);
+    console.log(`✓ ENSAYO: «${p.name.trim()}» acepta el Reel${conPortada ? ' y su portada' : ''} (subido como borrador, procesado y borrado). No se ha publicado nada (añade --publicar).`);
     return;
   }
   const info = await fb(video_id, { fields: 'permalink_url' });

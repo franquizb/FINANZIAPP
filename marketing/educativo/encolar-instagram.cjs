@@ -31,13 +31,23 @@ const BUCKET = 'finanziapp-publicar', FS = 'https://firestore.googleapis.com/v1/
   const objeto = `cola/${id}.mp4`;
   await c.request({ url: `https://storage.googleapis.com/upload/storage/v1/b/${BUCKET}/o?uploadType=media&name=${encodeURIComponent(objeto)}`, method: 'POST',
     headers: { ...h, 'Content-Type': 'video/mp4' }, data: fs.readFileSync(video) });
+  // Portada diseñada (portada.js): se sube junto al vídeo y la función la manda como cover_url, para que la cuadrícula
+  // del perfil enseñe el titular y no un fotograma suelto. La función aún desplegada ignora el campo (no rompe nada).
+  const portadaArchivo = path.join(path.dirname(path.resolve(video)), 'portada-diseno.jpg');
+  let portadaUrl = null;
+  if (fs.existsSync(portadaArchivo) && !process.argv.includes('--sin-portada')) {
+    const objPortada = `cola/${id}.jpg`;
+    await c.request({ url: `https://storage.googleapis.com/upload/storage/v1/b/${BUCKET}/o?uploadType=media&name=${encodeURIComponent(objPortada)}`, method: 'POST',
+      headers: { ...h, 'Content-Type': 'image/jpeg' }, data: fs.readFileSync(portadaArchivo) });
+    portadaUrl = urlFirmada(JSON.parse(fs.readFileSync(sa, 'utf8')), BUCKET, objPortada, Math.min(604800, Math.round((hora - Date.now()) / 1000) + 3 * 3600));
+  }
   let cola = { items: [] };
   try { const r = await c.request({ url: FS, headers: h }); cola = JSON.parse(r.data.fields.json.stringValue); } catch { /* primera vez */ }
   // Se guardan solo los últimos 50 movimientos.
   cola.items = [...cola.items.slice(-49), { id, cuenta, plataforma: 'ig', slug, objeto, cuando: new Date(hora).toISOString(), texto: require('./etiquetas.cjs').variar(fs.readFileSync(textoArchivo, 'utf8').trim(), cuenta),
     url: urlFirmada(JSON.parse(fs.readFileSync(sa, 'utf8')), BUCKET, objeto, Math.min(604800, Math.round((hora - Date.now()) / 1000) + 3 * 3600)),
-    thumb_ms: op('--portada-ms') ? +op('--portada-ms') : null, ensayo: process.argv.includes('--ensayo'), estado: 'pendiente', creado: new Date().toISOString(),
+    thumb_ms: op('--portada-ms') ? +op('--portada-ms') : null, portada_url: portadaUrl, ensayo: process.argv.includes('--ensayo'), estado: 'pendiente', creado: new Date().toISOString(),
     sha1: crypto.createHash('sha1').update(fs.readFileSync(video)).digest('hex').slice(0, 12) }];
   await c.request({ url: FS, method: 'PATCH', headers: h, data: { fields: { json: { stringValue: JSON.stringify(cola) }, actualizado: { integerValue: String(Date.now()) } } } });
-  console.log(`✓ En la cola de Instagram (${cuenta}): ${slug} → ${new Date(hora).toISOString()}${process.argv.includes('--ensayo') ? ' (ENSAYO: no se publicará)' : ''}`);
+  console.log(`✓ En la cola de Instagram (${cuenta}): ${slug} → ${new Date(hora).toISOString()}${portadaUrl ? ' · con portada diseñada' : ''}${process.argv.includes('--ensayo') ? ' (ENSAYO: no se publicará)' : ''}`);
 })().catch(e => { console.error('error:', e.response ? JSON.stringify(e.response.data).slice(0, 300) : e.message); process.exit(1); });
