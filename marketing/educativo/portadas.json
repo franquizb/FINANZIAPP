@@ -1,0 +1,43 @@
+{
+  "_leeme": "Textos de la portada diseñada de cada Reel (node portada.js <slug>). titulo: corto y fiel al vídeo, ~x~ = gris tachado en rojo. destacado: el trozo del titulo que va en color (color: turq | rojo = lo que cuesta o se escapa | ambar = lo detectado, monedas). serie: reto | hacemos-la-cuenta | money-explained | pildora (etiqueta: texto de la cápsula gris). fotograma_ms: momento del reel.mp4 que se ve debajo; que complete el titular, no que lo repita.",
+
+  "es-reto-01": { "titulo": "¿Sabes a dónde se va tu sueldo?", "destacado": "tu sueldo", "serie": "reto", "dia": 1, "fotograma_ms": 19700 },
+  "es-reto-02": { "titulo": "Los cargos que pagas cada mes sin mirar", "destacado": "sin mirar", "color": "rojo", "serie": "reto", "dia": 2, "fotograma_ms": 5600 },
+  "es-reto-03": { "titulo": "Ese capricho te cuesta 12 horas", "destacado": "12 horas", "color": "rojo", "serie": "reto", "dia": 3, "fotograma_ms": 1800, "encuadre_y": 560 },
+  "es-reto-04": { "titulo": "Antes de comprar, espera 24 horas", "destacado": "24 horas", "serie": "reto", "dia": 4, "fotograma_ms": 2400, "encuadre_y": 560 },
+  "es-reto-05": { "titulo": "El día que cobras, págate a ti primero", "destacado": "a ti primero", "serie": "reto", "dia": 5, "fotograma_ms": 11500 },
+
+  "es-contraste-vivienda-30": { "titulo": "Sin impuestos, tu casa ¿−30 %?", "destacado": "¿−30 %?", "color": "rojo", "serie": "hacemos-la-cuenta", "fotograma_ms": 300, "encuadre_y": 740 },
+
+  "es-garantia-3-anos": { "titulo": "Tu garantía dura ~2 años~ 3 años", "destacado": "3 años", "serie": "pildora", "etiqueta": "Tus derechos", "fotograma_ms": 1000 },
+  "es-devolucion-14-dias": { "titulo": "Compras online: 14 días para devolverlo", "destacado": "14 días", "serie": "pildora", "etiqueta": "Tus derechos", "fotograma_ms": 15200 },
+  "es-precio-tachado": { "titulo": "¿Chollo de verdad? ~199 €~ 99 €", "destacado": "99 €", "color": "ambar", "serie": "pildora", "etiqueta": "Precios", "fotograma_ms": 25200 },
+  "es-gasolina-1499": { "titulo": "¿Por qué la gasolina cuesta 1,499?", "destacado": "1,499", "color": "ambar", "serie": "pildora", "etiqueta": "Precios", "fotograma_ms": 15100 },
+  "es-precio-por-kilo": { "titulo": "El grande no siempre sale más barato", "destacado": "no siempre", "color": "rojo", "serie": "pildora", "etiqueta": "En el súper", "fotograma_ms": 15400 },
+  "es-reduflacion": { "titulo": "Mismo precio, menos patatas", "destacado": "menos patatas", "color": "rojo", "serie": "pildora", "etiqueta": "En el súper", "fotograma_ms": 13200 },
+  "es-cafe-hormiga": { "titulo": "Tu café diario: casi 400 € al año", "destacado": "400 €", "color": "rojo", "serie": "pildora", "etiqueta": "Gasto hormiga", "fotograma_ms": 22200 },
+  "es-regla-50-30-20": { "titulo": "La regla 50/30/20 para tu sueldo", "destacado": "50/30/20", "serie": "pildora", "etiqueta": "Ahorro", "fotograma_ms": 10600 },
+  "es-fondo-emergencia": { "titulo": "¿Cuánto guardar para imprevistos?", "destacado": "imprevistos", "color": "ambar", "serie": "pildora", "etiqueta": "Ahorro", "fotograma_ms": 2500 },
+  "es-nomina-bruto-neto": { "titulo": "Tu contrato dice 2.000 €, tu cuenta no", "destacado": "2.000 €", "serie": "pildora", "etiqueta": "Tu nómina", "fotograma_ms": 10600 },
+  "es-pagas-extra": { "titulo": "¿Cobras más con 12 o 14 pagas?", "destacado": "12 o 14", "serie": "pildora", "etiqueta": "Tu nómina", "fotograma_ms": 9000 },
+  "es-letras-tesoro": { "titulo": "¿Qué ganas con una Letra del Tesoro?", "destacado": "Letra del Tesoro", "serie": "pildora", "etiqueta": "Inversión", "fotograma_ms": 14300 },
+
+  "en-reto-01": { "titulo": "Where does your paycheck actually go?", "destacado": "paycheck", "serie": "reto", "dia": 1, "fotograma_ms": 21000 },
+  "en-reto-02": { "titulo": "The monthly charges you never check", "destacado": "never check", "color": "rojo", "serie": "reto", "dia": 2, "fotograma_ms": 6800 },
+
+  "en-gas-nine-tenths": { "titulo": "Why gas prices end in 9/10¢", "destacado": "9/10¢", "color": "rojo", "serie": "money-explained", "fotograma_ms": 500 },
+  "en-curious-gas-stations": { "titulo": "A gas station keeps about 40¢ a gallon", "destacado": "40¢", "color": "ambar", "serie": "money-explained", "fotograma_ms": 21100 },
+
+  "en-penny-cost": { "titulo": "A penny costs almost 4¢ to make", "destacado": "4¢", "color": "ambar", "serie": "pildora", "etiqueta": "Money fact", "fotograma_ms": 14600 },
+  "en-millas-79900": { "titulo": "Why 79,900 miles is worth $200 more", "destacado": "79,900", "color": "ambar", "serie": "pildora", "etiqueta": "Money fact", "fotograma_ms": 6600 },
+  "en-401k-match": { "titulo": "Your 401(k) match is free money", "destacado": "free money", "serie": "pildora", "etiqueta": "Retirement", "fotograma_ms": 24700 },
+  "en-roth-vs-traditional": { "titulo": "Roth or traditional: one question", "destacado": "one question", "serie": "pildora", "etiqueta": "Retirement", "fotograma_ms": 13000 },
+  "en-rule-of-72": { "titulo": "When will your money double?", "destacado": "double", "serie": "pildora", "etiqueta": "Investing", "fotograma_ms": 17900 },
+  "en-5-dollars-a-day": { "titulo": "What $5 a day turns into in 10 years", "destacado": "$5 a day", "serie": "pildora", "etiqueta": "Money math", "fotograma_ms": 16000 },
+  "en-emergency-fund": { "titulo": "How big should your emergency fund be?", "destacado": "emergency fund", "color": "ambar", "serie": "pildora", "etiqueta": "Saving", "fotograma_ms": 3100 },
+  "en-hito-1000": { "titulo": "3 things change at your first $1,000", "destacado": "$1,000", "serie": "pildora", "etiqueta": "Milestone", "fotograma_ms": 21100 },
+  "en-hito-10000": { "titulo": "3 things that change at $10,000", "destacado": "$10,000", "serie": "pildora", "etiqueta": "Milestone", "fotograma_ms": 9500 },
+  "en-credit-check-myth": { "titulo": "Does checking your credit score lower it?", "destacado": "lower it", "color": "rojo", "serie": "pildora", "etiqueta": "Credit", "fotograma_ms": 1200 },
+  "en-credit-utilization": { "titulo": "Stay under 30% of your limit", "destacado": "under 30%", "serie": "pildora", "etiqueta": "Credit", "fotograma_ms": 16700 },
+  "en-renting-agree": { "titulo": "Is renting throwing money away?", "destacado": "throwing money away", "serie": "pildora", "etiqueta": "Housing", "fotograma_ms": 22900 }
+}
