@@ -106,6 +106,7 @@ Tono: amigo listo con carisma (energía, sonrisa en la voz, ironía ligera).
   Instagram, 2 vídeos al día por cuenta (`--por-dia`) en franjas elegidas al azar, y la función publica con una pausa distinta
   cada vez. `--exacta` vuelve a la hora en punto.
 - Revisar una animación: `node reel-voz.js <slug> es --escena=N` (8 fotogramas).
+- **Portada para la cuadrícula del perfil**: `node portada.js <slug> [es|en]` (o `--todas`) → `out-reels/<slug>/<idioma>/portada-diseno.jpg`: firma de serie, titular grande y un fotograma del vídeo debajo; textos y momento del fotograma en `portadas.json`, todo dentro de la franja 3:4 que enseña el perfil.
 - Subir: carpeta «Reels hablados (publícalos cuando quieras)» en Drive;
   `publicar-drive.cjs reel … --reemplazar` actualiza los vídeos sin cambiar el enlace.
 
