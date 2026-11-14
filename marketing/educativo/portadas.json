@@ -253,5 +253,13 @@
     "serie": "pildora",
     "etiqueta": "Housing",
     "fotograma_ms": 22900
+  },
+  "es-reto-06": {
+    "titulo": "Tu banco puede cobrarte 160 € al año",
+    "destacado": "160 € al año",
+    "color": "rojo",
+    "serie": "reto",
+    "dia": 6,
+    "fotograma_ms": 1800
   }
 }
