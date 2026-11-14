@@ -17,7 +17,12 @@ creativas las toma Claude con los datos (`estadisticas-instagram.cjs`,
 
 ## @finanziapp — EE. UU. (inglés, dólares)
 
-- **Voz**: Puck, carisma cercano y con energía (`VOZ.en`).
+- **Ahorrar = ahorrar + invertir** (propietario, 14 nov 2026): en EE. UU. el ahorro no es solo guardar dinero; lo que
+  importa es fusionar las dos cosas (colchón en cuenta remunerada, aportación de la empresa al 401(k), Roth IRA, inversión
+  diversificada a largo plazo, interés compuesto). Los vídeos de ahorro de la cuenta de EE. UU. lo cuentan junto, sin
+  recomendar productos ni prometer rentabilidades (cifras históricas con fuente) y con «Educational only, not financial
+  advice» en el texto. La serie de 30 días en inglés va metiendo pasos de inversión.
+- **Voz**: narrador grave «Iapetus» desde el 12 nov 2026 (`VOZ_NARRADOR.en`); la de Puck sonaba a anuncio.
 - **Qué funciona allí** (referentes: @humphreytalks, @herfirst100k, @ramit,
   @thefinancialdiet, @personalfinanceclub):
   - **Hitos**: «what changes when you hit $10K / $100K saved», «the Crossover point».

@@ -9,6 +9,8 @@ publica o programa**. Tú produces, compruebas y entregas un informe.
 - Cada dato lleva su fuente en la cabecera del archivo y cada cuenta se comprueba con `cuadra()` (`reels/_comun.js`).
   Los ejemplos inventados se presentan como ejemplos («si cobras 1.600…»), nunca como estadística.
 - Español de España (cuenta `es`) o inglés de EE. UU. (cuenta `en`): son dos cuentas distintas, no traducciones.
+  En EE. UU., ahorrar e invertir van juntos (ver ESTRATEGIA.md): un vídeo de ahorro para `en` explica también dónde
+  crece ese dinero, como educación general, sin productos ni marcas ni promesas de rentabilidad.
   En la cuenta `es` tiene que notarse que es España en el gancho o en el texto de la publicación («en España», euros,
   Hacienda, la nómina, el súper de aquí): sin esas señales Instagram enseña los vídeos sobre todo en México. El hashtag
   `#españa` y la variación de hashtags los pone solo `etiquetas.cjs` al programar.
@@ -93,7 +95,11 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
 - 25–35 s las píldoras; hasta 90 s un vídeo de contraste si cada 5–8 s pasa algo nuevo en pantalla.
 - **Texto de la publicación**: gancho de una línea, 2–3 líneas que aporten algo que no está en el vídeo, qué hacer hoy y
   (en la serie) «Mañana, día N: …». Nunca es la transcripción. Los vídeos con datos llevan las fuentes al final.
-- Serie «30 días para ordenar tu dinero»: «DÍA n/30», una sola acción por día y tarjeta final con «Mañana: …».
+- Serie «30 días para ordenar tu dinero»: «DÍA n/30», una sola acción por día y tarjeta final con lo aprendido hoy.
+- **Sin anunciar el siguiente vídeo** (propietario, 14 nov 2026: «ahí se va la mayor parte»). El final es la idea que el
+  espectador se lleva y repetiría a alguien («no sube el precio: encoge el paquete»), con una acción si encaja.
+- **Formato extenso en prueba** (45–60 s): gancho → respuesta → pregunta abierta en medio → dato relevante en el último
+  tercio → cierre que enseña. Guiones en `guiones/`.
 
 ## El informe que entregas
 
