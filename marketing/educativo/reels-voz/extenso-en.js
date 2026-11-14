@@ -20,10 +20,17 @@
 // - FINRA, «Why Leave Money on the Table?» (1 Aug 2023, updated 27 Feb 2025): «passing up free money».
 //   https://www.finra.org/investors/alerts/why-leave-money-make-most-employers-401k-match
 // - Federal Reserve, SHED 2025 (May 2026): 63% would cover $400 with cash or its equivalent (post text / comments only).
+// - IRS, Topic No. 558, «Additional tax on early distributions from retirement plans other than IRAs» (page last reviewed or
+//   updated 9 Nov 2026; checked 14 Nov 2026): «the law imposes a 10% additional tax on certain early distributions» from
+//   qualified plans such as a 401(k), before age 59½, on top of income tax (exceptions listed there). Scene 4 label and post text.
+//   https://www.irs.gov/taxtopics/tc558
 //
 // Compared with the script, only § marks were added (they are not read and don't change the voice takes): line 1 «§fifty»
 // and «§Where», line 2 «§up to a cap», line 3 «§both», line 4 «§22%», line 5 «§free money» and «§clear», line 7 «§don’t join»,
 // line 8 «§aren’t two goals». Educational only: no product, bank, broker or brand on screen.
+// Change of words after the independent review (14 Nov 2026): line 7 «workers offered a plan don’t join» → «workers who are
+// offered a plan don’t join». The voice read «offered» as the main verb («…workers offer to plan? Don’t join.»); with «who are»
+// the sentence has a single reading. Same data and source (BLS take-up 72% → over 1 in 4 don’t join). Only that take was redone.
 const { pildora3d } = require('./tres');
 const { cuadra } = require('../reels/_comun');
 
@@ -64,7 +71,7 @@ Why the cash cushion comes first: pulling money out of a 401(k) before 59½ usua
 Do you know your employer's match formula? 👇
 
 Example: $60,000 salary, 50% match up to 6% of pay, flat salary, no returns. Illustrative.
-Sources: FDIC National Rates (Oct 19, 2026) · Federal Reserve G.19 (Nov 2026, Q3 preliminary) · BLS Employee Benefits (March 2026) · IRS IR-2025-111.
+Sources: FDIC National Rates (Oct 19, 2026) · Federal Reserve G.19 (Nov 2026, Q3 preliminary) · BLS Employee Benefits (March 2026) · IRS IR-2025-111 · IRS Topic No. 558.
 Educational only, not financial advice.
 
 #401k #investing #personalfinance`;
@@ -76,7 +83,7 @@ const GUION = [
   [3, 'But cards charging interest average about §*22%*. §Shouldn’t you pay those off first?'],
   [4, 'Usually, not before the match: §{ding}an instant *50%*, §free money once it vests. §Then three: §clear the cards, *fast*.'],
   [5, 'Four: more into accounts with *tax breaks*, §up to the yearly limits. §Five: the rest, *invested* in a regular brokerage account.'],
-  [6, 'Yet over *1 in 4* private-sector workers offered a plan §don’t join. §Skip it on a $60,000 salary with a 50% match up to 6%, §and that’s *$1,800* a year left on the table. §{caja}Ten years: *$18,000*, §before any growth.'],
+  [6, 'Yet over *1 in 4* private-sector workers who are offered a plan §don’t join. §Skip it on a $60,000 salary with a 50% match up to 6%, §and that’s *$1,800* a year left on the table. §{caja}Ten years: *$18,000*, §before any growth.'],
   [7, 'In America, saving and investing §aren’t two goals. §They’re *one plan*. §Today, check you’re getting your *full match*.']
 ];
 
@@ -371,7 +378,7 @@ const ESCENAS = [
   // 4 · Answer and step 3: +50% · FREE MONEY · once it vests; then he breaks the red chain, the card goes out, step 3 lights up.
   { html: () => `<div class="tj amb" data-t="translateX(-50%)" data-m="1" style="top:478px"><small>GOOD TO KNOW</small>
         <span class="l p">Match may vest over time</span><span class="l p">401(k) withdrawals before 59½: <span class="a">usually tax + 10% penalty</span></span>
-        <span class="fte">Example match: 50¢ per $1 · FINRA, “Why Leave Money on the Table?”</span></div>`, anim: an },
+        <span class="fte">Example match: 50¢ per $1 · 10% penalty: IRS Topic No. 558</span></div>`, anim: an },
   // 5 · Steps 4 and 5: two accounts with tax breaks (401(k), IRA) and the IRS limits in a label; then INVESTED, coins stacking.
   { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="0" style="top:478px"><small>2026 LIMITS · IRS, NOV 13 2025</small>
         <span class="l">401(k) <span class="t">$24,500</span> · IRA <span class="t">$7,500</span></span><span class="l p">more at 50+</span></div>${EDU}`, anim: an },
@@ -391,8 +398,9 @@ const ESCENAS = [
     } },
   // 7 · Close: the 5 steps light up and a single line joins them: SAVE + INVEST = ONE PLAN. Today: the phone says FULL MATCH: YES.
   //     The last shot is the hero next to the 401(k) jar, like frame 0 (loop). No «follow» card.
+  //     The TODAY card is in two lines and left of centre (right edge ≈ 800 px), clear of the Instagram buttons.
   { html: () => `<div class="rotulo" data-t="translateX(-50%)" data-m="1" style="top:500px">SAVE + INVEST = ONE PLAN</div>
-      <div class="tj turq" data-t="translateX(-50%)" data-m="2" style="top:1328px"><small>TODAY</small><span class="l">Check you’re getting your <span class="t">full match</span></span></div>`, anim: an }
+      <div class="tj turq" data-t="translateX(-50%)" data-m="2" style="top:1300px;left:470px"><small>TODAY</small><span class="l">Check you’re getting</span><span class="l">your <span class="t">full match</span></span></div>`, anim: an }
 ];
 
 const TRES = function (t, k, s, e, W) {
@@ -421,7 +429,9 @@ const TRES = function (t, k, s, e, W) {
   // Staircase (scenes 2–5 and 7): the jar on step 2 and the hero to its right; what stays on each step.
   const J2 = [pelX(1) - 0.33, pelY(1), -0.3], H2 = [pelX(1) + 0.36, pelY(1), 0.45], CJ = [pelX(0) - 0.32, pelY(0), -0.05];
   const jarraLlena = (o) => X.jarra(Object.assign({ x: J2[0], y: J2[1], z: J2[2], yo: 0.42, match: 0.21, lineas: [{ h: 0.63, color: TQ, op: 0.8 }] }, o || {}));
-  const pelda1 = () => { const C = X.cojin({ x: CJ[0], y: CJ[1] + 0.02, z: CJ[2] }); X.factura({ x: CJ[0] + 0.04, y: C.tope + 0.012, z: CJ[2], rx: -Math.PI / 2 + 0.06, rz: 0.35 }); return C; };
+  // esc (0..1, optional): the close-up of scene 7 shrinks the cushion and the bill so nothing is left cut at the frame edge.
+  const pelda1 = (esc) => { const e1 = esc == null ? 1 : esc, C = X.cojin({ x: CJ[0], y: CJ[1] + 0.02, z: CJ[2], esc: e1 });
+    if (e1 > 0.01) X.factura({ x: CJ[0] + 0.04, y: C.tope + 0.012, z: CJ[2], rx: -Math.PI / 2 + 0.06, rz: 0.35, esc: e1 }); return C; };
 
   if (k === 0) {
     const m0 = mk(0, 1.3), m1 = mk(1, 3.2), m2 = mk(2, 5.4), m3 = mk(3, 6.2);
@@ -500,19 +510,22 @@ const TRES = function (t, k, s, e, W) {
     if (t > m2 - 0.05) X.factura({ x: CJ[0] + 0.04, y: C.tope + 0.012 + 3.3 * (1 - cae * cae), z: CJ[2], rx: (-Math.PI / 2 + 0.06) * Math.min(1, cae * 1.3), ry: 0.4 * Math.sin(cae * 7) * (1 - cae), rz: 0.35 });
     W.rotulo('cash', 'CASH', CJ[0], C.tope + 0.34, CJ[2] + 0.25, Math.min(1, 1.4 * bote(m1, 0.3)), TQ, 0.3);
     W.rotulo('full', 'FULL MATCH', J2[0], J.y0 + 0.63, J2[2] + 0.55, q(m3 + 0.15, 0.4), TQ, 0.19);
-    // The hero walks to step 1, steps up on «One» and up to step 2 on «Two».
-    const W0 = [pelX(0) - 1.35, 0, 1.6], W1 = [pelX(0) - 0.5, 0, 1.6], P1 = [pelX(0) + 0.38, pelY(0), 0.45];
+    // The hero is already in the shot, in front of step 1 and to the right of its «1» plate (whole body inside the frame, never
+    // cut at the left edge): two short steps in, he stands, steps up on «One» and up to step 2 on «Two».
+    const W0 = [pelX(0) + 0.15, 0, 1.65], W1 = [pelX(0) + 0.5, 0, 1.58], P1 = [pelX(0) + 0.38, pelY(0), 0.45];
     let pos, amp = 0, gira = 0.55;
-    if (t < m1) { const u = tramo(t, e.ini, m1 - 0.2); pos = { x: W0[0] + (W1[0] - W0[0]) * u, y: 0, z: W0[2] }; amp = u < 1 ? 1 : 0; gira = 1.45 - 0.9 * q(m1 - 0.3, 0.3); }
+    if (t < m1) { const u = tramo(t, e.ini, e.ini + 0.9), v = sale(u); pos = { x: W0[0] + (W1[0] - W0[0]) * v, y: 0, z: W0[2] + (W1[2] - W0[2]) * v };
+      amp = 0.7 * Math.sin(Math.PI * u); gira = 1.45 - 0.9 * q(m1 - 0.3, 0.3); }
     else if (t < m3) pos = salto(W1, P1, m1, 0.5); else pos = salto(P1, H2, m3, 0.5);
     W.heroe({ x: pos.x, y: pos.y, z: pos.z, gira, amp, fase: t * 7, luz: 0.15 + 0.2 * q(m1, 0.4) + 0.2 * q(m3 + 0.5, 0.4) });
     camLerp([-1.85, 2.7, 9.3, -1.8, 1.6, 0], [-1.6, 2.75, 8.7, -1.55, 1.65, 0], p);
   } else if (k === 3) {
     const m0 = mk(0, 1.9), m1 = mk(1, 2.6);
     X.escalera({ luz: [1, 1, 0, 0, 0] }); jarraLlena(); pelda1();
-    const CX = 0.4, CY = pelY(1) + 1.5, CZ = -0.15, entra = sale(tramo(t, e.ini + 0.02, e.ini + 0.6)), amb = q(m1 - 0.05, 0.3);
+    // The card sits 0.28 m nearer the centre and 10% smaller than before so it stays clear of the Instagram buttons (right edge ≤ ~950 px).
+    const CX = 0.12, CY = pelY(1) + 1.5, CZ = -0.15, entra = sale(tramo(t, e.ini + 0.02, e.ini + 0.6)), amb = q(m1 - 0.05, 0.3);
     const pop22 = bote(m0 - 0.05, 0.3) * (1 - 0.5 * tramo(t, m0 + 0.4, m0 + 1));
-    X.tarjeta({ x: CX + 3.2 * (1 - entra), y: CY + 0.04 * Math.sin(t * 2), z: CZ, ry: -0.28, rz: 0.06 * Math.sin(t * 1.3) + 0.25 * (1 - entra), esc: 0.98 + 0.08 * pop22, ambar: amb * (0.75 + 0.25 * Math.sin(t * 8)), luz: 0.6 });
+    X.tarjeta({ x: CX + 3.2 * (1 - entra), y: CY + 0.04 * Math.sin(t * 2), z: CZ, ry: -0.28, rz: 0.06 * Math.sin(t * 1.3) + 0.25 * (1 - entra), esc: 0.88 + 0.07 * pop22, ambar: amb * (0.75 + 0.25 * Math.sin(t * 8)), luz: 0.6 });
     // Coins that the card swallows.
     for (let j = 0; j < 4; j++) { const per = 1.3, t0 = e.ini + 0.45 + j * per / 4; if (t < t0) continue; const u = ((t - t0) % per) / per;
       const Pi = [CX + 1.3 - 0.3 * j, 4.1, 0.5], Pf = [CX - 0.1, CY + 0.05, CZ + 0.06];
@@ -527,8 +540,8 @@ const TRES = function (t, k, s, e, W) {
     X.escalera({ luz: [1, 1, q(m3 + 0.35, 0.4), 0, 0] }); pelda1();
     const ding = bote(m0 - 0.05, 0.3), luzJ = q(m0 - 0.05, 0.3);
     const J = jarraLlena({ brillo: luzJ * (0.75 + 0.25 * Math.sin(t * 6)) * (1 - 0.45 * q(m2, 0.5)) + 0.3 * ding });
-    const CX = 0.4, CY = pelY(1) + 1.5, CZ = -0.15, rompe = q(m3, 0.45), va = tramo(t, m3 + 0.15, m3 + 0.8);
-    const tg = X.tarjeta({ x: CX + 0.6 * va, y: CY - 3.4 * va * va, z: CZ, ry: -0.28 + 0.6 * va, rz: 0.06 * Math.sin(t * 1.3) - 1.2 * va, esc: 0.98 * (1 - 0.4 * va),
+    const CX = 0.12, CY = pelY(1) + 1.5, CZ = -0.15, rompe = q(m3, 0.45), va = tramo(t, m3 + 0.15, m3 + 0.8);
+    const tg = X.tarjeta({ x: CX + 0.6 * va, y: CY - 3.4 * va * va, z: CZ, ry: -0.28 + 0.6 * va, rz: 0.06 * Math.sin(t * 1.3) - 1.2 * va, esc: 0.88 * (1 - 0.4 * va),
       ambar: 0.7 * (1 - q(m2, 0.4)), apaga: q(m3 + 0.05, 0.3), luz: 0.6, op: 1 - tramo(va, 0.75, 1) });
     // He turns to the card on «Then three» and breaks the chain on «clear the cards».
     const gira = 0.15 + 0.75 * q(m2 - 0.05, 0.35);
@@ -580,8 +593,10 @@ const TRES = function (t, k, s, e, W) {
   } else {
     const m0 = mk(0, 1.0), m1 = mk(1, 2.1), m2 = mk(2, 3.3);
     const enc = (i) => q(m1 + 0.05 + i * 0.13, 0.3);
-    X.escalera({ luz: [0, 1, 2, 3, 4].map(i => 0.35 + 0.65 * enc(i)), linea: sale(tramo(t, m1, m1 + 0.9)) });
-    jarraLlena({ brillo: 0.4 * q(m2, 0.4) }); pelda1();
+    // The numbered plates go as the line reaches each step (5 steps → one plan), so the close-up has no empty black squares.
+    X.escalera({ luz: [0, 1, 2, 3, 4].map(i => 0.35 + 0.65 * enc(i)), linea: sale(tramo(t, m1, m1 + 0.9)), nums: (i) => 1 - q(m1 + 0.1 + i * 0.15, 0.25) });
+    // Cushion and bill shrink away during the close-up (otherwise they are left cut at the bottom-left corner of the last frame).
+    jarraLlena({ brillo: 0.4 * q(m2, 0.4) }); pelda1(1 - q(m2 + 0.4, 0.8));
     X.cuentas({ x: pelX(3) - 0.22, y: pelY(3), z: -0.35 });
     X.plataforma({ x: pelX(4), y: pelY(4), z: 0 }); X.pilas({ x: pelX(4) + 0.2, y: pelY(4), z: -0.35, n: [9, 9, 9] });
     // «aren't two goals»: SAVE over steps 1–2 and INVEST over 4–5; on «one plan» they fade into the line.

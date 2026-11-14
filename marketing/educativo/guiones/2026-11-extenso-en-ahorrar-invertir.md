@@ -38,9 +38,13 @@ pueda repetir, con una acción para hoy. No se anuncia ningún vídeo, no hay «
 [3, 'But cards charging interest average about *22%*. §Shouldn’t you pay those off first?'],
 [4, 'Usually, not before the match: §{ding}an instant *50%*, free money once it vests. §Then three: clear the cards, *fast*.'],
 [5, 'Four: more into accounts with *tax breaks*, §up to the yearly limits. §Five: the rest, *invested* in a regular brokerage account.'],
-[6, 'Yet over *1 in 4* private-sector workers offered a plan don’t join. §Skip it on a $60,000 salary with a 50% match up to 6%, §and that’s *$1,800* a year left on the table. §{caja}Ten years: *$18,000*, §before any growth.'],
+[6, 'Yet over *1 in 4* private-sector workers who are offered a plan don’t join. §Skip it on a $60,000 salary with a 50% match up to 6%, §and that’s *$1,800* a year left on the table. §{caja}Ten years: *$18,000*, §before any growth.'],
 [7, 'In America, saving and investing aren’t two goals. §They’re *one plan*. §Today, check you’re getting your *full match*.'],
 ```
+
+**Cambio tras la revisión independiente (14-11-2026):** línea 6, «workers offered a plan don’t join» → «workers *who are*
+offered a plan don’t join». La voz leía «offered» como verbo principal («…workers offer to plan? Don’t join.», con pausa y
+«Don’t join.» suelto, como una orden). Con «who are» solo cabe una lectura. Mismo dato y misma fuente; +2 palabras.
 
 Papel de cada línea: 0 gancho · 1 respuesta (el porqué) · 2 el orden, pasos 1 y 2 · 3 pregunta abierta · 4 respuesta y
 paso 3 · 5 pasos 4 y 5 · 6 dato relevante (pico) · 7 cierre con acción para hoy.
@@ -63,7 +67,8 @@ ni el paso 5 («invested»), que es la idea del propietario.
 - **Fijo y pequeño, desde el fotograma 0:** «Example · common 401(k) match: 50¢ per $1, up to 6% of pay · avg savings
   0.38% APY (FDIC, Oct 19 2026) · illustrative, not advice».
 - **Fotograma 0, grande:** «$1 → $1.50 vs $1.004». El giro se entiende sin sonido.
-- **Escena 4:** «Match may vest over time · 401(k) withdrawals before 59½: usually tax + 10% penalty». Explica por qué el
+- **Escena 4:** «Match may vest over time · 401(k) withdrawals before 59½: usually tax + 10% penalty», con la fuente debajo
+  («Example match: 50¢ per $1 · 10% penalty: IRS Topic No. 558»; la fórmula no se atribuye a FINRA). Explica por qué el
   colchón va primero y por qué el 401(k) no sirve para pagar la tarjeta.
 - **Escena 5:** «2026 limits: 401(k) $24,500 · IRA $7,500 · more at 50+ (IRS, Nov 13 2025)». **Revisar irs.gov/newsroom
   el día de publicar.** Si ya están los de 2027 (previsión de 25.500 $ para el 401(k), aún no oficial), cambiar el rótulo
@@ -140,6 +145,10 @@ eso la voz dice «Usually» y «clear the cards, fast», y no dice «beats».
   https://www.bls.gov/news.release/wkyeng.nr0.htm
 - FINRA, «Why Leave Money on the Table?» (1-8-2023, actualizado el 27-2-2025): «passing up free money».
   https://www.finra.org/investors/alerts/why-leave-money-make-most-employers-401k-match
+- IRS, Topic No. 558, «Additional tax on early distributions from retirement plans other than IRAs» (revisada o actualizada
+  el 9-11-2026; consultada el 14-11-2026): «the law imposes a 10% additional tax on certain early distributions» de planes
+  cualificados como el 401(k) antes de los 59½ años, además del impuesto sobre la renta (con excepciones). Rótulo de la
+  escena 4 y texto de la publicación. https://www.irs.gov/taxtopics/tc558
 - Federal Reserve, SHED 2025 (mayo de 2026): el 63 % cubriría 400 $ con efectivo o equivalente; el 45 % de quienes tienen
   tarjeta arrastró saldo al menos una vez en 12 meses.
   https://www.federalreserve.gov/newsevents/pressreleases/other20260513a.htm
@@ -163,7 +172,7 @@ Why the cash cushion comes first: pulling money out of a 401(k) before 59½ usua
 Do you know your employer's match formula? 👇
 
 Example: $60,000 salary, 50% match up to 6% of pay, flat salary, no returns. Illustrative.
-Sources: FDIC National Rates (Oct 19, 2026) · Federal Reserve G.19 (Nov 2026, Q3 preliminary) · BLS Employee Benefits (March 2026) · IRS IR-2025-111.
+Sources: FDIC National Rates (Oct 19, 2026) · Federal Reserve G.19 (Nov 2026, Q3 preliminary) · BLS Employee Benefits (March 2026) · IRS IR-2025-111 · IRS Topic No. 558.
 Educational only, not financial advice.
 
 #401k #investing #personalfinance
