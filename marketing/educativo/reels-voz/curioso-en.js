@@ -182,7 +182,7 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
         [2, 'They keep about *forty cents* a gallon. §A fifteen-gallon fill-up: §{caja}about *six dollars*.'],
         [3, 'Inside, it’s the opposite: §about a third of the sales, §{ding}*over sixty percent* of the gross profit.'],
         [4, 'But after wages and every other cost, §the average purchase inside §{pop}*lost seven cents* in 2025. §The pump kept stores profitable.'],
-        [5, 'So who pays for whom: §{pop}the store, or the pump? Follow for the next one.']
+        [5, 'So the store doesn’t pay for the pump. §{pop}*The pump pays for the store*.']
       ]
     } },
     fijo: () => `<div class="hud i">MONEY, EXPLAINED</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
@@ -218,8 +218,8 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
       { html: () => `<div class="tj roja" data-t="translateX(-50%)" data-m="1" style="top:500px"><small>AFTER ALL COSTS · 2025</small>
             <span class="l">Average inside purchase: <span class="r">−7¢</span></span><span class="fte">NACS State of the Industry Summit, 2026 (2025 data)</span></div>
           <div class="rotulo" data-t="translateX(-50%)" data-m="2" style="top:700px;background:#e2a336">Fuel kept stores profitable</div>`, anim: an },
-      // 5 · La pregunta y «Follow for the next one».
-      { html: () => `<div class="pregunta" data-t="" data-m="0" style="top:520px;font-size:72px">Store pays for the pump, or <b style="color:#f5b94a">pump pays for the store</b>?<small><i>Follow</i> for the next one</small></div>`, anim: an }
+      // 5 · La respuesta: el surtidor paga la tienda.
+      { html: () => `<div class="pregunta" data-t="" data-m="0" style="top:520px;font-size:72px">The store doesn’t pay for the pump. <b style="color:#f5b94a">The pump pays for the store.</b></div>`, anim: an }
     ],
     tres: function (t, k, s, e, W) {
       const p = Math.min(1, s / (e.fin - e.ini)), M = e.seg.flatMap(g => g.marcas);
@@ -275,7 +275,7 @@ Sources: CRS RL30304 (federal gas tax) · NACS (2026) · EIA, gasoline use 2025 
 Food is the star inside: 28.5% of in-store sales, but almost 39% of in-store gross profit.
 And the average convenience-store basket was $7.69 in 2025, with labor alone costing about $1.60 per transaction.
 
-So who’s paying for whom: the store for the pump, or the pump for the store? 👇
+Did you expect the pump to be the one paying the bills? 👇
 
 Sources: NACS State of the Industry (2025 data) and NACS State of the Industry Summit 2026, via NACS and NACS Magazine.
 

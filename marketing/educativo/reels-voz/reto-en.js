@@ -62,7 +62,7 @@ What do you think will surprise you most? 👇
         [2, 'They’re small. §That’s exactly why *you never check them*.'],
         [3, '*Day two*. §Open your bank app §and find every charge that *repeats*. Write them all down.'],
         [4, 'And today, §{ding}*cancel one* you don’t use. Just one.'],
-        [5, 'Day two of thirty to *get your money in order*. §Tomorrow: what one hour of your work is *really worth*.']
+        [5, 'Day two of thirty. §One canceled charge is money back *every single month*, §without earning a cent more.']
       ]
     } },
     fijo: () => hud(2, TOTAL, 'DAY'),
@@ -76,7 +76,7 @@ What do you think will surprise you most? 👇
         anim: ES['es-reto-02'].escenas[3].anim },
       { html: () => `<div class="rotulo" data-t="translateX(-50%)" style="top:580px">Today: cancel one</div>`,
         anim: ES['es-reto-02'].escenas[4].anim },
-      finSerie({ dia: 2, total: TOTAL, serie: SERIE, etiquetaManana: 'TOMORROW · DAY 3', manana: 'What one hour of your work is really worth', sigue: SIGUE })
+      finSerie({ dia: 2, total: TOTAL, serie: SERIE, etiquetaManana: 'TODAY · DAY 2', manana: 'Cancel one charge you don’t use', sigue: SIGUE })
     ],
     tres: ES['es-reto-02'].tres,
     texto: { en: `There’s money leaving your account every month… and you never even look. 👻
@@ -87,7 +87,7 @@ Free trials are the sneaky ones: when you sign up, set a reminder for the day be
 Which one are you canceling? 👇
 
 💾 Save this for tonight.
-👉 Tomorrow, day 3: what one hour of your work is really worth. Follow so you don’t miss a day.
+👉 Day 2 of 30. Follow so you don’t miss a day.
 
 #subscriptions #budgeting #moneychallenge` }
   })

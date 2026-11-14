@@ -161,9 +161,9 @@ Y la siguiente: ¿por qué la bolsa de patatas trae cada vez menos patatas? Síg
         [1, 'Se llama §{ding}*reduflación*: §te dan menos producto por el mismo precio.'],
         [2, 'Si la bolsa pasa de 150 a 130 gramos al mismo precio, §{caja}*te sale un 15 % más caro el kilo*.'],
         [3, 'Tu defensa: §mira el precio por kilo §{pop}y compáralo con el de la última vez.'],
-        [4, '¿Y qué parte de lo que pagas en el súper le llega de verdad al agricultor? [short pause] La respuesta, en el siguiente vídeo. *Síguenos* para no perdértelo.']
+        [4, 'Por eso el precio parece el mismo: §{pop}*no sube el precio, encoge el paquete*.']
       ],
-      cierre: '¿Cuánto le llega al agricultor? <span class="c">Síguenos</span> para no perdértelo.'
+      cierre: 'No sube el precio: <span class="c">encoge el paquete</span>.'
     } },
     escenas: [
       P.gancho({ titulo: 'Mismo precio, <span class="c">menos patatas</span>.', objeto: { tipo: 'cartel', cabecera: 'PATATAS', texto: '150 g → 130 g', color: P.AMBAR }, burbuja: '¿Eh?', reaccion: 'encoge' }),
@@ -180,7 +180,7 @@ Tu defensa: mira el precio por kilo (por ley tiene que estar en la etiqueta) y c
 
 ¿Qué producto has pillado haciéndolo? 👇
 
-Y la siguiente: ¿qué parte de lo que pagas en el súper le llega de verdad al agricultor? Síguenos para no perdértelo.
+¿Te ha pasado con algún producto? Cuéntanos cuál 👇
 
 #reduflacion #supermercado #finanzaspersonales #ahorro #consumo` }
   })
