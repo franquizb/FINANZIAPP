@@ -16,6 +16,8 @@
 // reel.suelo: suelo común a 900 px de la escena (1190 en pantalla) que llena la parte de abajo.
 // reel.tres (función): coreografía 3D sobre el mundo de reels-voz/tres.js (maniquíes); reel.fijo: capa fija (HUD);
 // reel.sub = { max, largo }: tamaño de los golpes de subtítulo.
+// reel.cola: segundos de plano tras la última frase (por defecto COLA). reel.corte2d = 'seco': la capa 2D de la escena
+// que sale desaparece en el mismo fotograma del corte (sin el fundido de FUNDIDO s encima de la escena siguiente).
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
 // retención); se oculta en la última escena (el cierre).
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
@@ -103,7 +105,7 @@ function linea(reel, lang, voces) {
     tt += voces[i].dur + PAUSA;
     return f;
   });
-  const total = frases[frases.length - 1].ini + frases[frases.length - 1].dur + COLA;
+  const total = frases[frases.length - 1].ini + frases[frases.length - 1].dur + (reel.cola != null ? reel.cola : COLA);
   const escenas = reel.escenas.map((_, k) => {
     const fs_ = frases.filter(f => f.esc === k);
     return { ini: k === 0 ? 0 : fs_[0].ini - 0.25, seg: fs_ };
@@ -149,7 +151,7 @@ function pagina(reel, lang, L) {
   const LANG = ${JSON.stringify(lang)}, D = ${JSON.stringify(reel.datos ? reel.datos(lang) : {})};
   const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg })))};
   const SUB = ${JSON.stringify(L.subs)};
-  const FUND = ${FUNDIDO}, LLENO = ${reel.arranque === 'lleno'};
+  const FUND = ${FUNDIDO}, LLENO = ${reel.arranque === 'lleno'}, SECO = ${reel.corte2d === 'seco'};
   const tramo = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
   const sale = (x) => 1 - Math.pow(1 - x, 3);
   const rebote = (x) => { const c = 1.70158, d = c + 1; return x <= 0 ? 0 : x >= 1 ? 1 : 1 + d * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
@@ -163,7 +165,7 @@ function pagina(reel, lang, L) {
   function pintar(t) {
     nodos.forEach((el, i) => {
       const e = ESC[i], ultima = i === nodos.length - 1;
-      const op = Math.min(i === 0 ? 1 : tramo(t, e.ini, e.ini + FUND), ultima ? 1 : 1 - tramo(t, e.fin - FUND, e.fin));
+      const op = Math.min(i === 0 ? 1 : tramo(t, e.ini, e.ini + FUND), ultima ? 1 : SECO ? (t >= ESC[i + 1].ini ? 0 : 1) : 1 - tramo(t, e.fin - FUND, e.fin));
       el.style.opacity = op; el.style.visibility = op > 0 ? 'visible' : 'hidden';
       if (op <= 0) return;
       const s = t - e.ini;

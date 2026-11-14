@@ -261,5 +261,13 @@
     "serie": "reto",
     "dia": 6,
     "fotograma_ms": 1800
+  },
+  "es-iva-sobre-impuesto": {
+    "titulo": "La rebaja de ~20~ 24 céntimos",
+    "destacado": "24 céntimos",
+    "color": "ambar",
+    "serie": "hacemos-la-cuenta",
+    "fotograma_ms": 32200,
+    "encuadre_y": 470
   }
 }

@@ -58,6 +58,7 @@ la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publi
 | N.º | Tema (slug) | Publicado | Cierre |
 |---|---|---|---|
 | 1 | ¿Bajaría la vivienda un 30 % quitando impuestos? (`es-contraste-vivienda-30`; final B sin guiño: `…-30b`) | 12 nov 2026, 7:30 (programado) | «¿Qué te pareció la entrevista?» |
+| 2 | La rebaja de 20 céntimos que en realidad son 24: IVA sobre el impuesto de la gasolina (`es-iva-sobre-impuesto`, formato extenso, 55 s) | 15 nov 2026, ~18:00 Madrid (programado) | «¿Sabías que pagabas IVA sobre un impuesto?» |
 
 ## Pendientes (preguntas abiertas)
 

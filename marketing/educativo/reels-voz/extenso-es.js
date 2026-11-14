@@ -23,7 +23,7 @@
 //
 // Respecto al guion solo se han añadido marcas § (no se leen ni cambian la toma de voz): frase 1 «§en el impuesto»,
 // frase 2 «§se calcula» y «§son 4», frase 4 «§y no solo aquí», frase 5 «§aunque», «§sin refinería» y «§sin gasolinera»,
-// frase 6 «§Este mes», frase 7 «§el tabaco», «§y el alcohol» y «§el IVA también», frase 8 «§multiplicado» y «§el litro».
+// frase 6 «§IVA sobre el impuesto» y «§Este mes», frase 7 «§el tabaco», «§y el alcohol» y «§el IVA también», frase 8 «§multiplicado» y «§el litro».
 const { pildora3d } = require('./tres');
 const { cuadra } = require('../reels/_comun');
 
@@ -71,7 +71,7 @@ const GUION = [
   [3, 'Espera. §¿Pagamos *IVA sobre un impuesto*? §¿Eso es legal?'],
   [4, 'Es legal, §y no solo aquí: §lo manda *una directiva europea* para toda la UE.'],
   [5, 'Ahora, la cuenta al revés. §Con el impuesto que fija la ley, 47 céntimos, §aunque la gasolina saliera *gratis*, §sin petróleo, §sin refinería y §sin gasolinera, §{caja}pagarías *57 céntimos* por litro.'],
-  [6, 'Casi diez de esos céntimos son *IVA sobre el impuesto*: §unos *cinco euros* cada 50 litros. §Este mes, casi tres.'],
+  [6, 'Casi diez de esos céntimos son §*IVA sobre el impuesto*: §unos *cinco euros* cada 50 litros. §Este mes, casi tres.'],
   [7, 'La luz, §el tabaco §y el alcohol, igual. §Mira hoy tu factura de la luz: §el IVA también se calcula *sobre el impuesto eléctrico*.'],
   [8, 'En el surtidor, todo te llega §*multiplicado por 1,21*. §Cuando acabe la rebaja, solo por el impuesto, §el litro no subirá 20 céntimos: §{pop}subirá *24*.']
 ];
@@ -98,6 +98,7 @@ const CSS = `
   .grande { position: absolute; left: 50%; font-size: 150px; line-height: 1; font-weight: 900; letter-spacing: -.04em; color: #f5b94a;
     text-shadow: 0 6px 40px rgba(0,0,0,.75); opacity: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .grande.rojo { color: #f87171; }
+  .grande.caja { font-size: 130px; background: rgba(9,14,27,.9); border: 4px solid #f5b94a; border-radius: 26px; padding: 10px 36px 16px; }
   .mini { position: absolute; left: 50%; font-size: 40px; font-weight: 850; color: #fff; background: rgba(9,14,27,.88); border: 2px solid rgba(245,185,74,.6);
     border-radius: 14px; padding: 8px 20px; opacity: 0; white-space: nowrap; }
   .mini b { color: #f5b94a; }
@@ -205,18 +206,19 @@ const X3 = (() => {
   const vaso = new T.Mesh(new T.CylinderGeometry(0.7, 0.7, H_VASO, 48, 1, true), new T.MeshStandardMaterial({ color: 0xa5b8d8, roughness: 0.15, metalness: 0.1, transparent: true, opacity: 0.16, side: T.DoubleSide, depthWrite: false }));
   vaso.position.y = Y0 + H_VASO / 2; colG.add(vaso);
   const mAro = new T.MeshStandardMaterial({ color: 0xcbd5e1, emissive: 0x94a3b8, emissiveIntensity: 0.3, roughness: 0.4 });
-  [Y0 + 0.01, Y0 + H_VASO].forEach(y => { const a = new T.Mesh(new T.TorusGeometry(0.7, 0.035, 8, 48), mAro); a.rotation.x = Math.PI / 2; a.position.y = y; colG.add(a); });
+  const aros = [Y0 + 0.01, Y0 + H_VASO].map(y => { const a = new T.Mesh(new T.TorusGeometry(0.7, 0.035, 8, 48), mAro); a.rotation.x = Math.PI / 2; a.position.y = y; colG.add(a); return a; });
   cil(colG, 0.78, 0.8, Y0, mat(0x334155), 0, Y0 / 2, 0, 48);
   const cilU = new T.CylinderGeometry(1, 1, 1, 44);
   const tramoC = (col, r, op, emi) => { const m = new T.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: emi, roughness: 0.35, transparent: op < 1, opacity: op, depthWrite: op >= 1 });
     const o = new T.Mesh(cilU, m); o.scale.set(r, 1, r); o.castShadow = op >= 1; o.userData.col = col; o.userData.emi = emi; colG.add(o); return o; };
-  const hueco = (r) => { const o = new T.Mesh(cilU, new T.MeshStandardMaterial({ color: 0xf5b94a, emissive: 0xf5b94a, emissiveIntensity: 0.85, roughness: 0.4, transparent: true, opacity: 0.6, depthWrite: false })); o.scale.set(r, 1, r); colG.add(o); return o; };
+  const hueco = (r) => { const o = new T.Mesh(cilU, new T.MeshStandardMaterial({ color: 0xf5b94a, emissive: 0xf5b94a, emissiveIntensity: 0.55, roughness: 0.4, transparent: true, opacity: 0.82, depthWrite: false, toneMapped: false })); o.scale.set(r, 1, r); colG.add(o); return o; };
   const sG = tramoC(0xe6ebf2, 0.6, 0.94, 0.14), sI = tramoC(0xef4444, 0.6, 1, 0.38), sFI = hueco(0.6), sV = tramoC(0xfb7185, 0.645, 0.92, 0.36), sFV = hueco(0.645);
   const env = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 44, 1, true), new T.MeshBasicMaterial({ color: 0xfb7185, transparent: true, opacity: 0.2, side: T.DoubleSide, depthWrite: false, blending: T.AdditiveBlending }));
   env.scale.set(0.645, 1, 0.645); colG.add(env);
   const AMB = new T.Color(0xf5b94a);
   const resaltar = (m, q) => { m.material.emissive.setHex(m.userData.col).lerp(AMB, q); m.material.emissiveIntensity = m.userData.emi + 0.5 * q; };
-  // o = { x, z, g (gasolina 0..1), imp (€), fi (hueco del impuesto, €), iva (0..1), fv (hueco del IVA, €), env (envoltura 0..1), resI, resV, op }
+  // o = { x, z, g (gasolina 0..1), imp (€), fi (hueco del impuesto, €), iva (0..1), fv (hueco del IVA, €), env (envoltura 0..1), resI, resV, op,
+  //       vasoJusto (el vaso acaba justo encima del contenido, sin tubo vacío) }
   // Devuelve los tramos [y0, y1] de cada parte para colocar los rótulos.
   function columna(o) {
     colG.visible = true; colG.position.set(o.x || 0, 0, o.z || 0);
@@ -224,8 +226,10 @@ const X3 = (() => {
     let y = Y0;
     const pon = (m, h) => { const y0 = y; m.visible = h > 0.004; m.scale.y = Math.max(h, 0.001); m.position.y = y + h / 2; y += h; return [y0, y]; };
     const r = { g: pon(sG, BASE * g * KM), i: pon(sI, imp * KM), fi: pon(sFI, (o.fi || 0) * KM), v: pon(sV, TIPO * (BASE * g + imp) * KM * vq), fv: pon(sFV, (o.fv || 0) * KM) };
-    const ev = o.env || 0, alto = r.i[1] - Y0; env.visible = ev > 0.01; env.scale.y = Math.max(0.001, alto); env.position.y = Y0 + alto / 2; env.material.opacity = 0.24 * ev;
+    const ev = o.env || 0, alto = r.i[1] - Y0; env.visible = ev > 0.01; env.scale.y = Math.max(0.001, alto); env.position.y = Y0 + alto / 2; env.material.opacity = 0.4 * ev;
     resaltar(sI, o.resI || 0); resaltar(sV, o.resV || 0);
+    const hv = o.vasoJusto ? Math.min(H_VASO, r.fv[1] - Y0 + 0.12) : H_VASO;
+    vaso.scale.y = hv / H_VASO; vaso.position.y = Y0 + hv / 2; aros[1].position.y = Y0 + hv;
     return r;
   }
 
@@ -283,8 +287,10 @@ const X3 = (() => {
   const bids = [0, 1, 2, 3, 4].map(() => { const g = new T.Group(); bidG.add(g);
     caja(g, 0.46, 0.62, 0.24, mBid, 0, 0.31, 0); caja(g, 0.28, 0.07, 0.08, mTap, -0.03, 0.67, 0); cil(g, 0.055, 0.055, 0.1, mTap, 0.15, 0.66, 0);
     caja(g, 0.3, 0.3, 0.02, mat(0xb4bdcb), 0, 0.3, 0.125); return g; });
+  // o.sitio(i) → [x, y, z] de cada bidón dentro del grupo (por defecto, en fila).
   function bidones(o) { bidG.visible = true; bidG.position.set(o.x || 0, 0, o.z || 0); bidG.rotation.y = o.rot || 0;
-    bids.forEach((g, i) => { const q = o.q ? o.q(i) : 1; g.visible = q > 0.01; g.position.set((i - 2) * 0.62, 0.25 * (1 - q), 0); g.scale.setScalar(Math.max(0.001, q)); }); }
+    bids.forEach((g, i) => { const q = o.q ? o.q(i) : 1, s = o.sitio ? o.sitio(i) : [(i - 2) * 0.62, 0, 0];
+      g.visible = q > 0.01; g.position.set(s[0], s[1] + 0.25 * (1 - q), s[2]); g.scale.setScalar(Math.max(0.001, q)); }); }
 
   // ——— billete rojo de 5 € (el IVA que se va) ———
   const bil = lienzo(512, 256), bx = bil.x;
@@ -329,7 +335,7 @@ const ESCENAS = [
         <span class="l"><span class="r">20</span> + <span class="a">4</span> = <span class="a">24</span> cts</span></div>
       ${fuente('Ley del IVA, art. 78 (base) y art. 90 (21 %)')}`, anim: an },
   // 3 · ¿IVA sobre un impuesto? El maniquí mira a cámara, «?» ámbar y la lupa sobre el impuesto envuelto por el IVA.
-  { html: () => `<div class="rot2" data-t="translateX(-50%)" data-m="0" style="top:1180px;left:66%">IVA sobre impuesto</div>
+  { html: () => `<div class="rot2" data-t="translateX(-50%)" data-m="0" style="top:1180px;left:58%">IVA sobre impuesto</div>
       ${fuente('Ley del IVA, art. 78.Dos.4.º')}`, anim: an },
   // 4 · Es legal y no solo aquí: España se enciende y después toda la UE a la vez.
   { html: () => `<div class="chip" data-t="translateX(-50%)" data-m="-1" style="top:500px">✓ Es legal</div>
@@ -352,9 +358,9 @@ const ESCENAS = [
   // 6 · Casi 10 de esos céntimos son IVA sobre el impuesto: unos 5 € cada 50 litros (sale un billete); este mes, 2,86 €.
   { html: () => `<div class="tj amb" data-t="" data-m="-1" style="top:496px;left:70px;transform-origin:left center"><small>IVA SOBRE EL IMPUESTO DE LEY</small>
         <span class="l"><span class="a">9,9 cts</span> por litro</span></div>
-      <div class="tj roja" data-t="" data-m="0" style="top:668px;left:70px;transform-origin:left center"><small>CADA 50 LITROS</small>
+      <div class="tj roja" data-t="" data-m="1" style="top:668px;left:70px;transform-origin:left center"><small>CADA 50 LITROS</small>
         <span class="l">≈ <span class="r">5 €</span> <span style="font-size:34px;color:#cbd5e1;font-weight:750">(4,96 €)</span></span></div>
-      <div class="mini" data-t="" data-m="1" style="top:842px;left:70px;transform-origin:left center">Este mes: <b>2,86 €</b></div>
+      <div class="mini" data-t="" data-m="2" style="top:818px;left:70px;transform-origin:left center">Este mes: <b>2,86 €</b></div>
       ${fuente('Impuesto: ley 47,269 cts/l · nov. 27,269 · IVA 21 %')}`, anim: an },
   // 7 · Luz, tabaco y alcohol, igual. La factura de la luz: el impuesto eléctrico entra en la base del IVA.
   { html: () => `<div class="iconos" style="top:496px">${ICONOS.map(([n, svg], i) => `<div class="ic" data-t="" data-m="${i - 1}">${svg}<span>${n}</span></div>`).join('')}</div>
@@ -370,7 +376,7 @@ const ESCENAS = [
       const base = el.querySelector('.base'); base.style.background = b > 0.5 ? '#f5b94a' : '#e2e8f0'; base.style.color = b > 0.5 ? '#1a1205' : '#334155';
     } },
   // 8 · Cierre (vuelve al encuadre del principio): «× 1,21»; al acabar la rebaja, +20 → +24 en el {pop}. Sin tarjeta final.
-  { html: () => `<div class="grande" data-t="translateX(-50%)" data-m="0" data-hasta="1" style="top:540px">× 1,21</div>
+  { html: () => `<div class="grande caja" data-t="translateX(-50%)" data-m="0" data-hasta="1" style="top:1090px">× 1,21</div>
       ${NOTA}${FUENTE_GANCHO}`, anim: an }
 ];
 
@@ -439,9 +445,12 @@ const TRES = function (t, k, s, e, W) {
     camLerp([-0.35, 3.15, 8.6, -0.1, 2.95, 0], [-0.3, 3.1, 8.0, -0.1, 2.95, 0], p);
   } else if (k === 4) {
     const m0 = mk(0, 0.6), m1 = mk(1, 1.6), todos = q(m1 - 0.05, 0.35);
-    X.mapa({ luz: (c) => c === 'ES' ? 0.55 + 0.45 * q(m0 - 0.1, 0.3) * (0.85 + 0.15 * Math.sin(t * 7)) : todos });
-    W.niebla(20, 60);
-    const a = -0.07 + 0.14 * p; W.camara(Math.sin(a) * 11.6, 13.6 - 0.6 * p, Math.cos(a) * 11.6 + 1.2, 0, 0, 1.15);
+    // Mapa algo a la izquierda y cámara más abierta: CY no llega a los botones de Instagram (todo entre ~70 y ~930 px).
+    // Sin paseantes: con la cámara picada pasarían por arriba, detrás de los subtítulos.
+    X.mapa({ x: -0.5, luz: (c) => c === 'ES' ? 0.55 + 0.45 * q(m0 - 0.1, 0.3) * (0.85 + 0.15 * Math.sin(t * 7)) : todos });
+    directo = () => fuera;
+    W.niebla(24, 64);
+    const a = -0.04 + 0.08 * p; W.camara(Math.sin(a) * 14.0, 16.2 - 0.6 * p, Math.cos(a) * 14.0 + 1.2, 0, 0, 1.15);
   } else if (k === 5) {
     // La columna a la izquierda; a la derecha, la cadena que se aleja: gasolinera, refinería y petróleo. Desaparecen una a una.
     const CX = -1.25, CZ = 1.0;
@@ -458,7 +467,7 @@ const TRES = function (t, k, s, e, W) {
     // Rótulos de la columna, delante de cada tramo.
     const ZR = CZ + 0.8, cer0 = q(m5 - 0.3, 1.3);
     W.rotulo('t-imp', 'IMPUESTO · 47 cts', CX, (r.i[0] + r.i[1]) / 2, ZR, q(m0 - 0.1, 0.3), ROJO, 0.4 - 0.15 * cer0);
-    if (r.g[1] - r.g[0] > 0.45) W.rotulo('t-gas', 'GASOLINA: 0 €', CX, (r.g[0] + r.g[1]) / 2, ZR, q(m1 - 0.1, 0.3) * (1 - q(m4, 0.3)), BLANCO, 0.4);
+    if (r.g[1] - r.g[0] > 0.45) W.rotulo('t-gas', 'GASOLINA: 0 €', CX, (r.g[0] + r.g[1]) / 2, ZR, q(m1 - 0.1, 0.3) * (1 - q(m3, 0.3)), BLANCO, 0.4);
     W.rotulo('t-iva', 'IVA', CX, r.v[1] + 0.22, ZR, q(m5, 0.3), ROSA, 0.4 - 0.15 * cer0);
     // Un maniquí rojo cobra (en el {caja}) y los del fondo se paran a mirar.
     const RX = CX + 1.35, RZ = CZ + 1.2, cobra = q(m5 - 0.15, 0.35);
@@ -467,18 +476,26 @@ const TRES = function (t, k, s, e, W) {
     const ga = W.gente[0]; ga.der.hombro.rotation.x = -1.3 * cobra; ga.der.codo.rotation.x = -0.25;
     // Plano general que se acerca despacio y, en el {caja}, se cierra sobre la columna y el que cobra.
     const cer = q(m5 - 0.3, 1.3), P5 = mezcla([-0.75, 6.0, 12.9, -0.1, 2.35, -1.5], [-0.7, 5.8, 12.2, -0.1, 2.3, -1.5], p);
-    camLerp(P5, [CX + 0.55, 2.05, CZ + 6.8, CX + 0.5, 1.2, CZ], cer);
+    camLerp(P5, [CX + 0.55, 2.3, CZ + 6.8, CX + 0.5, 1.62, CZ], cer);
     return;
   } else if (k === 6) {
-    const CX = -0.9, CZ = 0, m0 = mk(0, 2.3);
-    const r = X.columna({ x: CX, z: CZ, imp: IMP_LEY, g: 0, iva: 1, env: 0.5, resV: 0.85 * (0.8 + 0.2 * Math.sin(t * 6)) });
-    const BX = 1.15, BZ = 1.3;
-    X.bidones({ x: BX, z: BZ, rot: -0.5, q: (i) => rebote(tramo(t, m0 - 0.15 + i * 0.09, m0 + 0.2 + i * 0.09)) });
-    W.rotulo('l50', '50 litros', BX, 1.15, BZ, q(m0 + 0.35, 0.3), BLANCO, 0.34);
-    const yV = (r.v[0] + r.v[1]) / 2, v = tramo(t, m0 + 0.1, m0 + 1.4), ev = sale(v);
-    X.billete({ x: CX + 0.1 + 1.95 * ev, y: yV + 1.1 * Math.sin(ev * Math.PI * 0.85) + 0.75 * ev, z: CZ + 0.6 + 0.5 * ev, rx: -0.2, ry: -0.3 + 0.3 * ev + 0.15 * Math.sin(t * 2), rz: 4 * Math.PI * ev + 0.12 * Math.sin(t * 3),
-      esc: 0.3 + 0.55 * sale(tramo(t, m0 + 0.1, m0 + 0.5)), op: v > 0 ? 1 : 0 });
+    // El litro sin gasolina (impuesto de ley + su IVA), con sus rótulos como al final de la escena 5; el IVA late dos veces
+    // al decir «IVA sobre el impuesto» (marca 0). El vaso acaba justo encima del contenido (sin tubo vacío detrás de los subtítulos).
+    const CX = -0.9, CZ = 0, m0 = mk(0, 1.5), m1 = mk(1, 2.3);
+    const lat = tramo(t, m0 - 0.05, m0 + 1.15), pulso = lat > 0 && lat < 1 ? Math.pow(Math.sin(lat * 2 * Math.PI), 2) : 0;
+    const r = X.columna({ x: CX, z: CZ, imp: IMP_LEY, g: 0, iva: 1, env: 0.5, vasoJusto: true, resV: Math.min(1, 0.85 * (0.8 + 0.2 * Math.sin(t * 6)) + 0.3 * pulso) });
+    const ZR = CZ + 0.8;
+    W.rotulo('t-imp6', 'IMPUESTO · 47 cts', CX, (r.i[0] + r.i[1]) / 2, ZR, 1, ROJO, 0.27);
+    W.rotulo('t-iva6', 'IVA', CX, r.v[1] + 0.15, ZR, 1, ROSA, 0.3 * (1 + 0.3 * pulso));
+    // Cinco bidones de 10 l (50 litros) apilados 3 + 2 a la derecha de la columna: caben enteros por dentro de ~930 px.
+    const BX = 0.65, BZ = 0, SIT = [[-0.5, 0, 0], [0, 0, 0], [0.5, 0, 0], [-0.25, 0.71, 0], [0.25, 0.71, 0]];
+    X.bidones({ x: BX, z: BZ, rot: -0.15, sitio: (i) => SIT[i], q: (i) => rebote(tramo(t, m1 - 0.15 + i * 0.09, m1 + 0.2 + i * 0.09)) });
+    W.rotulo('l50', '50 litros', BX, 1.78, BZ, q(m1 + 0.35, 0.3), BLANCO, 0.34);
+    const yV = (r.v[0] + r.v[1]) / 2, v = tramo(t, m1 + 0.1, m1 + 1.4), ev = sale(v);
+    X.billete({ x: CX + 0.1 + 1.8 * ev, y: yV + 1.1 * Math.sin(ev * Math.PI * 0.85) + 0.75 * ev, z: CZ + 0.6 + 0.5 * ev, rx: -0.2, ry: -0.3 + 0.3 * ev + 0.15 * Math.sin(t * 2), rz: 4 * Math.PI * ev + 0.12 * Math.sin(t * 3),
+      esc: 0.3 + 0.55 * sale(tramo(t, m1 + 0.1, m1 + 0.5)), op: v > 0 ? 1 : 0 });
     W.niebla(14, 46);
+    directo = (i, a) => aceras(i, a, 6, -6);   // menos paseantes y algo más lejos: que no se amontonen detrás de los bidones
     camLerp([0.05, 2.4, 8.6, 0.0, 1.55, 0], [0.05, 2.3, 8.0, 0.0, 1.5, 0], p);
   } else if (k === 7) {
     const m2 = mk(2, 2.4), HX7 = 1.0, HZ7 = 0.9, g7 = -0.38 + 0.06 * Math.sin(t * 0.8);
@@ -509,6 +526,9 @@ const pildoras = {
     fijo: () => `<div class="hud i fmt">HACEMOS LA CUENTA</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT,
     escenas: ESCENAS, tres: TRES,
+    // Cola corta (~1 s tras «subirá 24») para que el bucle vuelva pronto al gancho, y la capa 2D de cada escena se va en el
+    // mismo fotograma que el corte seco del 3D (sin textos de la escena anterior encima de la siguiente).
+    cola: 0.8, corte2d: 'seco',
     texto: { es: TEXTO }
   })
 };
