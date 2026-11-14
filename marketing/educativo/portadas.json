@@ -269,5 +269,13 @@
     "serie": "hacemos-la-cuenta",
     "fotograma_ms": 32200,
     "encuadre_y": 470
+  },
+  "en-save-invest-one-plan": {
+    "titulo": "Same dollar: +50¢ or 0.4¢",
+    "destacado": "+50¢",
+    "color": "turq",
+    "serie": "money-explained",
+    "etiqueta": "Saving + Investing",
+    "fotograma_ms": 2500
   }
 }
