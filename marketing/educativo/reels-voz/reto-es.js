@@ -568,6 +568,115 @@ Ponle nombre a esa cuenta («Colchón», «Viaje»…), así sabes para qué es.
 👉 Mañana, día 6: las comisiones del banco que puedes dejar de pagar. Síguenos para no perderte ningún día.
 
 #ahorro #finanzaspersonales #retodeahorro` }
+  }),
+
+  // Día 6 · Las comisiones del banco. Fuentes: ASUFIN, VII Barómetro de comisiones bancarias (18-may-2026): comisión media
+  // de mantenimiento no bonificada 167,27 €/año (160 € en el VI, may-2025; recogido por Finantres e Infobae/Europa Press).
+  // Orden ECE/228/2019, art. 3: cuenta de pago básica, máximo 3 €/mes. RD 164/2019: gratuita para personas vulnerables.
+  // RDL 19/2017 (cap. III) y Orden ECE/228/2019: traslado de cuentas, lo gestiona el banco receptor, máx. 13 días hábiles
+  // (Banco de España, Portal del Cliente Bancario). Primer día de la serie sin anuncio del siguiente (petición del propietario).
+  'es-reto-06': pildora3d({
+    slug: 'es-reto-06', cuenta: 'es',
+    T: { es: {
+      titulo: 'Día 6/30 · Las comisiones del banco que puedes dejar de pagar',
+      guion: [
+        [0, 'Tu banco puede cobrarte *solo por tener la cuenta*. §Si no cumples sus condiciones, §{pop}de media, *más de 160 euros al año*.'],
+        [1, 'Es la comisión de mantenimiento. §Muchos bancos la quitan §si *domicilias la nómina* o pagas recibos con ellos.'],
+        [2, '*Día seis*. §Abre tu extracto, §{tic}busca *mantenimiento* y *tarjeta*, §y suma lo de este año.'],
+        [3, 'Si te cobran, §pide que te lo quiten §o cámbiate: §{ding}por ley, el *banco nuevo* se encarga de trasladar tus recibos.'],
+        [4, 'Y si no puedes cumplir condiciones, §existe la *cuenta de pago básica*: §como mucho, *3 euros al mes*.'],
+        [5, 'Día seis de treinta. §El dinero que no se va en comisiones §{pop}*también es ahorro*.']
+      ]
+    } },
+    fijo: () => hud(6, TOTAL),
+    cssExtra: `
+      .com6 { position: absolute; left: 50%; top: 520px; background: rgba(9,14,27,.9); border: 2px solid rgba(245,185,74,.7); border-radius: 24px;
+        padding: 14px 42px 18px; text-align: center; white-space: nowrap; opacity: 0; }
+      .com6 small { display: block; font: 700 23px/1.35 'DejaVu Sans Mono', monospace; letter-spacing: .14em; color: #94a3b8; }
+      .com6 .l { display: block; font-size: 58px; line-height: 1.16; font-weight: 900; color: #fff; }
+      .com6 .r { color: #f87171; } .com6 .t { color: #5eead4; } .com6 .a { color: #f5b94a; }
+      .com6 .fte { display: block; margin-top: 8px; font: 600 21px/1.3 'DejaVu Sans Mono', monospace; color: #94a3b8; letter-spacing: .02em; }`,
+    escenas: [
+      // 0 · La cuenta cobra: monedas rojas que se van por la puerta del banco; «MANTENIMIENTO» y, en el pop, «+160 € al año».
+      { html: () => `<div class="com6" data-t="translateX(-50%)"><small>SI NO CUMPLES CONDICIONES</small><span class="l">más de <span class="r">160 € al año</span></span>
+          <span class="fte">Media de mantenimiento · ASUFIN, 2026</span></div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, m = M[1] != null ? M[1] : 2.6, c = el.querySelector('.com6');
+          aparece3(c, 1); const q = rebote(tramo(s, m - 0.1, m + 0.35)); c.querySelector('.r').style.transform = 'scale(' + (1 + 0.18 * Math.sin(Math.PI * q)) + ')'; c.querySelector('.r').style.display = 'inline-block'; } },
+      // 1 · Las condiciones: «NÓMINA» y «RECIBOS»; la puerta se vuelve turquesa y deja de salir dinero.
+      { html: () => '', anim: null },
+      // 2 · Día 6: busca en el extracto «mantenimiento» y «tarjeta».
+      { html: () => `<div class="com6" data-t="translateX(-50%)"><small>EN TU EXTRACTO, BUSCA</small><span class="l a">Mantenimiento</span><span class="l a">Tarjeta</span></div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, c = el.querySelector('.com6'), l = c.querySelectorAll('.l'), m = M[1] != null ? M[1] : 1.6;
+          aparece3(c, rebote(tramo(s, m - 0.2, m + 0.2))); l[1].style.opacity = tramo(s, m + 0.5, m + 0.9); } },
+      // 3 · Pide que te lo quiten o cámbiate: el héroe lleva la caja de recibos a la puerta turquesa (el banco nuevo).
+      { html: () => `<div class="rotulo" data-t="translateX(-50%)" style="top:560px">El banco nuevo traslada tus recibos</div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, m = M[2] != null ? M[2] : 3; aparece3(el.querySelector('.rotulo'), rebote(tramo(s, m - 0.1, m + 0.3))); } },
+      // 4 · La cuenta de pago básica: como mucho 3 € al mes.
+      { html: () => `<div class="com6" data-t="translateX(-50%)" style="border-color:rgba(94,234,212,.6)"><small>CUENTA DE PAGO BÁSICA</small><span class="l">como mucho <span class="t">3 € al mes</span></span>
+          <span class="fte">Orden ECE/228/2019 · gratis para personas vulnerables (RD 164/2019)</span></div>`,
+        anim: function (s, e, el) { const M = e.seg[0].marcas, m = M[0] != null ? M[0] : 1.2; aparece3(el.querySelector('.com6'), rebote(tramo(s, m - 0.1, m + 0.3))); } },
+      finSerie({ dia: 6, total: TOTAL, serie: SERIE, etiquetaManana: 'HOY · DÍA 6', manana: 'Revisa mantenimiento y tarjeta en tu extracto', sigue: '<b>Síguenos</b> para no perderte ningún día' })
+    ],
+    tres: function (t, k, s, e, W) {
+      const p = Math.min(1, s / (e.fin - e.ini)), DX = -1.2, DZ = -6.5, HX = 1.2, HZ = 2.6, CX = 2.4, CZ = 1.2;
+      const TURQ = 0x2dd4bf, ROJO = 0xef4444, fuera = { x: -60, z: -60, esc: 0 };
+      const mk = (j, def) => e.ini + (e.seg[0].marcas[j] != null ? e.seg[0].marcas[j] : def);
+      // Monedas rojas en fila hacia la puerta del banco (en bucle): el dinero que se va en comisiones.
+      const fila = (n, vel) => (i) => {
+        if (i >= n) return fuera;
+        const L = 10, z = DZ + L - (((t * vel + i * L / n) % L) + L) % L;
+        return { x: DX + 0.25 * Math.sin(i * 1.7), z, rot: Math.PI, amp: 1, fase: t * 6, color: ROJO, cq: 0.85, brillo: 0.2, esc: 0.62 * Math.min(1, Math.max(0, (z - DZ + 0.2) / 1.2)) * Math.min(1, (DZ + L - z) / 1.5) };
+      };
+      let directo = () => fuera;
+      if (k === 0) {
+        directo = fila(9, 1.4);
+        W.puerta({ x: DX, z: DZ, luz: 1 });
+        W.etiqueta('mant', 'MANTENIMIENTO', DX, 3.2, DZ, 1, '#f87171', 1.8);
+        W.heroe({ x: HX, z: HZ, luz: 0.25, gira: 2.6 });
+        W.camara(4.6 - 0.5 * p, 3.4, 9.6 - 0.6 * p, -0.4, 1.4, -2.2);
+      } else if (k === 1) {
+        const mN = mk(1, 2.4), cambia = sale(tramo(t, mN + 0.6, mN + 1.4));
+        directo = (i) => { const d = fila(9, 1.4 * (1 - cambia))(i); return d === fuera ? d : { ...d, esc: d.esc * (1 - cambia) }; };
+        W.puerta({ x: DX, z: DZ, luz: 1, color: TURQ, cq: cambia });
+        W.etiqueta('nomina6', 'NÓMINA', DX - 1.5, 2.4, DZ + 2.5, sale(tramo(t, mN - 0.05, mN + 0.3)), '#5eead4', 1.6);
+        W.etiqueta('recibos6', 'RECIBOS', DX + 1.6, 2.4, DZ + 2.5, sale(tramo(t, mN + 0.5, mN + 0.8)), '#5eead4', 1.6);
+        W.heroe({ x: HX, z: HZ, luz: 0.4 + 0.6 * cambia, gira: 2.6 });
+        W.camara(3.6 - 0.4 * p, 3.2, 8.8 - 0.4 * p, -0.8, 1.6, -2.6);
+      } else if (k === 2) {
+        W.puerta({ x: DX, z: DZ, luz: 0.6, color: TURQ, cq: 1 });
+        W.heroe({ x: HX, z: HZ, luz: 1, gira: 0.3 });
+        W.caja({ x: CX, z: CZ, rot: -0.3, luz: 0.8 });
+        W.camara(3.4 - 0.4 * p, 2.3, 7.6 - 0.5 * p, 1.4, 1.3, 0.8);
+      } else if (k === 3) {
+        const mL = mk(3, 3.2), v = tramo(t, mL - 0.4, mL + 1.6), ev = v * v * (3 - 2 * v);
+        const hx = HX + (DX + 0.9 - HX) * ev, hz = HZ + (DZ + 1.6 - HZ) * ev;
+        W.puerta({ x: DX, z: DZ, luz: 1, color: TURQ, cq: 1 });
+        W.etiqueta('nuevo6', 'BANCO NUEVO', DX, 3.2, DZ, sale(tramo(t, mL - 0.1, mL + 0.3)), '#5eead4', 1.8);
+        W.heroe({ x: hx, z: hz, luz: 1, gira: v > 0 && v < 1 ? Math.atan2(DX - HX, DZ - HZ) : 2.6 });
+        W.caja({ x: hx + 0.9, z: hz + 0.2, rot: -0.3, luz: 1, item: { y: 0.42, color: TURQ } });
+        W.etiqueta('rec6', 'RECIBOS', hx + 0.9, 1.45, hz + 0.2, sale(tramo(s, 0.3, 0.7)), '#cbd5e1', 1.4);
+        W.camara(4.8 - 0.4 * p, 3.6, 8.6 - 0.8 * p, -0.2, 1.2, -2.0);
+      } else if (k === 4) {
+        W.puerta({ x: DX, z: DZ, luz: 1, color: TURQ, cq: 1 });
+        W.heroe({ x: HX, z: HZ, luz: 1, gira: 0.6, brazos: sale(tramo(s, 0.6, 1.0)) });
+        W.camara(3.2 - 0.3 * p, 2.6, 7.4 - 0.4 * p, 0.6, 1.2, -1.2);
+      } else {
+        W.puerta({ x: DX, z: DZ, luz: 0.5, color: TURQ, cq: 1 });
+        W.heroe({ x: HX, z: HZ, luz: 1, brazos: 1 });
+        const a = 0.25 * p; W.camara(3 + Math.sin(a) * 3, 6 + p, 9.5, 0.4, 0.8, -1);
+      }
+      W.multitud(t, { directo });
+    },
+    texto: { es: `Tu banco puede cobrarte solo por tener la cuenta. 🏦
+
+Día 6 de 30 para ordenar tu dinero. Hoy: abre el extracto, busca «mantenimiento» y «tarjeta» y suma lo que te han cobrado este año. Si no cumples las condiciones del banco, la comisión media de mantenimiento pasa de 160 € al año (ASUFIN, 2026).
+Si te cobran, pide que te la quiten o cámbiate: por ley, el banco nuevo se encarga de trasladar tus recibos (como mucho, 13 días hábiles). Y si no puedes cumplir condiciones, la cuenta de pago básica cuesta como mucho 3 € al mes, y es gratis para personas en situación de vulnerabilidad.
+
+¿Cuánto te ha salido la cuenta? 👇
+
+Fuentes: ASUFIN, Barómetro de comisiones (mayo de 2026) · Orden ECE/228/2019 · RD 164/2019 · RDL 19/2017 · Banco de España, Portal del Cliente Bancario.
+
+#ahorro #comisionesbancarias #retodeahorro` }
   })
 };
 
