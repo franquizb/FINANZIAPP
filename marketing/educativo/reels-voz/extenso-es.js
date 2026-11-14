@@ -448,13 +448,13 @@ const TRES = function (t, k, s, e, W) {
     const m0 = mk(0, 1.2), m1 = mk(1, 3), m2 = mk(2, 4.5), m3 = mk(3, 5.2), m4 = mk(4, 5.9), m5 = mk(5, 7);
     const vac = (q(m2, 0.6) + q(m3, 0.6) + q(m4, 0.6)) / 3;
     const r = X.columna({ x: CX, z: CZ, imp: IMP_LEY, g: 1 - vac, iva: 1, env: 0.5, resV: 0.6 * q(m5, 0.4) });
-    const SUR = [1.2, -0.4], REF = [2.7, -4.0], BAL = [0.2, -7.6];
+    const SUR = [1.6, 1.2], REF = [0.3, -4.0], BAL = [3.0, -9.5];
     X.balancin({ x: BAL[0], z: BAL[1], rot: -0.2, esc: 1.0, t, op: 1 - q(m2, 0.5) });
     X.refineria({ x: REF[0], z: REF[1], rot: -0.2, esc: 0.85, t, op: 1 - q(m3, 0.5) });
-    X.surtidor({ x: SUR[0], z: SUR[1], rot: -0.3, esc: 0.72, op: 1 - q(m4, 0.5), pantalla: { titulo: 'SIN PLOMO 95', f1: '', f2: '', flecha: 0 } });
-    W.rotulo('t-pet', 'PETRÓLEO', BAL[0] + 0.3, 3.3, BAL[1], 1 - q(m2, 0.35), GRIS, 0.55);
-    W.rotulo('t-ref', 'REFINERÍA', REF[0], 4.9, REF[1], 1 - q(m3, 0.35), GRIS, 0.5);
-    W.rotulo('t-sur', 'GASOLINERA', SUR[0], 3.15, SUR[1], 1 - q(m4, 0.35), GRIS, 0.42);
+    X.surtidor({ x: SUR[0], z: SUR[1], rot: -0.35, esc: 0.65, op: 1 - q(m4, 0.5), pantalla: { titulo: 'SIN PLOMO 95', f1: '', f2: '', flecha: 0 } });
+    W.rotulo('t-pet', 'PETRÓLEO', BAL[0], 3.15, BAL[1], 1 - q(m2, 0.35), GRIS, 0.6);
+    W.rotulo('t-ref', 'REFINERÍA', REF[0] + 1.35, 3.0, REF[1], 1 - q(m3, 0.35), GRIS, 0.5);
+    W.rotulo('t-sur', 'GASOLINERA', SUR[0], 2.85, SUR[1], 1 - q(m4, 0.35), GRIS, 0.42);
     // Rótulos de la columna, delante de cada tramo.
     const ZR = CZ + 0.8, cer0 = q(m5 - 0.3, 1.3);
     W.rotulo('t-imp', 'IMPUESTO · 47 cts', CX, (r.i[0] + r.i[1]) / 2, ZR, q(m0 - 0.1, 0.3), ROJO, 0.4 - 0.15 * cer0);
@@ -466,7 +466,7 @@ const TRES = function (t, k, s, e, W) {
     W.multitud(t, { directo });
     const ga = W.gente[0]; ga.der.hombro.rotation.x = -1.3 * cobra; ga.der.codo.rotation.x = -0.25;
     // Plano general que se acerca despacio y, en el {caja}, se cierra sobre la columna y el que cobra.
-    const cer = q(m5 - 0.3, 1.3), P5 = mezcla([-0.75, 3.7, 12.6, -0.05, 2.75, -1.5], [-0.7, 3.6, 11.8, -0.05, 2.7, -1.5], p);
+    const cer = q(m5 - 0.3, 1.3), P5 = mezcla([-0.75, 6.0, 12.9, -0.1, 2.35, -1.5], [-0.7, 5.8, 12.2, -0.1, 2.3, -1.5], p);
     camLerp(P5, [CX + 0.55, 2.05, CZ + 6.8, CX + 0.5, 1.2, CZ], cer);
     return;
   } else if (k === 6) {
