@@ -8,8 +8,13 @@ conversación, en cada mercado y en su idioma. **Siempre con respeto: somos prof
 - **Lo publica el propietario desde la app**, con la cuenta del mercado (@finanziapp.es en vídeos de España,
   @finanziapp en los de EE. UU.). Nada automático: la API oficial no deja comentar en publicaciones ajenas y automatizar
   comentarios va contra las normas de Instagram (y pondría en riesgo las dos cuentas).
-- Claude busca los vídeos con `marketing/educativo/oportunidades.cjs` (hashtags y cuentas de referencia, solo lectura) y
-  los que el propietario se encuentra, comprueba las cifras y prepara el comentario.
+- **Dónde:** vídeos virales (cientos de miles o millones de visualizaciones) de cuentas conocidas —medios y creadores
+  grandes— que hablan de dinero. Claude los busca con `marketing/educativo/oportunidades.cjs` (Business Discovery, solo
+  lectura; lista de cuentas por mercado dentro del script) y con los que se encuentra el propietario.
+- **A quién:** sobre todo, respuesta al usuario que se equivoca o ataca el vídeo (el propietario copia su comentario,
+  porque la API no deja leer comentarios de vídeos ajenos). Si no hay a quién responder, un comentario propio con el dato.
+- Cuanto antes mejor: en las primeras horas del vídeo, los comentarios con «me gusta» suben arriba y se leen más.
+- Campaña electoral (elecciones generales del 29-N): en España, nada en vídeos de política, debates o encuestas.
 - **5–10 comentarios al día por cuenta como mucho**, repartidos, y cada uno escrito para ese vídeo: nunca el mismo texto
   dos veces.
 
@@ -32,3 +37,4 @@ visitas al perfil.
 
 | Fecha | Cuenta | Vídeo | Idea |
 |---|---|---|---|
+| 14 nov 2026 | @finanziapp.es | [@restaurantemarruzella](https://www.instagram.com/reel/DeO2JiEIqkR/) (85 K) | Respuesta a «si no es rentable, cierra»: umbral de rentabilidad, personal ≈ 30 % de ventas, 19–20 pizzas al día |
