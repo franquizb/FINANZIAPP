@@ -96,6 +96,7 @@ const CSS = `
   .tj .l.p { font-size: 34px; font-weight: 750; color: #e2e8f0; line-height: 1.22; }
   .tj .t { color: #5eead4; } .tj .r { color: #f87171; } .tj .a { color: #f5b94a; } .tj .g { color: #94a3b8; }
   .tj.turq { border-color: rgba(94,234,212,.6); } .tj.amb { border-color: rgba(245,185,74,.65); } .tj.roja { border-color: rgba(248,113,113,.6); }
+  .tj .fte { display: block; margin-top: 8px; font: 600 21px/1.3 ${MONO}; color: #94a3b8; }
   .fuente { position: absolute; left: 50%; transform: translateX(-50%); bottom: 420px; text-align: center; font: 600 22px/1.35 ${MONO};
     color: #b6c2d4; white-space: nowrap; background: rgba(7,11,22,.8); border-radius: 10px; padding: 5px 14px; }
   .chip { position: absolute; left: 50%; font-size: 40px; font-weight: 850; color: #fff; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
@@ -311,13 +312,14 @@ const X3 = (() => {
   // o = { x, y, z, n: [n0, n1, n2] } coins per stack (the decimal part is the coin falling onto the stack)
   function pilas(o) { (o.n || []).forEach((n, j) => { const x = o.x + (j - 1) * 0.36, z = o.z + (j === 1 ? -0.12 : 0.08), lleno = Math.floor(n), fr = n - lleno;
     for (let i = 0; i < lleno; i++) { const d = tomar(discosP); if (d) { d.position.set(x, o.y + 0.03 + i * 0.058, z); d.rotation.set(0, i * 0.7, 0); } }
-    if (fr > 0.02 && lleno < 12) { const d = tomar(discosP); if (d) { d.position.set(x, o.y + 0.03 + lleno * 0.058 + 1.4 * Math.pow(1 - fr, 2), z); d.rotation.set(0.5 * (1 - fr), 0, 0.3 * (1 - fr)); } } }); }
+    if (fr > 0.02 && lleno < 12) { const d = tomar(discosP); if (d) { d.position.set(x, o.y + 0.03 + lleno * 0.058 + 0.75 * Math.pow(1 - fr, 2), z); d.rotation.set(0.5 * (1 - fr), 0, 0.3 * (1 - fr)); } } }); }
 
   // ——— 10 red blocks (a year of match each) ———
   const bloG = grupo(), mBlo = mat(ROJO, { emissive: ROJO, emissiveIntensity: 0.35, roughness: 0.45 });
-  const blqs = Array.from({ length: 10 }, (_, i) => caja(bloG, 0.62, 0.19, 0.42, mBlo, 0, 0.1 + i * 0.205, 0));
-  function bloques(o) { bloG.visible = true; bloG.position.set(o.x, 0, o.z); bloG.rotation.y = o.rot || 0;
-    blqs.forEach((m, i) => { const q = Math.max(0, Math.min(1, (o.n || 0) - i)); m.visible = q > 0.01; m.scale.setScalar(Math.max(0.001, q)); m.position.y = 0.1 + i * 0.205 + 0.45 * (1 - q); }); }
+  const peana = caja(bloG, 0.8, 0.3, 0.6, mat(0x334155, { roughness: 0.6 }), 0, 0.15, 0);   // plinth
+  const blqs = Array.from({ length: 10 }, (_, i) => caja(bloG, 0.62, 0.145, 0.42, mBlo, 0, 0.38 + i * 0.158, 0));
+  function bloques(o) { bloG.visible = true; bloG.position.set(o.x, 0, o.z); bloG.rotation.y = o.rot || 0; peana.visible = (o.n || 0) > 0.02;
+    blqs.forEach((m, i) => { const q = Math.max(0, Math.min(1, (o.n || 0) - i)); m.visible = q > 0.01; m.scale.setScalar(Math.max(0.001, q)); m.position.y = 0.38 + i * 0.158 + 0.45 * (1 - q); }); }
 
   // ——— phone «FULL MATCH: YES» ———
   const movG = grupo(), lm = lienzo(256, 480), mx = lm.x;
@@ -365,11 +367,11 @@ const ESCENAS = [
   // 2 · The usual order: 5 numbered steps. Step 1: cash cushion catches a bill before it lands on the card. Step 2: full match.
   { html: () => `<div class="chip turq" data-t="translateX(-50%)" data-m="-1" style="top:500px">The usual order</div>${EDU}`, anim: an },
   // 3 · Open question: a giant 22% card swallows coins; amber frame (detected) and the hero hesitates («?»).
-  { html: () => fuente('Federal Reserve G.19 · Q3 2026 (preliminary):<br>22.36% on card accounts assessed interest'), anim: null },
+  { html: () => `<div class="fuente" style="top:492px;bottom:auto">Federal Reserve G.19 · Q3 2026 (preliminary):<br>22.36% on card accounts assessed interest</div>`, anim: null },
   // 4 · Answer and step 3: +50% · FREE MONEY · once it vests; then he breaks the red chain, the card goes out, step 3 lights up.
   { html: () => `<div class="tj amb" data-t="translateX(-50%)" data-m="1" style="top:478px"><small>GOOD TO KNOW</small>
-        <span class="l p">Match may vest over time</span><span class="l p">401(k) withdrawals before 59½: <span class="a">usually tax + 10% penalty</span></span></div>
-      ${fuente('Example match: 50¢ per $1 · FINRA, “Why Leave Money on the Table?”')}`, anim: an },
+        <span class="l p">Match may vest over time</span><span class="l p">401(k) withdrawals before 59½: <span class="a">usually tax + 10% penalty</span></span>
+        <span class="fte">Example match: 50¢ per $1 · FINRA, “Why Leave Money on the Table?”</span></div>`, anim: an },
   // 5 · Steps 4 and 5: two accounts with tax breaks (401(k), IRA) and the IRS limits in a label; then INVESTED, coins stacking.
   { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="0" style="top:478px"><small>2026 LIMITS · IRS, NOV 13 2025</small>
         <span class="l">401(k) <span class="t">$24,500</span> · IRA <span class="t">$7,500</span></span><span class="l p">more at 50+</span></div>${EDU}`, anim: an },
@@ -483,7 +485,7 @@ const TRES = function (t, k, s, e, W) {
     W.rotulo('aho', 'SAVINGS', BX, A.alto + 0.22, BZ, 1, GRIS, 0.22);
     W.rotulo('a038', '+0.4¢ a year', BX, A.alto + 0.5, BZ, q(m2 + 0.35, 0.35), GRIS, 0.15);
     const pan = sale(tramo(t, m2 - 0.15, m2 + 0.85));
-    camLerp(mezcla([-0.3, 1.6, 6.9, -0.32, 1.22, 0], [-0.25, 1.58, 6.5, -0.28, 1.2, 0], Math.min(1, s / 4)), [1.05, 1.35, 5.2, 1.15, 0.95, 0], pan);
+    camLerp(mezcla([-0.3, 1.6, 6.9, -0.32, 1.22, 0], [-0.25, 1.58, 6.5, -0.28, 1.2, 0], Math.min(1, s / 4)), [1.35, 1.35, 5.0, 1.4, 0.95, 0], pan);
   } else if (k === 2) {
     const m0 = mk(0, 1.3), m1 = mk(1, 2.4), m2 = mk(2, 4.0), m3 = mk(3, 6.0);
     X.escalera({ luz: [q(m1 + 0.1, 0.4), q(m3 + 0.55, 0.4), 0, 0, 0], nums: (i) => bote(m0 - 0.1 + i * 0.13, 0.3) });
@@ -499,7 +501,7 @@ const TRES = function (t, k, s, e, W) {
     W.rotulo('cash', 'CASH', CJ[0], C.tope + 0.34, CJ[2] + 0.25, Math.min(1, 1.4 * bote(m1, 0.3)), TQ, 0.3);
     W.rotulo('full', 'FULL MATCH', J2[0], J.y0 + 0.63, J2[2] + 0.55, q(m3 + 0.15, 0.4), TQ, 0.19);
     // The hero walks to step 1, steps up on «One» and up to step 2 on «Two».
-    const W0 = [pelX(0) - 1.7, 0, 1.45], W1 = [pelX(0) - 0.98, 0, 1.45], P1 = [pelX(0) + 0.38, pelY(0), 0.45];
+    const W0 = [pelX(0) - 1.35, 0, 1.6], W1 = [pelX(0) - 0.5, 0, 1.6], P1 = [pelX(0) + 0.38, pelY(0), 0.45];
     let pos, amp = 0, gira = 0.55;
     if (t < m1) { const u = tramo(t, e.ini, m1 - 0.2); pos = { x: W0[0] + (W1[0] - W0[0]) * u, y: 0, z: W0[2] }; amp = u < 1 ? 1 : 0; gira = 1.45 - 0.9 * q(m1 - 0.3, 0.3); }
     else if (t < m3) pos = salto(W1, P1, m1, 0.5); else pos = salto(P1, H2, m3, 0.5);
@@ -519,7 +521,7 @@ const TRES = function (t, k, s, e, W) {
     const duda = q(m1 - 0.1, 0.3), osc = Math.sin((t - m1) * 3.4);
     W.heroe({ x: H2[0], y: H2[1], z: H2[2], gira: 0.15 + duda * 0.95 * osc, luz: 0.5 });
     W.rotulo('preg', '?', H2[0], H2[1] + 2.35 + 0.04 * Math.sin(t * 5), H2[2], Math.min(1, 1.4 * bote(m1 - 0.1, 0.35)), AMB, 0.55 + 0.1 * Math.abs(osc) * duda);
-    camLerp([-0.4, 2.65, 8.7, -0.45, 2.3, 0], [-0.35, 2.62, 8.1, -0.4, 2.32, 0], p);
+    camLerp([-0.4, 2.65, 8.7, -0.45, 2.65, 0], [-0.35, 2.62, 8.1, -0.4, 2.67, 0], p);
   } else if (k === 4) {
     const m0 = mk(0, 1.5), m1 = mk(1, 2.4), m2 = mk(2, 3.6), m3 = mk(3, 4.3);
     X.escalera({ luz: [1, 1, q(m3 + 0.35, 0.4), 0, 0] }); pelda1();
@@ -538,28 +540,28 @@ const TRES = function (t, k, s, e, W) {
     W.rotulo('p50', '+50%', J2[0] + 0.05, J.alto + 1.0, J2[2], Math.min(1, 1.4 * ding), TQ, 0.5 + 0.08 * ding * (1 - tramo(t, m0 + 0.3, m0 + 0.8)));
     W.rotulo('free', 'FREE MONEY', J2[0] + 0.05, J.alto + 0.58, J2[2], Math.min(1, 1.4 * bote(m1 - 0.05, 0.3)), TQ, 0.27);
     W.rotulo('vest', 'once it vests', J2[0] + 0.05, J.alto + 0.3, J2[2], q(m1 + 0.35, 0.35), GRIS, 0.17);
-    camLerp([-0.55, 2.65, 8.6, -0.6, 2.3, 0], [-0.45, 2.62, 8.0, -0.5, 2.32, 0], p);
+    camLerp([-0.55, 2.65, 8.6, -0.6, 2.65, 0], [-0.45, 2.62, 8.0, -0.5, 2.67, 0], p);
   } else if (k === 5) {
     const m0 = mk(0, 2.0), m1 = mk(1, 3.2);
     X.escalera({ luz: [1, 1, 1, q(e.ini + 0.4, 0.4), q(m1 + 0.15, 0.4)] }); jarraLlena(); pelda1();
-    const P3 = [pelX(2) + 0.2, pelY(2), 0.45], P4 = [pelX(3) + 0.42, pelY(3), 0.55];
+    const P3 = [pelX(2) + 0.2, pelY(2), 0.45], P4 = [pelX(3) + 0.5, pelY(3), 0.6];
     const pos = salto(P3, P4, e.ini + 0.05, 0.5), mira = q(m1 - 0.1, 0.4);
     W.heroe({ x: pos.x, y: pos.y, z: pos.z, gira: 0.5 + 0.75 * mira, luz: 0.75 + 0.25 * q(m1, 0.4), senala: 0.9 * mira });
-    X.cuentas({ x: pelX(3) - 0.22, y: pelY(3), z: -0.35, q: [bote(e.ini + 0.45, 0.35), bote(e.ini + 0.65, 0.35)] });
-    W.rotulo('tax', 'TAX BREAKS', pelX(3) - 0.22, pelY(3) + 0.98, -0.35, q(e.ini + 0.85, 0.35), TQ, 0.27);
+    X.cuentas({ x: pelX(3) - 0.27, y: pelY(3), z: -0.35, q: [bote(e.ini + 0.45, 0.35), bote(e.ini + 0.65, 0.35)] });
+    W.rotulo('tax', 'TAX BREAKS', pelX(3) - 0.3, pelY(3) + 0.98, -0.35, q(e.ini + 0.85, 0.35), TQ, 0.27);
     // Step 5: invested, coins that keep stacking up.
     X.plataforma({ x: pelX(4), y: pelY(4), z: 0, op: q(m1 + 0.1, 0.4) });
     const cre = (j) => 9 * tramo(t, m1 + 0.35 + 0.2 * j, m1 + 3.2 + 0.2 * j);
     X.pilas({ x: pelX(4) + 0.2, y: pelY(4), z: -0.35, n: [cre(0), cre(1), cre(2)] });
-    W.rotulo('inv', 'INVESTED', pelX(4) + 0.2, pelY(4) + 1.3, -0.35, q(m1 + 0.25, 0.35), TQ, 0.33);
-    W.rotulo('brk', 'brokerage account', pelX(4) + 0.2, pelY(4) + 0.98, -0.35, q(m1 + 0.4, 0.35), GRIS, 0.18);
+    W.rotulo('inv', 'INVESTED', pelX(4) + 0.2, pelY(4) + 1.55, -0.35, q(m1 + 0.25, 0.35), TQ, 0.33);
+    W.rotulo('brk', 'brokerage account', pelX(4) + 0.2, pelY(4) + 1.23, -0.35, q(m1 + 0.4, 0.35), GRIS, 0.18);
     const pan = sale(tramo(t, m1 - 0.2, m1 + 1.0));
     camLerp(mezcla([0.8, 3.0, 8.6, 0.8, 2.55, 0], [0.9, 3.0, 8.3, 0.9, 2.6, 0], Math.min(1, s / 3)), [2.0, 3.3, 8.5, 2.0, 2.75, 0], pan);
   } else if (k === 6) {
     const m0 = mk(0, 2.4), m1 = mk(1, 3.4), m2 = mk(2, 7.0), m3 = mk(3, 9.6);
     const DX = 0.25, DZ = -2.6;
     W.puerta({ x: DX, z: DZ, color: 0x2dd4bf, cq: 1, luz: 0.85 + 0.15 * Math.sin(t * 3) });
-    W.rotulo('plan', 'RETIREMENT PLAN', DX, 2.98, DZ, 1, TQ, 0.27);
+    W.rotulo('plan', 'RETIREMENT PLAN', DX, 2.98, DZ, 1 - q(m3 + 0.2, 0.4), TQ, 0.27);
     // Four in a row in front of the plan; the first one turns amber, turns around and walks away; the other three join (turquoise).
     const FILA = [-1.3, -0.45, 0.4, 1.25], FZ = -0.35, SAL = [-1.7, 0.6];
     const vuelta = q(m0 - 0.05, 0.5), anda = tramo(t, m0 + 0.35, m0 + 2.1), ambar = q(m0 - 0.15, 0.3);
@@ -571,9 +573,9 @@ const TRES = function (t, k, s, e, W) {
       return aceras(i - 4, a, 4, -9);
     };
     // $1,800 a year (1 block) and, on {caja}, ten years: 10 blocks. The employer's half coins drift away in red.
-    X.bloques({ x: -0.95, z: 0.95, rot: 0.2, n: bote(m2 + 0.1, 0.3) + 9 * sale(tramo(t, m3 - 0.05, m3 + 1.1)) });
+    X.bloques({ x: -0.92, z: 0.1, rot: 0.2, n: bote(m2 + 0.1, 0.3) + 9 * sale(tramo(t, m3 - 0.05, m3 + 1.1)) });
     if (t > m2 - 0.2) for (let j = 0; j < 6; j++) { const per = 2.4, t0 = m2 - 0.2 + j * per / 6; if (t < t0) continue; const u = ((t - t0) % per) / per;
-      X.media({ x: -1.35 + (DX + 1.35) * u + 0.25 * Math.sin(j * 1.7 + u * 3), y: 1.9 + 0.9 * u + 0.15 * Math.sin(j), z: 0.8 + (DZ - 1.2 - 0.8) * u, rojo: 1, op: (1 - u) * Math.min(1, u * 6), esc: 1.15, rz: u * 3 * (j % 2 ? 1 : -1) }); }
+      X.media({ x: -1.45 + (DX + 1.45) * u + 0.25 * Math.sin(j * 1.7 + u * 3), y: 1.35 + 0.35 * u + 0.12 * Math.sin(j), z: 0.6 + (DZ - 0.6) * u, rojo: 1, op: (1 - u) * Math.min(1, u * 6), esc: 1.15, rz: u * 3 * (j % 2 ? 1 : -1) }); }
     camLerp([-0.3, 2.1, 8.6, -0.4, 1.75, -0.4], [-0.42, 2.05, 7.9, -0.5, 1.75, -0.4], p);
   } else {
     const m0 = mk(0, 1.0), m1 = mk(1, 2.1), m2 = mk(2, 3.3);
@@ -584,15 +586,15 @@ const TRES = function (t, k, s, e, W) {
     X.plataforma({ x: pelX(4), y: pelY(4), z: 0 }); X.pilas({ x: pelX(4) + 0.2, y: pelY(4), z: -0.35, n: [9, 9, 9] });
     // «aren't two goals»: SAVE over steps 1–2 and INVEST over 4–5; on «one plan» they fade into the line.
     const dos = q(m0 - 0.05, 0.35) * (1 - q(m1 + 0.3, 0.4));
-    W.rotulo('save', 'SAVE', pelX(0) + 0.7, pelY(1) + 2.6, 0, dos, BLANCO, 0.42);
-    W.rotulo('invest', 'INVEST', pelX(4) - 0.7, pelY(4) + 2.6, 0, dos, BLANCO, 0.42);
+    W.rotulo('save', 'SAVE', pelX(0) + 0.7, pelY(1) + 2.3, 0, dos, BLANCO, 0.6);
+    W.rotulo('invest', 'INVEST', pelX(4) - 0.7, pelY(4) + 1.9, 0, dos, BLANCO, 0.6);
     // Today: he raises the phone «FULL MATCH: YES» and the camera closes in on him and the jar (like frame 0).
     W.heroe({ x: H2[0], y: H2[1], z: H2[2], gira: 0.2, luz: 1 });
     const H = W.H, sube = q(m2 - 0.1, 0.45);
-    H.der.hombro.rotation.x = -0.7 * sube; H.der.codo.rotation.x = -0.2 - 1.3 * sube;
-    if (sube > 0.02) { const mm = manoDe(H); X.movil({ x: mm.x - 0.04, y: mm.y + 0.14, z: mm.z + 0.06, rx: -0.12, ry: 0.15, esc: Math.max(0.001, sube) }); }
+    H.izq.hombro.rotation.x = -0.7 * sube; H.izq.codo.rotation.x = -0.2 - 1.3 * sube;
+    if (sube > 0.02) { const mm = manoDe(H, 'izq'); X.movil({ x: mm.x + 0.04, y: mm.y + 0.14, z: mm.z + 0.06, rx: -0.12, ry: -0.1, esc: Math.max(0.001, 1.5 * sube) }); }
     const cerca = sale(tramo(t, m2 - 0.1, m2 + 1.7));
-    camLerp(mezcla([0.05, 3.6, 17.0, 0.05, 2.35, 0], [0.05, 3.5, 16.2, 0.05, 2.35, 0], Math.min(1, s / 3)), [-0.95, 2.35, 6.4, -1.1, 2.1, 0], cerca);
+    camLerp(mezcla([7.5, 5.5, 16.0, 0.5, 1.4, 0], [7.0, 5.3, 15.2, 0.5, 1.4, 0], Math.min(1, s / 3)), [-0.95, 2.35, 6.4, -1.1, 2.1, 0], cerca);
   }
   W.multitud(t, { directo });
   despues.forEach(f => f());

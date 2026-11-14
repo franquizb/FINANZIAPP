@@ -18,6 +18,16 @@ conversación, en cada mercado y en su idioma. **Siempre con respeto: somos prof
 - **5–10 comentarios al día por cuenta como mucho**, repartidos, y cada uno escrito para ese vídeo: nunca el mismo texto
   dos veces.
 
+## Desmentir un vídeo con un fallo de fundamento
+
+- Si un vídeo viral se equivoca en algo básico de economía o finanzas, además del comentario podemos hacer un vídeo de
+  «Hacemos la cuenta» que lo desmonte con la cifra correcta (3D propio, fuentes, respeto: se corrige la idea).
+- **Su contenido, solo con el Remix de Instagram** (⋯ → Remix → secuencial: primero el suyo, después el nuestro,
+  añadido desde la galería). Lo hace el propietario en la app; Instagram acredita solo y no lo trata como contenido no
+  original. **No** metemos trozos de su vídeo en nuestro montaje: reconocimiento de derechos (silencio o retirada) y
+  menos alcance por contenido no original (abril de 2026). Si el autor no permite el remix, citamos su frase en texto en
+  pantalla con su @.
+
 ## El tono
 
 - **Profe, no tertuliano.** Reconocer lo que el vídeo hace bien → aportar el dato o la cuenta que falta → una frase que
