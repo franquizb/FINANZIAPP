@@ -20,6 +20,21 @@
 // que sale desaparece en el mismo fotograma del corte (sin el fundido de FUNDIDO s encima de la escena siguiente).
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
 // retención); se oculta en la última escena (el cierre).
+// Opciones del formato «fábula explicada» (guiones/2026-11-clon-estructura.md); todas opcionales, sin ellas nada cambia:
+// reel.sub = false: sin subtítulos de transcripción. Los *resaltados* siguen dando tiempos: e.seg[i].res =
+//   [{ txt, ini, fin }] (un grupo por cada *tramo resaltado*, en segundos de la escena) para sacar rótulos en su palabra.
+//   e.seg[i].res existe también con subtítulos.
+// reel.musica = false: sin el colchón de musica.py (la voz y los efectos suenan solos; los silencios son silencio digital).
+// reel.pausas = { <escena>: { dur, silencio, sonido, fin, frase, vol } }: hueco sin voz dentro de la escena, antes de una frase.
+//   frase: cuál de las frases de la escena (0 = la primera, por defecto). dur: segundos desde el corte a la escena (si es la
+//   primera frase) o desde el final de la frase anterior hasta que vuelve la voz. silencio: segundos sin nada al principio
+//   (por defecto 0). sonido: efecto de sfx.py que empieza tras el silencio (p. ej. 'zumbido'); vol: su volumen.
+//   fin: dónde se corta el sonido en seco: 'corte' (por defecto: el corte a la escena siguiente), 'voz' (cuando vuelve la voz),
+//   un número (segundos desde el principio del hueco) o { marca: j, mas: s } (la marca § j, contando desde 0, de la frase
+//   que sigue al hueco, más s segundos). El hueco está en e.pausa = { ini, voz, sonido, fin } (segundos de la escena) para
+//   la animación, y con --vista sale además vista-pausa-<escena>.jpg (mitad del hueco).
+//   Ej.: pausas: { 7: { dur: 8.4, silencio: 0.7, sonido: 'zumbido' } }  ·  { 7: { dur: 8, silencio: 0.6, sonido: 'zumbido', fin: { marca: 1, mas: 0.8 } } }
+// Voz seca y pausada (~2,6 palabras/s): voz: VOZ_SECA (reels-voz/_comun.js). Sin whoosh en los cortes: sonidos: { escena: null }.
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
 // --sin-voz, sale reel-sin-voz.mp4 con silencios de duración estimada.
 const { chromium } = require('playwright');
@@ -91,33 +106,63 @@ function linea(reel, lang, voces) {
   const ps = t.guion.map(([, texto]) => partes(texto));
   const tiempos = tiemposPalabras(voces, ps, lang);
   let tt = reel.inicio != null ? reel.inicio : INICIO;
-  const sonidos = [];
+  const sonidos = [], huecos = {}, nEsc = {};
   const frases = t.guion.map(([esc, texto], i) => {
     if (i > 0 && esc !== t.guion[i - 1][0]) tt += CAMBIO;
     const p = ps[i], tw = tiempos[i];
+    // Hueco sin voz (reel.pausas): la frase se retrasa; el corte a la escena (si es su 1.ª frase) no se mueve.
+    const j = nEsc[esc] = nEsc[esc] == null ? 0 : nEsc[esc] + 1;
+    const pz = (reel.pausas || {})[esc];
+    let corte = tt - 0.25;
+    if (pz && (pz.frase || 0) === j) {
+      const desde = j === 0 ? (esc === 0 ? 0 : corte) : tt - PAUSA;
+      tt = Math.max(tt, desde + pz.dur);
+      huecos[esc] = { pz, ini: desde, voz: tt, frase: i };
+    }
     // Marcas §: el momento en que empieza la palabra que sigue (o el final de la frase).
     const marcas = p.marcas.map(m => {
       const at = tt + (m.idx < tw.length ? tw[m.idx][0] : voces[i].dur);
       if (m.sonido) sonidos.push({ sonido: m.sonido, t: at });
       return at;
     });
-    const f = { esc, texto, ini: tt, dur: voces[i].dur, marcas, p, tw };
+    // Tramos *resaltados*: sirven de marcas de tiempo para los rótulos (también sin subtítulos).
+    const res = [];
+    p.palabras.forEach((w, k) => {
+      if (!w.res) return;
+      const prev = res[res.length - 1];
+      if (prev && prev.k === k - 1) { prev.txt += ' ' + w.txt; prev.fin = tt + tw[k][1]; prev.k = k; }
+      else res.push({ txt: w.txt, ini: tt + tw[k][0], fin: tt + tw[k][1], k });
+    });
+    const f = { esc, texto, ini: tt, dur: voces[i].dur, marcas, res, corte, p, tw };
     tt += voces[i].dur + PAUSA;
     return f;
   });
   const total = frases[frases.length - 1].ini + frases[frases.length - 1].dur + (reel.cola != null ? reel.cola : COLA);
   const escenas = reel.escenas.map((_, k) => {
     const fs_ = frases.filter(f => f.esc === k);
-    return { ini: k === 0 ? 0 : fs_[0].ini - 0.25, seg: fs_ };
+    return { ini: k === 0 ? 0 : fs_[0].corte, seg: fs_ };
   });
   escenas.forEach((e, k) => {
     e.fin = k < escenas.length - 1 ? escenas[k + 1].ini + FUNDIDO : total;
-    e.seg = e.seg.map(f => ({ ini: f.ini - e.ini, dur: f.dur, marcas: f.marcas.map(m => m - e.ini) }));
+    const h = huecos[k];
+    if (h) {
+      // Fin del sonido del hueco: en seco en el corte, al volver la voz, a N s del principio o en una marca § + s.
+      const fin = h.pz.fin == null || h.pz.fin === 'corte' ? (k < escenas.length - 1 ? escenas[k + 1].ini : total)
+        : h.pz.fin === 'voz' ? h.voz
+        : typeof h.pz.fin === 'number' ? h.ini + h.pz.fin
+        : frases[h.frase].marcas[h.pz.fin.marca] + (h.pz.fin.mas || 0);
+      if (!(fin > h.ini)) throw new Error(`pausas[${k}]: el fin del sonido (${fin}) no cae después del principio del hueco`);
+      const ini = h.ini + (h.pz.silencio || 0);
+      if (h.pz.sonido) sonidos.push({ sonido: h.pz.sonido, t: ini, fin, vol: h.pz.vol });
+      e.pausa = { ini: h.ini - e.ini, voz: h.voz - e.ini, sonido: ini - e.ini, fin: fin - e.ini };
+    }
+    const rel = (x) => x - e.ini;
+    e.seg = e.seg.map(f => ({ ini: f.ini - e.ini, dur: f.dur, marcas: f.marcas.map(rel), res: f.res.map(r => ({ txt: r.txt.replace(/[.,;:!?…»”"]+$/, ''), ini: rel(r.ini), fin: rel(r.fin) })) }));
     // Cambio de escena: «whoosh» (salvo que el Reel diga otra cosa).
     const s_ = (reel.sonidos || {}).escena === undefined ? 'whoosh' : reel.sonidos.escena;
     if (k > 0 && s_) sonidos.push({ sonido: s_, t: Math.max(0, e.ini - 0.12) });
   });
-  const subs = frases.flatMap(f => golpes(f.p, f.tw, f.ini, f.ini + f.dur + 0.12, reel.sub));
+  const subs = reel.sub === false ? [] : frases.flatMap(f => golpes(f.p, f.tw, f.ini, f.ini + f.dur + 0.12, reel.sub));
   return { frases, escenas, subs, total, sonidos };
 }
 
@@ -149,7 +194,7 @@ function pagina(reel, lang, L) {
   ${reel.tres ? `<script src="file://${path.join(__dirname, 'node_modules/three/build/three.min.js')}"></script>` : ''}
   <script>
   const LANG = ${JSON.stringify(lang)}, D = ${JSON.stringify(reel.datos ? reel.datos(lang) : {})};
-  const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg })))};
+  const ESC = ${JSON.stringify(L.escenas.map(e => ({ ini: e.ini, fin: e.fin, seg: e.seg, ...(e.pausa ? { pausa: e.pausa } : {}) })))};
   const SUB = ${JSON.stringify(L.subs)};
   const FUND = ${FUNDIDO}, LLENO = ${reel.arranque === 'lleno'}, SECO = ${reel.corte2d === 'seco'};
   const tramo = (t, a, b) => Math.min(1, Math.max(0, (t - a) / (b - a)));
@@ -182,7 +227,7 @@ function pagina(reel, lang, L) {
     if (ret) ret.style.opacity = Math.min(LLENO ? 1 : tramo(t, 0.15, 0.55), 1 - tramo(t, ESC[ESC.length - 1].ini, ESC[ESC.length - 1].ini + FUND));
     // Subtítulos palabra a palabra: el golpe entero a la vista, la palabra que suena resaltada y las que vienen, más tenues.
     let k = SUB.findIndex(x => t >= x.ini - 0.04 && t < x.fin);
-    if (LLENO && k < 0 && t < SUB[0].ini) k = 0;   // la primera frase ya se lee en el fotograma 0
+    if (LLENO && k < 0 && SUB.length && t < SUB[0].ini) k = 0;   // la primera frase ya se lee en el fotograma 0
     if (k !== subActual) {
       sub.innerHTML = k >= 0 ? '<div>' + SUB[k].palabras.map(w => '<span class="w' + (w.res ? ' c' : '') + '">' + w.txt + '</span>').join(' ') + '</div>' : '';
       subActual = k;
@@ -235,6 +280,11 @@ async function grabar(browser, reel, lang, op) {
       await page.evaluate((x) => pintar(x), m);
       await page.screenshot({ path: path.join(dir, `vista-${String(i + 1).padStart(2, '0')}.jpg`), type: 'jpeg', quality: 85 });
     }
+    for (const [k, e] of L.escenas.entries()) {   // huecos sin voz (reel.pausas): un fotograma a mitad de cada uno
+      if (!e.pausa) continue;
+      await page.evaluate((x) => pintar(x), e.ini + (e.pausa.ini + e.pausa.voz) / 2);
+      await page.screenshot({ path: path.join(dir, `vista-pausa-${k}.jpg`), type: 'jpeg', quality: 85 });
+    }
     await page.close(); fs.unlinkSync(tmp);
     return { total: L.total, real };
   }
@@ -256,18 +306,20 @@ async function grabar(browser, reel, lang, op) {
   // Datos para programar: duración y el momento de la portada (Instagram la toma de ese fotograma).
   fs.writeFileSync(path.join(dir, 'meta.json'), JSON.stringify({ slug: reel.slug, cuenta: lang, total: +L.total.toFixed(2), portada_ms: Math.round((L.frases[0].ini + L.frases[0].dur - 0.1) * 1000),
     tema: (t.titulo || t.guion[0][1]).replace(/<[^>]+>/g, '').replace(/\[[^\]]*\]\s*/g, '').replace(/[*§]|\{\w*\}/g, '').trim() }));
-  execFileSync('python3', [path.join(__dirname, 'musica.py'), String(L.total), musica]);
+  const conMusica = reel.musica !== false;   // reel.musica = false: sin colchón de música
+  if (conMusica) execFileSync('python3', [path.join(__dirname, 'musica.py'), String(L.total), musica]);
   // Efectos de sonido (sfx.py, se generan una vez en cache-voz/).
   const dirSfx = path.join(__dirname, 'cache-voz');
-  if (!fs.existsSync(path.join(dirSfx, 'sfx-whoosh.wav'))) execFileSync('python3', [path.join(__dirname, 'sfx.py'), dirSfx]);
-  const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3 };
-  const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: VOL[x.sonido] }));
-  fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })), sonidos }));
+  const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3, zumbido: 0.5 };
+  for (const x of L.sonidos) if (VOL[x.sonido] == null) console.log(`⚠ ${reel.slug} ${lang}: no existe el efecto «${x.sonido}» (sfx.py); no suena`);
+  if (Object.keys(VOL).some(n => !fs.existsSync(path.join(dirSfx, `sfx-${n}.wav`)))) execFileSync('python3', [path.join(__dirname, 'sfx.py'), dirSfx]);
+  const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: x.vol != null ? x.vol : VOL[x.sonido], ...(x.fin != null ? { fin: x.fin } : {}) }));
+  fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica: conMusica ? musica : null, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })), sonidos }));
   execFileSync('python3', [path.join(__dirname, 'mezcla.py'), spec]);
   const salida = path.join(dir, real ? 'reel.mp4' : 'reel-sin-voz.mp4');
   // Volumen al nivel de las redes (unos −14 LUFS).
   execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', video, '-i', audio, '-c:v', 'copy', '-af', 'loudnorm=I=-14:TP=-1.5:LRA=11', '-ar', '44100', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', salida]);
-  for (const f of [tmp, video, musica, audio, spec]) fs.unlinkSync(f);
+  for (const f of [tmp, video, musica, audio, spec]) fs.rmSync(f, { force: true });
   if (real && fs.existsSync(path.join(dir, 'reel-sin-voz.mp4'))) fs.unlinkSync(path.join(dir, 'reel-sin-voz.mp4'));
   fs.writeFileSync(path.join(dir, 'texto.txt'), reel.texto[lang]);
   return { total: L.total, real };

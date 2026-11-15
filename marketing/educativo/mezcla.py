@@ -2,7 +2,9 @@
 # La música baja mientras se habla (ducking suave) y sube en los silencios.
 # Uso: python3 mezcla.py <spec.json>
 #   spec = { "total": s, "frases": [{"archivo": wav, "ini": s}], "musica": wav, "salida": wav,
-#            "sonidos": [{"archivo": wav, "ini": s, "vol": 0.3}] }
+#            "sonidos": [{"archivo": wav, "ini": s, "vol": 0.3, "fin": s}] }
+#   "musica": null → sin música (la voz y los efectos solos; los huecos quedan en silencio digital).
+#   "fin" (opcional): el efecto se corta en seco en ese segundo (rampa de 4 ms para que no haga clic).
 import json, sys, wave
 import numpy as np
 
@@ -44,10 +46,16 @@ efectos = np.zeros(n)
 for e in spec.get('sonidos', []):
     x = leer(e['archivo']) * e.get('vol', 0.3)
     a = int(round(e['ini'] * SR)); b = min(n, a + len(x))
-    if a < n: efectos[a:b] += x[:b - a]
+    if e.get('fin') is not None:
+        b = min(b, int(round(e['fin'] * SR)))
+        r = min(int(0.004 * SR), max(0, b - a))
+        if r: x = x.copy(); x[b - a - r:b - a] *= np.linspace(1, 0, r)
+    if a < b: efectos[a:b] += x[:b - a]
 
-m = leer(spec['musica'])
-musica = np.zeros(n); musica[:min(n, len(m))] = m[:n]
+musica = np.zeros(n)
+if spec.get('musica'):
+    m = leer(spec['musica'])
+    musica[:min(n, len(m))] = m[:n]
 mezcla = voz + musica * ganancia + efectos
 mezcla /= max(1.0, np.max(np.abs(mezcla)) / 0.95)
 pcm = (mezcla * 32767).astype(np.int16)

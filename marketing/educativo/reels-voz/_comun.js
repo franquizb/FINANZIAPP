@@ -56,6 +56,19 @@ const VOZ_NARRADOR = {
   es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: NARRADOR_ES, tempo: 1.2, pausaMax: 0.26 }
 };
 
+// Voz «seca» (15 nov 2026), SOLO para el experimento de clon de estructura (guiones/2026-11-clon-estructura.md): el propietario
+// aceptó la voz seca para esos dos vídeos. Mismas voces que VOZ_NARRADOR (Iapetus en EE. UU., Charon peninsular en España),
+// pero deadpan, sin entusiasmo y pausada, con un respiro entre frases: unas 2,6 palabras/s mientras habla. No sustituye a VOZ
+// ni a VOZ_NARRADOR. Indicaciones siempre en positivo y sin «never mean, never like an ad» (hace saltar el filtro de Google).
+// Probado el 15 nov 2026: una versión más larga («…as if stating the obvious… no enthusiasm…») hizo que el filtro bloqueara
+// «En este pueblo, todos creen que son lo mismo.» tres veces; esta pasa y da ≈2,7 palabras/s con Charon a tempo 1,0.
+const SECO = 'You are the narrator of a short explainer video. Deadpan, dry, unhurried, matter-of-fact, with a short beat between sentences.';
+const SECO_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. ' + SECO;
+const VOZ_SECA = {
+  en: { modelo: MODELO, nombre: 'Iapetus', idioma: 'en-US', estilo: SECO + ' Natural American English.', tempo: 1.0, pausaMax: 0.6 },
+  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: SECO_ES, tempo: 1.0, pausaMax: 0.6 }
+};
+
 // Ayudas de página para animar muñecos en cualquier escena (incluir en `script` del Reel):
 //   posar(g, { pa, pb, pa2, pb2, ba, bb, ba2, bb2, y, x })  ángulos en grados (0 = colgando);
 //     brazos: negativo = hacia delante/arriba (derecha), positivo = hacia atrás (izquierda).
@@ -233,4 +246,4 @@ const cierreCon = (variante = 'moneda') => ({
 });
 const cierre = cierreCon('moneda');
 
-module.exports = { C, icono, VOZ, VOZ_V1, VOZ_V2, VOZ_NARRADOR, CIERRE, CSS, bucle, cierre, cierreCon, muneco, SCRIPT_MUNECO };
+module.exports = { C, icono, VOZ, VOZ_V1, VOZ_V2, VOZ_NARRADOR, VOZ_SECA, CIERRE, CSS, bucle, cierre, cierreCon, muneco, SCRIPT_MUNECO };

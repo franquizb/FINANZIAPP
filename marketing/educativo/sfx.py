@@ -1,8 +1,10 @@
 # Efectos de sonido propios para los Reels (sintetizados aquí: sin bancos de sonidos ni licencias).
-# Uso: python3 sfx.py <carpeta>  → <carpeta>/sfx-{whoosh,pop,ding,caja,tic}.wav (44,1 kHz, mono)
+# Uso: python3 sfx.py <carpeta>  → <carpeta>/sfx-{whoosh,pop,ding,caja,tic,zumbido}.wav (44,1 kHz, mono)
 #   whoosh: barrido de ruido para los cambios de escena · pop: burbuja para que algo aparezca
 #   ding: campanita para un dato o una idea · caja: «cha-ching» de caja registradora para el dinero
 #   tic: clic seco (cuentas atrás, ruletas)
+#   zumbido: tono grave que sube durante ~8 s (volumen, tono y brillo) y se mantiene hasta 12 s, sin cola: el motor lo
+#     corta en seco donde diga reel.pausas (la pausa sin voz del formato «fábula explicada»)
 import os, sys, wave
 import numpy as np
 
@@ -65,4 +67,23 @@ guardar('caja', total, 0.8)
 # tic: clic corto.
 n = int(0.03 * SR)
 guardar('tic', pasa_banda(rng.standard_normal(n), 1500, 6000) * env(n, 0.0005, 0.006), 0.7)
+# zumbido: grave (≈ 49 → 62 Hz) con armónicos que se van abriendo para que se oiga en el altavoz del móvil, un batido lento
+# que inquieta y un rumor de ruido filtrado. Sube 8 s y aguanta arriba hasta los 12 s. Generador aparte para no cambiar
+# los efectos de arriba.
+rz = np.random.default_rng(11)
+n = int(12.0 * SR); t = np.arange(n) / SR
+sube = np.clip(t / 8.0, 0, 1)                                          # 0 → 1 en 8 s
+f0 = 49 * 2 ** (sube * 4 / 12) + 0.25 * np.clip(t - 8, 0, None)       # sube 4 semitonos
+fase = 2 * np.pi * np.cumsum(f0) / SR
+tono = np.zeros(n)
+for k, g in ((1, 1.0), (2, .8), (3, .7), (4, .55), (5, .42), (6, .3), (8, .18)):
+    abre = 1 if k <= 2 else (0.25 + 0.75 * sube) ** (k / 3)            # los armónicos altos crecen al subir
+    tono += g * abre * (np.sin(k * fase) + 0.6 * np.sin(k * fase * 1.006 + k))   # copia desafinada: batido lento
+k = int(SR / 180)                                                      # rumor: ruido con paso bajo (~180 Hz)
+rumor = np.convolve(rz.standard_normal(n), np.ones(k) / k, mode='same')
+rumor = np.convolve(rumor, np.ones(k) / k, mode='same') * 6
+vol = (0.06 + 0.94 * sube ** 1.8) * np.minimum(1, t / 0.3)            # entra suave (sin clic) y crece
+z = (tono / 3.2 + rumor * (0.3 + 0.7 * sube)) * vol
+z[-int(0.01 * SR):] *= np.linspace(1, 0, int(0.01 * SR))               # por si se usa entero
+guardar('zumbido', np.tanh(z * 1.4), 0.85)
 print('✓ efectos en', dest)
