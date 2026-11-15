@@ -60,13 +60,15 @@ const VOZ_NARRADOR = {
 // aceptó la voz seca para esos dos vídeos. Mismas voces que VOZ_NARRADOR (Iapetus en EE. UU., Charon peninsular en España),
 // pero deadpan, sin entusiasmo y pausada, con un respiro entre frases: unas 2,6 palabras/s mientras habla. No sustituye a VOZ
 // ni a VOZ_NARRADOR. Indicaciones siempre en positivo y sin «never mean, never like an ad» (hace saltar el filtro de Google).
-// Probado el 15 nov 2026: una versión más larga («…as if stating the obvious… no enthusiasm…») hizo que el filtro bloqueara
-// «En este pueblo, todos creen que son lo mismo.» tres veces; esta pasa y da ≈2,7 palabras/s con Charon a tempo 1,0.
-const SECO = 'You are the narrator of a short explainer video. Deadpan, dry, unhurried, matter-of-fact, with a short beat between sentences.';
+// Probado el 15 nov 2026 con frases de esos guiones: «…as if stating the obvious… no enthusiasm…» hizo que el filtro bloqueara
+// «En este pueblo, todos creen que son lo mismo.» tres veces, y con «unhurried» Iapetus alargaba tanto las frases que voz.cjs
+// las descartaba por largas. Esta pasa con las dos voces y las 23 frases de los dos guiones. A tempo 1,0 salían 2,32 palabras/s
+// en español y 2,07 en inglés (Iapetus va más despacio); con 1,15 y 1,3 quedan en 2,66 y 2,68 mientras habla.
+const SECO = 'You are the narrator of a short explainer video. Deadpan, dry and matter-of-fact, at a steady conversational pace, with a short beat between sentences.';
 const SECO_ES = 'Speak Spanish with a native accent from Spain: standard Peninsular Castilian as spoken in Madrid, with distinción (z and ce/ci pronounced /θ/, as in "cinco" and "diez") and Spain\'s intonation. ' + SECO;
 const VOZ_SECA = {
-  en: { modelo: MODELO, nombre: 'Iapetus', idioma: 'en-US', estilo: SECO + ' Natural American English.', tempo: 1.0, pausaMax: 0.6 },
-  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: SECO_ES, tempo: 1.0, pausaMax: 0.6 }
+  en: { modelo: MODELO, nombre: 'Iapetus', idioma: 'en-US', estilo: SECO + ' Natural American English.', tempo: 1.3, pausaMax: 0.6 },
+  es: { modelo: MODELO, nombre: 'Charon', idioma: 'es-ES', estilo: SECO_ES, tempo: 1.15, pausaMax: 0.6 }
 };
 
 // Ayudas de página para animar muñecos en cualquier escena (incluir en `script` del Reel):
