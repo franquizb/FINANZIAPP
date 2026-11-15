@@ -285,5 +285,13 @@
     "serie": "money-explained",
     "fotograma_ms": 39000,
     "encuadre_y": 482
+  },
+  "es-tin-vs-tae": {
+    "titulo": "TIN vs TAE: ¿cuál es la cuenta?",
+    "destacado": "TAE",
+    "color": "ambar",
+    "serie": "pildora",
+    "etiqueta": "Crédito",
+    "fotograma_ms": 43000
   }
 }
