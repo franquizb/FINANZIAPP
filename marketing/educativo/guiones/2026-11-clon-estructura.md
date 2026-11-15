@@ -109,6 +109,16 @@ No hay música, HUD, logo ni subtítulos en todo el vídeo.
 - Hay dos cortes nuevos: un inserto de la cinta métrica en «miden» y el corte al camarero en «La terraza». Al recontar el guion verificado salían 19, no los «unos 22» que decía, y ahora son 21.
 - El montadito entra dentro del plano de «bocata», no en un inserto aparte: dos cortes a 0,3 s el uno del otro no se leen.
 - El maniquí levanta el bocadillo en «Si», no a 13,4 s fijos. Así va con la palabra.
+- Con la locución real (VOZ_SECA), la escena 5 dura 14,2 s y no 12,4: de la escena 6 a la 8 todo cae 1,5–2,2 s más tarde que en la tabla. No se tocan ni la voz ni las palabras. Para que los porcentajes sigan siendo los del molde:
+  - la pausa baja de 8,4 a 7,9 s, como prevé el guion;
+  - el final mudo pasa de 1,8 a 3,3 s, que es lo que dura la cara muda en la variante B (58–61 s). Total: 58,87 s.
+  - Así quedan, frente a la tabla: escena 6 al 53,1 % (guion 51,8 %), pausa del 58,8 al 72,2 % (57–72 %), contador al 75,5 % (75,7 %), «no» al 77,7 % y tarjeta «TAE = LA CUENTA» al 80,9 % (80,6 %).
+  - Los huecos entre las frases de la escena 5 no se aprietan: son los 0,2 s del motor y solo se ganaría ~0,5 s pegando frases.
+- Revisión v2 (15-11-2026):
+  - el plano de la etiqueta que encoge dura ~0,7 s, hasta justo antes de «En el bar»;
+  - en el ticket, el importe va en la línea de «terraza» porque chocaba con «Suplemento»;
+  - el termómetro va más a la izquierda, fuera de los botones de Instagram;
+  - el zumbido baja 3 dB desde 0,25 s antes de que vuelva la voz.
 
 ### Cuentas para `cuadra()`
 
