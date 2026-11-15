@@ -5,6 +5,12 @@
 // Guion, tabla de montaje, rótulos, cuentas, fuentes, texto y portada: guiones/2026-11-clon-estructura.md (sección «España»).
 // Respecto al guion no cambia ninguna palabra de la voz ni ningún dato. Ajuste de montaje aplicado (lo prevé el guion):
 // la pausa baja de 8,4 a 7,9 s porque con la locución real «TAE» caía después de los 46,5 s (ver PAUSA_S abajo).
+// Con la locución real la escena 5 (el diagrama, 3 frases) dura 14,2 s en lugar de 12,4: de la escena 6 a la 8 todo cae
+// 1,5–2,2 s más tarde que en la tabla del guion (los cortes van en las marcas § de la voz real, como pide el guion).
+// Revisión del 15-11-2026 (sin tocar voz ni palabras): final mudo de 3,3 s (COLA_S) para que la tarjeta caiga al 80,9 %;
+// el plano de la etiqueta que encoge sigue hasta justo antes de «En el bar» (0,7 s en lugar de 0,53); importe del ticket en
+// la línea de «terraza»; termómetro 0,18 m a la izquierda y 8 cm más alto (fuera de los botones de Instagram); zumbido 3 dB más bajo
+// mientras suena la voz. Los huecos entre las frases de la escena 5 no se aprietan: ya son de ~0,3 s y solo se ganaría ~0,5 s.
 // Caducidad: habla del Black Friday (27-11-2026): publicar antes. Antes de publicar, comprobar en el BOE la Ley 16/2011.
 //
 // Fuentes (con fecha):
@@ -55,9 +61,14 @@ cuadra('TIN 6 % mensual → TAE (%)', R((Math.pow(1 + 0.06 / 12, 12) - 1) * 100)
 const TAE_TXT = R(taeDe(P - G, pagos)).toFixed(2).replace('.', ',');
 cuadra('contador en pantalla', TAE_TXT, '3,81');
 // Pausa sin voz: el guion pide 8,4 s y recortar medio segundo si «TAE» (escena 8) cae después de los 46,5 s con la locución
-// real. Con las tomas de VOZ_SECA (tempo 1,15) caía hacia los 48,9 s → 7,9 s.
+// real. Con las tomas definitivas de VOZ_SECA (tempo 1,15), con 8,4 s caía hacia los 48,2 s → 7,9 s (cae a los 47,65 s).
 const PAUSA_S = 7.9;
 cuadra('pausa recortada (s)', R(8.4 - 0.5, 1), PAUSA_S);
+// Final mudo: 3,3 s y no los 1,8 del guion. La variante B acaba con ~3 s de cara muda (58–61 s) y, con la locución real,
+// con 1,8 s la tarjeta «TAE = LA CUENTA» (47,65 s) caía al 83,1 % del vídeo; el guion pide que caiga entre el 78 y el 81 %.
+// Con 3,3 s: voz hasta 55,57 s + 3,3 = 58,87 s y la tarjeta al 80,9 %. Ni la voz ni las palabras cambian.
+const COLA_S = 3.3;
+cuadra('tarjeta «TAE = LA CUENTA» con la cola nueva (%)', R(47.65 / (55.57 + COLA_S) * 100, 1), 80.9);
 
 const TEXTO = `TIN vs TAE: el pan y el bocadillo.
 
@@ -100,8 +111,6 @@ const CSS = `
   .cont b { display: block; font-size: 236px; line-height: 1; font-weight: 900; letter-spacing: -.045em; color: #f1f5f9; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .cont.tae { border-color: #5eead4; }
   .cont.tae small, .cont.tae b { color: #5eead4; }
-  .letra { position: absolute; left: 70px; right: 70px; text-align: center; font-size: 29px; line-height: 1.32; font-weight: 650; color: #e2e8f0;
-    background: rgba(7,11,22,.84); border: 1px solid rgba(148,163,184,.35); border-radius: 14px; padding: 10px 18px; opacity: 0; }
   #flecha { position: absolute; left: 0; top: 0; width: 560px; height: 430px; opacity: 0; pointer-events: none; }
   #flecha svg { position: absolute; inset: 0; overflow: visible; }
   #flecha span { position: absolute; left: 0; top: 0; width: 330px; background: rgba(7,11,22,.7); border-radius: 18px; padding: 10px 16px; font-size: 54px; line-height: 1.02; font-weight: 900; color: #f5b94a;
@@ -178,7 +187,7 @@ const X3 = (() => {
     const sentar = () => { [A, B].forEach(L => { L.cadera.rotation.x = -1.5; L.rodilla.rotation.x = 1.5; }); A.cadera.rotation.z = 0.06; B.cadera.rotation.z = -0.06; };
     if (nombre === 'sostener') brazos(-0.66, 0, -1.15, 0.24);
     else if (nombre === 'caja') brazos(-0.5, 0, -0.85, 0.18);
-    else if (nombre === 'lado') { A.hombro.rotation.x = -0.12 * q; A.hombro.rotation.z = 0.1 + 0.32 * q; A.codo.rotation.x = -0.35 * q; }
+    else if (nombre === 'lado') { A.hombro.rotation.x = -0.12 * q; A.hombro.rotation.z = 0.1 + 0.15 * q; A.codo.rotation.x = -0.2 * q; }
     else if (nombre === 'tableta') { sentar(); brazos(-0.35, 0, -1.25, 0.16); }
     else if (nombre === 'leer') { sentar(); brazos(-0.55, 0, -1.3, 0.3); }
     else if (nombre === 'sentado') sentar();
@@ -201,8 +210,9 @@ const X3 = (() => {
       texto(x, 'Villaplazos', CW / 2, 150, 32, '#475569', { peso: 600 });
       lineaPuntos(x, 40, CW - 40, 205, '#94a3b8');
       texto(x, 'Caña', 50, 290, 58, '#0f172a', { al: 'left', peso: 800 }); texto(x, '0,00 €', CW - 50, 290, 58, '#0f172a', { al: 'right', peso: 800 });
-      texto(x, 'Suplemento', 50, 412, 58, '#dc2626', { al: 'left', peso: 850 }); texto(x, 'terraza', 50, 476, 58, '#dc2626', { al: 'left', peso: 850 });
-      texto(x, '10,00 €', CW - 50, 444, 58, '#dc2626', { al: 'right', peso: 850 });
+      // El importe va en la línea de «terraza» (no entre las dos): a media altura chocaba con la «o» de «Suplemento».
+      texto(x, 'Suplemento', 50, 404, 58, '#dc2626', { al: 'left', peso: 850 }); texto(x, 'terraza', 50, 470, 58, '#dc2626', { al: 'left', peso: 850 });
+      texto(x, '10,00 €', CW - 50, 470, 58, '#dc2626', { al: 'right', peso: 850 });
       lineaPuntos(x, 40, CW - 40, 560, '#94a3b8');
       texto(x, 'TOTAL', 50, 646, 68, '#0f172a', { al: 'left' }); texto(x, '10,00 €', CW - 50, 646, 68, '#0f172a', { al: 'right' });
       texto(x, 'Gracias por su visita', CW / 2, 742, 30, '#64748b', { peso: 600 });
@@ -219,7 +229,8 @@ const X3 = (() => {
       } else if (o.tipo === 'cuenta') {
         texto(x, 'TAE', CW / 2, 228, 205, TQ, { trazo: 0.05 });
         texto(x, '=', CW / 2, 418, 150, BL, { trazo: 0.05 });
-        texto(x, 'LA CUENTA', CW / 2, 600, 104, BL, { trazo: 0.05 });
+        texto(x, 'LA CUENTA', CW / 2, 600, 92, BL, { trazo: 0.05 });
+        ['Ejemplo del Banco de España (2018):', '500 € en 12 meses, 0 % TIN y 10 € de', 'gastos de gestión → TAE ${TAE_TXT} %'].forEach((l, k) => texto(x, l, CW / 2, 700 + k * 30, 23, '#cbd5e1', { peso: 650 }));
       }
     }
     lz.tx.needsUpdate = true;
@@ -255,7 +266,7 @@ const X3 = (() => {
     tabG.visible = !!o.tableta; luzTab.intensity = o.tableta ? 1.2 : 0; if (o.tableta) { tabG.position.set(o.tableta[0], o.tableta[1], o.tableta[2]); tabG.rotation.set(o.tableta[3] || 0, 0, 0); }
   }
   const vTmp = new T.Vector3();
-  function cajaArriba() { H.g.updateMatrixWorld(true); return cajaT.localToWorld(vTmp.set(0, 0.155, 0)).clone(); }
+  function cajaArriba(dx) { H.g.updateMatrixWorld(true); return cajaT.localToWorld(vTmp.set(dx || 0, 0.155, 0)).clone(); }
 
   // ——— el villano: la etiqueta de «10 €» con patitas y ojos ———
   const villG = new T.Group(); villG.visible = false; S.add(villG);
@@ -277,7 +288,9 @@ const X3 = (() => {
   function villano(o) {
     villG.visible = true; villG.position.set(o.x, o.y || 0, o.z); villG.rotation.set(0, o.ry || 0, 0); villG.scale.setScalar(Math.max(0.001, o.esc == null ? 1 : o.esc));
     const sen = o.sentado || 0;
-    patas.forEach((pg, i) => { const f = o.paso != null ? Math.sin(o.paso + i * Math.PI) * 0.7 : o.trepa != null ? Math.sin(o.trepa + i * Math.PI) * 1.0 - 0.5 : 0; pg.rotation.x = f * (1 - sen) - 1.45 * sen; });
+    // Sentado, las patitas cuelgan por delante del borde (si apuntan a cámara tapan el «10 €»).
+    patas.forEach((pg, i) => { const f = o.paso != null ? Math.sin(o.paso + i * Math.PI) * 0.7 : o.trepa != null ? Math.sin(o.trepa + i * Math.PI) * 1.0 - 0.5 : 0;
+      pg.rotation.x = f * (1 - sen) - 0.3 * sen; pg.position.y = 0.135 - 0.1 * sen; pg.position.z = 0.02 * sen; });
     villP.position.y = 0.26 - 0.1 * sen;
   }
 
@@ -384,8 +397,8 @@ const X3 = (() => {
   const lzEntrada = pinta(1024, 512, (x, w, h) => { x.fillStyle = '#f8fafc'; x.beginPath(); x.roundRect(6, 6, w - 12, h - 12, 26); x.fill(); x.strokeStyle = '#b91c1c'; x.lineWidth = 22; x.stroke();
     texto(x, 'VILLAPLAZOS', w / 2, 200, 138, '#0f172a'); texto(x, '312 vecinos · 1.904 cuotas', w / 2, 360, 62, '#334155', { peso: 800 }); });
   const entG = new T.Group(); plazaG.add(entG); entG.position.set(7.4, 0, 3.0); entG.rotation.y = -0.42;
-  [-0.85, 0.85].forEach(dx => cil(entG, 0.05, 0.05, 2.45, mat(0x94a3b8, { metalness: 0.5 }), dx, 1.22, -0.03, 10));
-  plano(entG, 1.9, 0.95, lzEntrada, 0, 2.0, 0.02, false, 0.55);
+  [-0.85, 0.85].forEach(dx => cil(entG, 0.05, 0.05, 1.95, mat(0x94a3b8, { metalness: 0.5 }), dx, 0.97, -0.03, 10));
+  plano(entG, 1.9, 0.95, lzEntrada, 0, 1.5, 0.02, false, 0.55);
   // Cajas de cartón de los vecinos que cruzan.
   const cajasV = Array.from({ length: 4 }, () => { const m = new T.Mesh(new T.BoxGeometry(0.42, 0.32, 0.34), mat(0xb98b56, { roughness: 0.9 })); m.castShadow = true; m.visible = false; S.add(m); return m; });
   // La flecha «estaba aquí todo el rato» es 2D (escena 7): se coloca en la esquina del cartel con W.pantalla.
@@ -417,18 +430,18 @@ const X3 = (() => {
   function ponerBoc(b, o) {
     const sep = (o.abre || 0) * (o.alto || 0.07); let y = 0.03;
     b.capas.forEach((cp, i) => { const qq = o.capas ? o.capas[i] : 1; cp.visible = qq > 0.01; cp.position.set(0, y + 0.009 + sep * (i + 1) + (1 - qq) * 0.45, 0); y += 0.018; });
-    b.arriba.position.y = y + 0.034 + sep * 4 + (o.tapa || 0) * 0.11; b.arriba.rotation.z = (o.tapa || 0) * 0.22;
+    b.arriba.position.set(0, y + 0.034 + sep * 4 + (o.tapa || 0) * 0.11 + (o.tapaY || 0), o.tapaZ || 0); b.arriba.rotation.z = (o.tapa || 0) * 0.22;
     b.ar.material.emissiveIntensity = 0.15 + (o.brilloTapa || 0) * 0.6;
-    return { capa: (i) => b.g.localToWorld(vTmp.set(0, b.capas[i].position.y, 0)).clone(), tapa: () => b.g.localToWorld(vTmp.set(0, b.arriba.position.y, 0)).clone() };
+    return { capa: (i) => b.g.localToWorld(vTmp.set(0, b.capas[i].position.y, 0)).clone(), tapa: () => b.g.localToWorld(vTmp.copy(b.arriba.position)).clone() };
   }
-  const mPlato = mat(0xf1f5f9, { roughness: 0.35 });
+  const mPlato = mat(0xc9d1db, { roughness: 0.85 });
   const platos = [0, 1, 2].map(() => { const p = new T.Mesh(new T.CylinderGeometry(0.17, 0.13, 0.02, 28), mPlato); p.receiveShadow = true; barG.add(p); return p; });
   const bocA = hacerBoc(barG, 1), bocB = hacerBoc(barG, 1), mont = hacerBoc(barG, 0.5);
   const BOC_A = [BX - 0.45, 1.1, -0.45], BOC_B = [BX + 0.45, 1.1, -0.45];
-  function barra(o) {   // o = { a: [x,y,z] (bocadillo A), monX: x del montadito, tapaA, abreA }
+  function barra(o) {   // o = { a: [x,y,z] (bocadillo A), monX: x del montadito, tapaA, tapaZA, tapaYA }
     const a = o.a || BOC_A;
     platos[0].position.set(BOC_A[0], 1.11, BOC_A[2]); platos[1].position.set(BOC_B[0], 1.11, BOC_B[2]);
-    bocA.g.position.set(a[0], a[1] + 0.028, a[2]); bocA.g.rotation.set(0, o.rotA || 0, 0); const rA = ponerBoc(bocA, { tapa: o.tapaA || 0 });
+    bocA.g.position.set(a[0], a[1] + 0.028, a[2]); bocA.g.rotation.set(0, o.rotA || 0, 0); const rA = ponerBoc(bocA, { tapa: o.tapaA || 0, tapaZ: o.tapaZA || 0, tapaY: o.tapaYA || 0 });
     bocB.g.position.set(BOC_B[0], 1.128, BOC_B[2]); ponerBoc(bocB, {});
     const mx = o.monX == null ? 99 : o.monX; platos[2].visible = mont.g.visible = o.monX != null; platos[2].position.set(mx, 1.11, BOC_A[2]); platos[2].scale.setScalar(0.7);
     mont.g.position.set(mx, 1.124, BOC_A[2]); ponerBoc(mont, {});
@@ -438,7 +451,10 @@ const X3 = (() => {
   // ——— el bocadillo despiezado (diagrama) y el termómetro de la TAE, sobre fondo oscuro ———
   const diaG = grupo(); const DX = 60;
   const bocD = hacerBoc(diaG, 2.4);
-  const termG = new T.Group(); diaG.add(termG); termG.position.set(DX + 0.68, 1.42, 0); termG.scale.setScalar(0.82);
+  // Termómetro a 0,5 m del centro y 8 cm más alto (antes, 0,68 m y 1,42): así el bulbo no se mete en la columna de
+  // botones de Instagram (derecha, de 1.150 a 1.700 px).
+  const TERM_X = 0.5;
+  const termG = new T.Group(); diaG.add(termG); termG.position.set(DX + TERM_X, 1.5, 0); termG.scale.setScalar(0.82);
   const tubo = new T.Mesh(new T.CylinderGeometry(0.085, 0.085, 1.5, 24, 1, true), new T.MeshStandardMaterial({ color: 0xcbd5e1, transparent: true, opacity: 0.22, roughness: 0.1, side: T.DoubleSide, depthWrite: false }));
   tubo.position.y = 0.75; termG.add(tubo);
   const mTerm = mat(0x2dd4bf, { emissive: 0x2dd4bf, emissiveIntensity: 0.7, roughness: 0.3 });
@@ -467,7 +483,7 @@ const X3 = (() => {
   }
   const ver = (g) => { g.visible = true; };
   return { plaza: () => ver(plazaG), bar: () => ver(barG), dia: () => ver(diaG), salon: () => ver(salG), cab, ponGafas, pose, tarjeta, enMano, cajaArriba, villano,
-    dibCartel, dibTiza, barra, diagrama, cajasV, apagar, CARTEL, ESQUINA, BOC_A, BOC_B, MESA1, MESA2, BX, DX, SX };
+    dibCartel, dibTiza, barra, diagrama, cajasV, apagar, CARTEL, ESQUINA, BOC_A, BOC_B, MESA1, MESA2, BX, DX, SX, TERM_X };
 })();
 W3.X = X3;
 `;
@@ -484,9 +500,8 @@ const ESCENAS = [
   { html: () => `<div id="flecha"><svg viewBox="0 0 560 430"><path class="tr" d="M300 120 C 420 150, 500 250, 518 392" fill="none" stroke="#f5b94a" stroke-width="13" stroke-linecap="round"/>
       <path class="pu" d="M482 352 L 518 398 L 548 346" fill="none" stroke="#f5b94a" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>estaba aquí<br>todo el rato</span></div>`, anim: null },
-  // 8 · respuesta: el contador 0 % TIN → 3,81 % TAE (en «no») y la letra pequeña de la tarjeta «TAE = LA CUENTA».
-  { html: () => `<div class="cont" style="top:520px"><small>TIN</small><b>0 %</b></div>
-      <div class="letra" style="top:290px">Ejemplo del Banco de España (2018): 500 € en 12 meses,<br>0 % TIN y 10 € de gastos de gestión → TAE ${TAE_TXT} %</div>`,
+  // 8 · respuesta: el contador 0 % TIN → 3,81 % TAE (en «no»). La letra pequeña va en la propia tarjeta «TAE = LA CUENTA» (3D).
+  { html: () => `<div class="cont" style="top:520px"><small>TIN</small><b>0 %</b></div>`,
     anim: function (s, e, el) {
       const M = e.seg.flatMap(g => g.marcas), m0 = M[0] != null ? M[0] : 1.2, m1 = M[1] != null ? M[1] : 2.6, m2 = M[2] != null ? M[2] : 3.8;
       const c = el.querySelector('.cont'), ap = rebote(tramo(s, 0.25, 0.6)) * (s < m1 ? 1 : 0);
@@ -494,7 +509,6 @@ const ESCENAS = [
       const v = 3.81 * sale(tramo(s, m0 - 0.05, m0 + 0.95)), tae = s >= m0;
       c.classList.toggle('tae', tae); c.querySelector('small').textContent = tae ? 'TAE' : 'TIN';
       c.querySelector('b').textContent = (v >= 3.805 ? '3,81' : v.toFixed(2).replace('.', ',').replace(/^0,00$/, '0')) + ' %';
-      const l = el.querySelector('.letra'); l.style.opacity = s >= m1 + 0.1 && s < m2 - 0.45 ? 1 : 0;
     } },
   { html: () => '', anim: null }    // 9 · analogía (bar) y final mudo
 ];
@@ -518,7 +532,20 @@ const TRES = function (t, k, s, e, W) {
   // Plano del escaparate (escenas 6–8): el maniquí de espaldas con la caja en la mano izquierda; desde esta cámara baja su
   // boina tapa la esquina del cartel donde va la TAE.
   const HE = [4.85, -3.95], CE0 = [4.96, 1.23, -0.4, 4.1, 1.75, -5.95], CE1 = [4.9, 1.3, -1.5, 4.15, 1.78, -5.95];
-  const CAJA_IZQ = [0.37, 0.86, 0.06, Math.PI / 2, 0];
+  const CAJA_IZQ = [0.6, 0.66, 0.1, Math.PI, 0];   // colgando de la mano izquierda, con la cara impresa hacia la cámara
+  // Último plano de la escena 8 (empieza en tA, al empezar «cuenta»): plano medio, se gira y le enseña la tarjeta a la
+  // etiqueta de 10 €, que sigue sentada en la caja de la mano izquierda (continuidad con la pausa), y la etiqueta encoge.
+  // El plano sigue en la escena 9 hasta justo antes de «En el bar»: así dura ~0,7 s y se ve encoger (con el corte de la
+  // escena 9 en su sitio duraba 0,53 s).
+  const planoEncoge = (tA) => {
+    X.plaza(); X.dibCartel(0);
+    const enc = sale(tramo(t, tA + 0.12, tA + 0.55)), gir = 0.55 * sale(tramo(t, tA, tA + 0.25));
+    heroe({ x: 2.4, z: -3.4, gira: gir }); X.pose('sostener'); X.pose('lado'); X.enMano({ caja: CAJA_IZQ });
+    X.tarjeta({ mano: true, frente: { tipo: 'cuenta' } }); X.ponGafas(1); X.cab({ x: 0.2, y: 0.3 });
+    const top = X.cajaArriba(-0.1);
+    X.villano({ x: top.x, y: top.y - 0.02, z: top.z, ry: Math.atan2(2.75 - top.x, -0.6 - top.z), sentado: 1, esc: 1.15 * (1 - 0.65 * enc) });
+    W.camara(2.75, 1.25, -0.6, 2.75, 1.15, -3.3);
+  };
 
   if (k === 0) {
     // 0 · Tarjeta-título: la plaza de noche, el maniquí de la boina con la cartulina «TIN vs TAE» a la altura del pecho.
@@ -539,7 +566,7 @@ const TRES = function (t, k, s, e, W) {
       tras = () => { for (let i = 0; i < 4; i++) { const a = W.gente[i], d = a.g.rotation.y, cx = a.g.position.x + Math.sin(d) * 0.34, cz = a.g.position.z + Math.cos(d) * 0.34;
         X.cajasV[i].visible = true; X.cajasV[i].position.set(cx, 1.12, cz); X.cajasV[i].rotation.y = d;
         a.izq.hombro.rotation.x = a.der.hombro.rotation.x = -0.7; a.izq.codo.rotation.x = a.der.codo.rotation.x = -0.7; a.izq.hombro.rotation.z = 0.22; a.der.hombro.rotation.z = -0.22; } };
-      cam([9.3, 1.75, 9.6, 6.9, 2.15, -1.5], [9.15, 1.75, 9.3, 6.85, 2.15, -1.5], tramo(t, e.ini, m0));
+      cam([9.3, 1.75, 9.6, 7.5, 2.15, -1.5], [9.15, 1.75, 9.3, 7.45, 2.15, -1.5], tramo(t, e.ini, m0));
     } else {
       X.dibTiza(q(m0 + 0.05, Math.max(0.3, m1 - m0 - 0.05)));
       const nod = t > m1 ? Math.sin(tramo(t, m1, m1 + 0.9) * Math.PI * 2) * 0.12 : 0, atras = q(m1 + 0.05, 0.35);
@@ -555,7 +582,7 @@ const TRES = function (t, k, s, e, W) {
     // ese plano llega solo, deslizándose, un montadito (rótulo no narrado).
     const m0 = mk(0, 1.4), m1 = mk(1, 2.6), BX = X.BX; X.bar();
     const mon = 1 - sale(tramo(t, m1 + 0.12, m1 + 0.62));
-    X.barra({ monX: BX + 1.2 + 1.2 * mon });
+    X.barra({ monX: BX + 0.95 + 1.2 * mon });
     const apunta = t < m1 ? -0.42 : 0.38;
     heroe({ x: BX, z: -1.25, gira: apunta, senala: 0.9 * q(e.ini + 0.15, 0.35) });
     if (t < m0) cam([BX + 0.05, 1.62, 2.05, BX, 1.28, -0.7], [BX + 0.05, 1.6, 1.85, BX, 1.28, -0.7], tramo(t, e.ini, m0));
@@ -563,9 +590,9 @@ const TRES = function (t, k, s, e, W) {
       W.rotulo('boc', 'BOCADILLO', X.BOC_A[0], 1.4, X.BOC_A[2], q(m0 - 0.05, 0.25), TQ, 0.12);
       cam([BX - 0.3, 1.42, 0.62, X.BOC_A[0], 1.2, -0.5], [BX - 0.32, 1.41, 0.5, X.BOC_A[0], 1.2, -0.5], tramo(t, m0, m1));
     } else {
-      W.rotulo('bta', 'BOCATA', X.BOC_B[0], 1.4, X.BOC_B[2], q(m1 - 0.05, 0.25), TQ, 0.12);
-      W.rotulo('mon', 'montadito: no abramos ese debate', BX + 0.97, 1.27, X.BOC_A[2] + 0.05, q(m1 + 0.55, 0.3), GRIS, 0.06);
-      cam([BX + 0.78, 1.43, 0.66, BX + 0.68, 1.2, -0.5], [BX + 0.8, 1.42, 0.55, BX + 0.68, 1.2, -0.5], tramo(t, m1, e.fin));
+      W.rotulo('bta', 'BOCATA', X.BOC_B[0], 1.43, X.BOC_B[2], q(m1 - 0.05, 0.25), TQ, 0.12);
+      W.rotulo('mon', 'montadito: no abramos ese debate', BX + 0.9, 1.3, X.BOC_A[2] + 0.06, q(m1 + 0.55, 0.3), GRIS, 0.08);
+      cam([BX + 0.8, 1.5, 1.95, BX + 0.8, 1.27, -0.45], [BX + 0.8, 1.49, 1.83, BX + 0.8, 1.27, -0.45], tramo(t, m1, e.fin));
     }
   } else if (k === 3) {
     // 3 · Giro con accesorio: primer plano con la cartulina; en «TAE» se pone las gafas de leer; en «miden», inserto de la cinta
@@ -583,17 +610,18 @@ const TRES = function (t, k, s, e, W) {
       W.camara(BX, yc, zt + 1.0 + 0.16 * zz, BX, yc - 0.01, zt);
     }
   } else if (k === 4) {
-    // 4 · Adelanto: plano cenital del bocadillo en la barra; en «Si» el maniquí lo levanta, en «bocadillo» la etiqueta TAE sobre
-    // el bocadillo entero y en «pan» la rebanada de arriba se levanta sola con la etiqueta TIN. Corte seco.
+    // 4 · Adelanto: plano cenital del bocadillo en la barra; en «Si» el maniquí lo levanta hacia la cámara (tapa el plato), en
+    // «bocadillo» la etiqueta TAE sobre el bocadillo entero y en «pan» la rebanada de arriba se aparta sola (se ve el relleno)
+    // y recibe la etiqueta TIN. Corte seco.
     const m0 = mk(0, 1.8), m1 = mk(1, 3.2), m2 = mk(2, 4.6); X.bar();
-    const lev = q(m0 - 0.05, 0.55), hz = -1.12;
-    const a = [X.BOC_A[0], 1.1 + 0.3 * lev, X.BOC_A[2] - 0.22 * lev];
-    const rA = X.barra({ a, tapaA: q(m2 - 0.05, 0.3) });
-    heroe({ x: X.BOC_A[0], z: hz, gira: 0 }); X.pose('caja', lev);
-    W.rotulo('taeB', 'TAE', a[0], a[1] + 0.12, a[2] - 0.2, q(m1 - 0.05, 0.25), TQ, 0.08);
-    const tp = rA.tapa();
-    W.rotulo('tinB', 'TIN', a[0] + 0.3, tp.y + 0.1, a[2] + 0.02, q(m2, 0.22), BL, 0.08);
-    cam([X.BOC_A[0] + 0.02, 2.55, 0.18, X.BOC_A[0], 1.12, -0.6], [X.BOC_A[0] + 0.02, 2.42, 0.08, X.BOC_A[0], 1.18, -0.62], tramo(t, e.ini, e.fin));
+    const lev = q(m0 - 0.05, 0.55), x0 = X.BOC_A[0];
+    const a = [x0, 1.1 + 0.42 * lev, -0.45 + 0.15 * lev], tp = q(m2 - 0.05, 0.3);
+    const rA = X.barra({ a, tapaZA: -0.17 * tp, tapaYA: 0.05 * tp });
+    heroe({ x: x0, z: -1.12, gira: 0 }); X.pose('caja', lev);
+    W.rotulo('taeB', 'TAE', x0, a[1] + 0.06, a[2] + 0.15, q(m1 - 0.05, 0.25), TQ, 0.085);
+    const t2 = rA.tapa();
+    W.rotulo('tinB', 'TIN', x0, t2.y + 0.06, t2.z - 0.13, q(m2, 0.22), BL, 0.085);
+    W.camara(x0 + 0.02, 2.6 - 0.08 * tramo(t, e.ini, e.fin), 0.12, x0, 1.15 + 0.32 * lev, -0.5 + 0.12 * lev);
   } else if (k === 5) {
     // 5 · Cómo funciona: una toma sin cortes del bocadillo despiezado; las capas caen en sus palabras, el termómetro de la TAE
     // sube dos tramos («Cuanto», «más sube»), en «tipo» baja el pan y se cierra y en «tasa» la cámara se aleja.
@@ -605,11 +633,11 @@ const TRES = function (t, k, s, e, W) {
     const DX = X.DX, BXc = DX - 0.17;
     // Cada rótulo, encima de su capa (en el hueco del despiece); se van cuando el bocadillo se cierra.
     const etq = [['comisiones', ROJO], ['gastos', AMB], ['seguro obligatorio', '#86efac']];
-    etq.forEach(([txt, col], i) => { const y = r.capa(i).y; W.rotulo('cap' + i, txt, BXc, y + 0.11, 0.3, [c0, c1, c2][i] * (1 - cierra), col, 0.105); });
-    W.rotulo('term', 'TAE', DX + 0.68, 2.82, 0.05, q(m(3, 6.3) - 0.1, 0.3), TQ, 0.15);
+    etq.forEach(([txt, col], i) => { const y = r.capa(i).y; W.rotulo('cap' + i, txt, BXc, y + 0.12, 0.3, [c0, c1, c2][i] * (1 - cierra), col, 0.16); });
+    W.rotulo('term', 'TAE', DX + X.TERM_X, 2.92, 0.05, q(m(3, 6.3) - 0.1, 0.3), TQ, 0.19);
     const tp = r.tapa();
-    W.rotulo('tin5', 'TIN · tipo de interés nominal', BXc, tp.y + 0.2, 0.3, q(m(5, 10.3) + 0.25, 0.3), BL, 0.1);
-    W.rotulo('tae5', 'TAE · tasa anual equivalente', BXc, 1.22, 0.35, q(m(6, 12.2) - 0.05, 0.3), TQ, 0.1);
+    W.rotulo('tin5', 'TIN · tipo de interés nominal', BXc, tp.y + 0.22, 0.3, q(m(5, 10.3) + 0.25, 0.3), BL, 0.135);
+    W.rotulo('tae5', 'TAE · tasa anual equivalente', BXc, 1.18, 0.35, q(m(6, 12.2) - 0.05, 0.3), TQ, 0.135);
     const aleja = sale(tramo(t, m(6, 12.2) - 0.1, e.fin)), cerca = tramo(t, e.ini, m(5, 10.3));
     W.camara(DX + 0.0, 1.95 - 0.08 * cerca, 3.9 - 0.35 * cerca + 0.75 * aleja, DX + 0.0, 1.9 - 0.08 * cerca - 0.05 * aleja, 0);
   } else if (k === 6) {
@@ -645,16 +673,16 @@ const TRES = function (t, k, s, e, W) {
     heroe({ x: HE[0], z: HE[1], gira: Math.PI }); X.pose('lado'); X.enMano({ caja: CAJA_IZQ });
     X.cab({ y: 0.8 * gira, x: 0.38 * gira }); W.H.cuerpo.rotation.z = -0.1 * gira;
     // Villano: entra andando desde abajo del cuadro, trepa por la caja y se sienta encima, mirando a cámara.
-    const top = X.cajaArriba(), suelo = [top.x + 0.25, -1.35], pie = [top.x, top.z + 0.1];
+    const top = X.cajaArriba(-0.1), suelo = [top.x + 0.25, -1.35], pie = [top.x, top.z + 0.1];
     const a1 = T0 + 1.6, a2 = T0 + 2.9, a3 = T0 + 3.75, a4 = T0 + 4.0, mira = Math.atan2(CE0[0] - top.x, CE0[2] - top.z);
     let vx, vy, vz, paso = null, trepa = null, sen = 0, ry = mira;
-    if (t < a2) { const u = tramo(t, a1, a2); vx = suelo[0] + (pie[0] - suelo[0]) * u; vz = suelo[1] + (pie[1] - suelo[1]) * u; vy = 0; paso = t * 14; ry = Math.atan2(pie[0] - suelo[0], pie[1] - suelo[1]); }
-    else if (t < a3) { const u = sale(tramo(t, a2, a3)); vx = pie[0]; vz = pie[1]; vy = (top.y - 0.02) * u; trepa = t * 16; ry = Math.PI; }
-    else { const u = sale(tramo(t, a3, a4)); vx = pie[0]; vz = pie[1] - 0.06 * u; vy = top.y - 0.02; sen = u; ry = Math.PI + (mira - Math.PI) * u; }
-    if (t >= a1) X.villano({ x: vx, y: vy, z: vz, ry, paso, trepa, sentado: sen, esc: 0.85 });
-    W.rotulo('ggest', 'gastos de gestión', vx, vy - 0.07, vz + 0.1, t >= a1 ? q(T0 + 4.1, 0.3) : 0, ROJO, 0.075);
+    if (t < a2) { const u = tramo(t, a1, a2); vx = suelo[0] + (pie[0] - suelo[0]) * u; vz = suelo[1] + (pie[1] - suelo[1]) * u; vy = 0; paso = t * 14; ry = mira; }
+    else if (t < a3) { const u = sale(tramo(t, a2, a3)); vx = pie[0]; vz = pie[1]; vy = (top.y - 0.02) * u; trepa = t * 16; ry = mira; }
+    else { const u = sale(tramo(t, a3, a4)); vx = pie[0]; vz = pie[1] - 0.06 * u; vy = top.y - 0.02; sen = u; ry = mira; }
+    if (t >= a1) X.villano({ x: vx, y: vy, z: vz, ry, paso, trepa, sentado: sen, esc: 1.15 });
+    W.rotulo('ggest', 'gastos de gestión', vx + 0.08, vy - 0.03, vz + 0.12, t >= a1 ? q(T0 + 4.1, 0.3) : 0, ROJO, 0.1);
     // Zoom lento y continuo desde que empieza el zumbido hasta el corte.
-    cam(mez(CE0, CE1, 0.12), CE1, sale(tramo(t, T0 + pz.sonido, e.fin + 0.3)));
+    cam(mez(CE0, CE1, 0.12), mez(CE0, CE1, 0.65), sale(tramo(t, T0 + pz.sonido, e.fin + 0.3)));
     // Flecha 2D: su punta, en la esquina de la TAE.
     const fl = document.getElementById('flecha');
     if (fl) { const P = W.pantalla(X.ESQUINA[0], X.ESQUINA[1], X.ESQUINA[2]), pr = tramo(t, T0 + 6.6, T0 + 7.15);
@@ -674,14 +702,8 @@ const TRES = function (t, k, s, e, W) {
       heroe({ x: 2.4, z: -3.4, gira: 0.1 }); X.pose('sostener');
       X.tarjeta({ mano: true, frente: { tipo: 'cuenta' } }); X.ponGafas(1); X.cab({ x: 0.15 });
       const zt = -3.4 + 0.47 * 1.06;
-      W.camara(2.45, 1.34, zt + 1.45 - 0.1 * tramo(t, m1, m2), 2.43, 1.33, zt);
-    } else {
-      // Contraplano por encima del villano (sentado en el suelo): la tarjeta se le acerca y él encoge.
-      heroe({ x: 2.4, z: -3.4, gira: 0.1 }); X.pose('sostener'); X.tarjeta({ mano: true, frente: { tipo: 'cuenta' } }); X.ponGafas(1); X.cab({ x: 0.35 });
-      const enc = sale(tramo(t, m2 - 0.35, m2 + 0.1));
-      X.villano({ x: 2.55, y: 0.0, z: -2.35, ry: Math.PI - 0.15, sentado: 1, esc: 0.95 * (1 - 0.6 * enc) });
-      W.camara(2.9, 0.75, -1.2, 2.42, 1.15, -3.3);
-    }
+      W.camara(2.45, 1.31, zt + 1.68 - 0.1 * tramo(t, m1, m2), 2.43, 1.3, zt);
+    } else planoEncoge(m2 - 0.45);   // sigue en la escena 9 hasta justo antes de «En el bar»
   } else if (k === 9) {
     // 9 · Analogía: la terraza del bar «El Plazo Fijo»; «la caña»: la caña en la mesa junto a la pizarra; «La terraza»: el
     // camarero deja el ticket con un golpe seco (solo visual); «Los gastos»: primer plano del ticket; medio segundo después de
@@ -692,29 +714,35 @@ const TRES = function (t, k, s, e, W) {
     X.plaza();
     const M1 = X.MESA1, M2 = X.MESA2, TK = [M1[0] - 0.12, M1[1] + 0.13];
     const ticketMesa = (yy, rx, rz) => X.tarjeta({ frente: { tipo: 'ticket' }, x: TK[0], y: yy, z: TK[1], rx, ry: 0, rz: rz || 0, esc: 0.42 });
-    if (t < m0) {
+    // Hasta 0,19 s después del corte (justo antes de «En el bar»), sigue el plano de la etiqueta que encoge (escena 8).
+    const E8 = ESC[8], M8 = E8.seg.flatMap(g => g.marcas), tA8 = E8.ini + (M8[2] != null ? M8[2] : 3.8) - 0.45;
+    if (t < e.ini + 0.19) planoEncoge(tA8);
+    else if (t < m0) {
       directo = (i, a) => paseo(i, a, 2, -2.0);
       cam([-6.0, 1.75, 4.2, -7.0, 2.0, -4.2], [-6.05, 1.75, 3.9, -7.0, 2.0, -4.2], tramo(t, e.ini, m0));
     } else if (t < m1) {
-      cam([M1[0] + 0.55, 1.15, M1[1] + 1.55, M1[0] + 0.42, 0.95, M1[1] + 0.1], [M1[0] + 0.55, 1.13, M1[1] + 1.42, M1[0] + 0.42, 0.95, M1[1] + 0.1], tramo(t, m0, m1));
+      cam([M1[0] + 0.5, 1.2, M1[1] + 2.55, M1[0] + 0.5, 0.9, M1[1] + 0.27], [M1[0] + 0.5, 1.19, M1[1] + 2.4, M1[0] + 0.5, 0.9, M1[1] + 0.27], tramo(t, m0, m1));
     } else if (t < m2) {
       // El camarero (maniquí claro) deja el ticket: cae y golpea la mesa.
       const cae = tramo(t, m1 + 0.05, m1 + 0.32), yy = 0.79 + 0.5 * (1 - cae * cae), bote = Math.max(0, Math.sin(tramo(t, m1 + 0.32, m1 + 0.5) * Math.PI)) * 0.025;
       ticketMesa(yy + bote, -Math.PI / 2 + 0.5 * (1 - cae), 0.2 * (1 - cae));
       directo = (i) => i === 0 ? { x: M1[0] - 0.55, z: M1[1] - 0.45, rot: 0.85, amp: 0, color: 0xe2e8f0, cq: 0.7, brillo: 0.1 } : fuera;
       tras = () => { const a = W.gente[0], baja = tramo(t, m1 - 0.15, m1 + 0.3); a.der.hombro.rotation.x = -1.1 + 0.5 * baja; a.der.codo.rotation.x = -0.3; a.izq.hombro.rotation.x = 0; };
-      cam([M1[0] + 0.7, 1.55, M1[1] + 2.0, M1[0] - 0.05, 0.95, M1[1]], [M1[0] + 0.68, 1.53, M1[1] + 1.88, M1[0] - 0.05, 0.95, M1[1]], tramo(t, m1, m2));
+      cam([M1[0] + 0.9, 1.65, M1[1] + 2.6, M1[0] - 0.12, 0.98, M1[1] - 0.08], [M1[0] + 0.88, 1.63, M1[1] + 2.45, M1[0] - 0.12, 0.98, M1[1] - 0.08], tramo(t, m1, m2));
     } else if (t < m3 + 0.5) {
       ticketMesa(0.795, -Math.PI / 2, 0);
       const zz = tramo(t, m2, m3 + 0.5);
       W.camara(TK[0], 1.42 - 0.04 * zz, TK[1] + 0.2, TK[0], 0.795, TK[1] - 0.005);
     } else if (t < m4) {
       heroe({ x: M2[0], z: M2[1] - 0.62, y: -0.5, gira: 0 }); X.pose('leer');
-      X.tarjeta({ mano: true, frente: { tipo: 'ticket' }, y: 1.22, z: 0.42, rx: -0.25, esc: 0.6 }); X.cab({ x: 0.42 });
+      // Ticket algo más alto que las manos (y 1,36, no 1,22): más abajo, la mesa tapaba «Suplemento terraza 10,00 €».
+      X.tarjeta({ mano: true, frente: { tipo: 'ticket' }, y: 1.36, z: 0.42, rx: -0.25, esc: 0.6 }); X.cab({ x: 0.42 });
       X.villano({ x: M2[0] + 0.28, y: 0.775, z: M2[1] + 0.06, ry: -0.35, sentado: 1, esc: 0.62 });
       cam([M2[0] + 0.15, 1.25, M2[1] + 1.95, M2[0] + 0.05, 1.02, M2[1] - 0.2], [M2[0] + 0.15, 1.24, M2[1] + 1.85, M2[0] + 0.05, 1.02, M2[1] - 0.2], tramo(t, m3 + 0.5, m4));
     } else {
-      const u = t - m4, lad = sale(tramo(u, 1.0, 1.35)), giro = tramo(u, 1.3, 1.95);
+      // Cola de COLA_S s: ~1,4 s inmóvil, ladea la cabeza, aguanta y a 0,5 s del final empieza a dar la vuelta al ticket:
+      // el corte (e.fin = final del vídeo) cae a mitad del giro, con el reverso «TIN vs TAE» ya a la vista.
+      const u = t - m4, lad = sale(tramo(u, 1.4, 1.75)), giro = tramo(t, e.fin - 0.5, e.fin + 0.15);
       heroe({ x: H0[0], z: H0[1], gira: 0 }); X.pose('sostener');
       X.tarjeta({ mano: true, frente: { tipo: 'ticket' }, dorso: { tipo: 'titulo' }, ry: Math.PI * giro * (0.7 + 0.3 * giro) });
       X.cab({ z: 0.3 * lad, x: 0.05 * lad });
@@ -733,8 +761,11 @@ const pildoras = {
     voz: VOZ_SECA,                       // voz seca y pausada: el propietario la aceptó solo para este experimento
     sub: false, musica: false,           // sin subtítulos (rótulos en su palabra) y sin música bajo la voz
     sonidos: { escena: null },           // sin whoosh en los cortes: el único sonido es el zumbido de la pausa
-    pausas: { 7: { dur: PAUSA_S, silencio: 0.7, sonido: 'zumbido' } },   // ~8 s sin voz; el zumbido se corta en seco en el corte
-    cola: 1.8, corte2d: 'seco',          // final mudo de 1,8 s que empalma con el fotograma 0
+    // ~8 s sin voz; el zumbido se corta en seco en el corte. vol 0,3 y no 0,5: con 0,5 quedaba 6 dB por encima de «Diez euros de
+    // gastos de gestión», que suena encima (J-cut). baja: desde 0,25 s antes de que vuelva la voz, 3 dB menos (con 0,3 seguía
+    // a −15 dB RMS, casi al nivel de la voz, −11,5 dB, en el tramo en que se solapan).
+    pausas: { 7: { dur: PAUSA_S, silencio: 0.7, sonido: 'zumbido', vol: 0.3, baja: { db: -3, antes: 0.25 } } },
+    cola: COLA_S, corte2d: 'seco',       // final mudo que empalma con el fotograma 0
     cssExtra: CSS, scriptExtra: SCRIPT,
     escenas: ESCENAS, tres: TRES,
     texto: { es: TEXTO }

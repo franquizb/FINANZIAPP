@@ -5,6 +5,7 @@
 #            "sonidos": [{"archivo": wav, "ini": s, "vol": 0.3, "fin": s}] }
 #   "musica": null → sin música (la voz y los efectos solos; los huecos quedan en silencio digital).
 #   "fin" (opcional): el efecto se corta en seco en ese segundo (rampa de 4 ms para que no haga clic).
+#   "baja" (opcional): {"desde": s, "db": -3}: el efecto baja db dB a partir de ese segundo (rampa de 0,25 s).
 import json, sys, wave
 import numpy as np
 
@@ -46,6 +47,9 @@ efectos = np.zeros(n)
 for e in spec.get('sonidos', []):
     x = leer(e['archivo']) * e.get('vol', 0.3)
     a = int(round(e['ini'] * SR)); b = min(n, a + len(x))
+    if e.get('baja'):  # baja db dB desde el segundo «desde» (rampa de 0,25 s) hasta el final del efecto
+        d = int(round(e['baja']['desde'] * SR)) - a
+        x = x * (1 + (10 ** (e['baja']['db'] / 20) - 1) * np.clip((np.arange(len(x)) - d) / (0.25 * SR), 0, 1))
     if e.get('fin') is not None:
         b = min(b, int(round(e['fin'] * SR)))
         r = min(int(0.004 * SR), max(0, b - a))

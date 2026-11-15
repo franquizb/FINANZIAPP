@@ -33,6 +33,8 @@
 //   un número (segundos desde el principio del hueco) o { marca: j, mas: s } (la marca § j, contando desde 0, de la frase
 //   que sigue al hueco, más s segundos). El hueco está en e.pausa = { ini, voz, sonido, fin } (segundos de la escena) para
 //   la animación, y con --vista sale además vista-pausa-<escena>.jpg (mitad del hueco).
+//   baja: { db, antes } (opcional): el sonido baja db dB (p. ej. −3) desde «antes» s (por defecto 0,25) antes de que vuelva
+//   la voz hasta su fin, para que no tape la voz cuando sigue sonando debajo (J-cut).
 //   Ej.: pausas: { 7: { dur: 8.4, silencio: 0.7, sonido: 'zumbido' } }  ·  { 7: { dur: 8, silencio: 0.6, sonido: 'zumbido', fin: { marca: 1, mas: 0.8 } } }
 // Voz seca y pausada (~2,6 palabras/s): voz: VOZ_SECA (reels-voz/_comun.js). Sin whoosh en los cortes: sonidos: { escena: null }.
 // La voz necesita la credencial (variables FBT y SA); sin ella, o con
@@ -153,7 +155,9 @@ function linea(reel, lang, voces) {
         : frases[h.frase].marcas[h.pz.fin.marca] + (h.pz.fin.mas || 0);
       if (!(fin > h.ini)) throw new Error(`pausas[${k}]: el fin del sonido (${fin}) no cae después del principio del hueco`);
       const ini = h.ini + (h.pz.silencio || 0);
-      if (h.pz.sonido) sonidos.push({ sonido: h.pz.sonido, t: ini, fin, vol: h.pz.vol });
+      // baja = { db, antes }: el sonido baja db dB desde «antes» s antes de que vuelva la voz (para que no la tape en un J-cut).
+      const baja = h.pz.baja ? { desde: h.voz - (h.pz.baja.antes != null ? h.pz.baja.antes : 0.25), db: h.pz.baja.db } : null;
+      if (h.pz.sonido) sonidos.push({ sonido: h.pz.sonido, t: ini, fin, vol: h.pz.vol, ...(baja ? { baja } : {}) });
       e.pausa = { ini: h.ini - e.ini, voz: h.voz - e.ini, sonido: ini - e.ini, fin: fin - e.ini };
     }
     const rel = (x) => x - e.ini;
@@ -313,7 +317,7 @@ async function grabar(browser, reel, lang, op) {
   const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3, zumbido: 0.5 };
   for (const x of L.sonidos) if (VOL[x.sonido] == null) console.log(`⚠ ${reel.slug} ${lang}: no existe el efecto «${x.sonido}» (sfx.py); no suena`);
   if (Object.keys(VOL).some(n => !fs.existsSync(path.join(dirSfx, `sfx-${n}.wav`)))) execFileSync('python3', [path.join(__dirname, 'sfx.py'), dirSfx]);
-  const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: x.vol != null ? x.vol : VOL[x.sonido], ...(x.fin != null ? { fin: x.fin } : {}) }));
+  const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: x.vol != null ? x.vol : VOL[x.sonido], ...(x.fin != null ? { fin: x.fin } : {}), ...(x.baja ? { baja: x.baja } : {}) }));
   fs.writeFileSync(spec, JSON.stringify({ total: L.total, musica: conMusica ? musica : null, salida: audio, frases: L.frases.map((f, i) => ({ archivo: voces[i].archivo, ini: f.ini })), sonidos }));
   execFileSync('python3', [path.join(__dirname, 'mezcla.py'), spec]);
   const salida = path.join(dir, real ? 'reel.mp4' : 'reel-sin-voz.mp4');

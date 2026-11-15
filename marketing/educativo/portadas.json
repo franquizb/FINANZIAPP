@@ -292,6 +292,8 @@
     "color": "ambar",
     "serie": "pildora",
     "etiqueta": "Crédito",
-    "fotograma_ms": 43000
+    "fotograma_ms": 43000,
+    "encuadre_y": 800,
+    "zoom": 0.86
   }
 }
