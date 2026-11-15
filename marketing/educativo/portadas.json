@@ -277,5 +277,13 @@
     "serie": "money-explained",
     "etiqueta": "Saving + Investing",
     "fotograma_ms": 5000
+  },
+  "en-debunk-psychology": {
+    "titulo": "Stock prices are just psychology? Half true.",
+    "destacado": "Half true.",
+    "color": "ambar",
+    "serie": "money-explained",
+    "fotograma_ms": 39000,
+    "encuadre_y": 482
   }
 }
