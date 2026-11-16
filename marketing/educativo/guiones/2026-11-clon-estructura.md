@@ -403,3 +403,27 @@ El titular tiene 6 palabras y deja abierto cuál de los dos caduca. El fotograma
 4. Recalibrar cada corte y cada rótulo con las marcas por palabra de la locución real (Whisper, `alinear.py`). La tarjeta de la respuesta tiene que caer entre el 78 y el 81 %.
 5. EBRI: abrir la nota primaria antes de publicar el de EE. UU.
 6. No publicar ni llamar a Meta desde aquí. Publica el supervisor cuando lo pida el propietario.
+
+Todo lo anterior está hecho. El 16-11-2026, EBRI abrió y confirmó «about four in 10», 404 $ (436 $ en 2023) y más de 3,3 M de cuentas. La Ley 16/2011 sigue con la última actualización del 28/03/2014 y sin derogar.
+
+---
+
+## Publicación y medición
+
+El propietario pidió que cada clon fuera **el siguiente vídeo** de su cuenta, para medir limpio.
+
+| Cuenta | Reel | Instagram | Facebook | Versión |
+|---|---|---|---|---|
+| es | `es-tin-vs-tae` | lun 16-11, 13:36 UTC (13:36 Canarias, 14:36 Madrid) | 13:43 UTC | v3: la de la revisión v2 con `zumbido-movil` (58,87 s, −14,4 LUFS) |
+| en | `en-hsa-vs-fsa` | lun 16-11, 17:54 UTC (12:54 Nueva York) | 18:11 UTC | v2 (56,17 s, −14,6 LUFS) |
+
+- **Antes:** el último Reel de España salió el 15-11 a las 17:31 UTC, unas 20 h antes. En EE. UU., el de las gasolineras sale el 16-11 a las 00:54 UTC, unas 17 h antes.
+- **Después:** no se programa nada más en esa cuenta durante al menos 24 h tras cada clon.
+- **Sonido:** los dos llevan el mismo `zumbido-movil` en la pausa. En la v3 de España, en el minuto 39–41 s, la banda de 200–400 Hz sube de −28,6 a −24,4 dB, el fundamental baja de −20,7 a −22,9 dB y el total queda igual (−18,5 dB). La imagen es la de la v2 (PSNR medio de 66,9 dB) y «Diez euros de gastos de gestión» se sigue entendiendo encima (Whisper).
+- **Qué se mide** a las 24, 48 y 72 h: reproducciones, alcance, tiempo medio y retención (tiempo medio / duración), `skip_rate`, guardados, compartidos y comentarios, frente a la media de los últimos Reels de cada cuenta.
+- **Capturas:** se piden al propietario las de la gráfica de retención, para ver si la gente se va en la pausa (~59–72 %) o antes de la respuesta (~80 %).
+- **Pendiente:** que una persona escuche una vez el de EE. UU. (deletreo de H-S-A, F-S-A e I-R-S, y «twenty twenty-four»). Gemini lo dio por bueno en dos escuchas.
+
+### Resultados
+
+(Se rellenan a las 24, 48 y 72 h.)
