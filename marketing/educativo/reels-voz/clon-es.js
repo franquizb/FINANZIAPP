@@ -764,7 +764,9 @@ const pildoras = {
     // ~8 s sin voz; el zumbido se corta en seco en el corte. vol 0,3 y no 0,5: con 0,5 quedaba 6 dB por encima de «Diez euros de
     // gastos de gestión», que suena encima (J-cut). baja: desde 0,25 s antes de que vuelva la voz, 3 dB menos (con 0,3 seguía
     // a −15 dB RMS, casi al nivel de la voz, −11,5 dB, en el tramo en que se solapan).
-    pausas: { 7: { dur: PAUSA_S, silencio: 0.7, sonido: 'zumbido', vol: 0.3, baja: { db: -3, antes: 0.25 } } },
+    // v3: 'zumbido-movil' (sfx.py), el mismo que el clon en inglés: fundamental ~2,9 dB más bajo y armónico suave en 180–350 Hz
+    // para que la pausa se oiga en el altavoz del móvil y los dos clones suenen igual.
+    pausas: { 7: { dur: PAUSA_S, silencio: 0.7, sonido: 'zumbido-movil', vol: 0.3, baja: { db: -3, antes: 0.25 } } },
     cola: COLA_S, corte2d: 'seco',       // final mudo que empalma con el fotograma 0
     cssExtra: CSS, scriptExtra: SCRIPT,
     escenas: ESCENAS, tres: TRES,
