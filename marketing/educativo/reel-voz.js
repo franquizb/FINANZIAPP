@@ -28,7 +28,8 @@
 // reel.pausas = { <escena>: { dur, silencio, sonido, fin, frase, vol } }: hueco sin voz dentro de la escena, antes de una frase.
 //   frase: cuál de las frases de la escena (0 = la primera, por defecto). dur: segundos desde el corte a la escena (si es la
 //   primera frase) o desde el final de la frase anterior hasta que vuelve la voz. silencio: segundos sin nada al principio
-//   (por defecto 0). sonido: efecto de sfx.py que empieza tras el silencio (p. ej. 'zumbido'); vol: su volumen.
+//   (por defecto 0). sonido: efecto de sfx.py que empieza tras el silencio (p. ej. 'zumbido' o
+//   'zumbido-movil', con más presencia en 180–350 Hz para el altavoz del móvil); vol: su volumen.
 //   fin: dónde se corta el sonido en seco: 'corte' (por defecto: el corte a la escena siguiente), 'voz' (cuando vuelve la voz),
 //   un número (segundos desde el principio del hueco) o { marca: j, mas: s } (la marca § j, contando desde 0, de la frase
 //   que sigue al hueco, más s segundos). El hueco está en e.pausa = { ini, voz, sonido, fin } (segundos de la escena) para
@@ -314,7 +315,7 @@ async function grabar(browser, reel, lang, op) {
   if (conMusica) execFileSync('python3', [path.join(__dirname, 'musica.py'), String(L.total), musica]);
   // Efectos de sonido (sfx.py, se generan una vez en cache-voz/).
   const dirSfx = path.join(__dirname, 'cache-voz');
-  const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3, zumbido: 0.5 };
+  const VOL = { whoosh: 0.32, pop: 0.38, ding: 0.3, caja: 0.42, tic: 0.3, zumbido: 0.5, 'zumbido-movil': 0.5 };
   for (const x of L.sonidos) if (VOL[x.sonido] == null) console.log(`⚠ ${reel.slug} ${lang}: no existe el efecto «${x.sonido}» (sfx.py); no suena`);
   if (Object.keys(VOL).some(n => !fs.existsSync(path.join(dirSfx, `sfx-${n}.wav`)))) execFileSync('python3', [path.join(__dirname, 'sfx.py'), dirSfx]);
   const sonidos = L.sonidos.filter(x => VOL[x.sonido] != null).map(x => ({ archivo: path.join(dirSfx, `sfx-${x.sonido}.wav`), ini: x.t, vol: x.vol != null ? x.vol : VOL[x.sonido], ...(x.fin != null ? { fin: x.fin } : {}), ...(x.baja ? { baja: x.baja } : {}) }));

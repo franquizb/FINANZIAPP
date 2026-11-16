@@ -295,5 +295,14 @@
     "fotograma_ms": 43000,
     "encuadre_y": 800,
     "zoom": 0.86
+  },
+  "en-hsa-vs-fsa": {
+    "titulo": "HSA vs FSA: which one expires?",
+    "destacado": "expires",
+    "color": "rojo",
+    "serie": "pildora",
+    "etiqueta": "Benefits",
+    "fotograma_ms": 37900,
+    "encuadre_y": 545
   }
 }

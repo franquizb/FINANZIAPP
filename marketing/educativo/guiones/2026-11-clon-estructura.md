@@ -291,6 +291,20 @@ Ningún cambio toca la voz ni los datos. Los tiempos fijos del guion verificado 
 - **Beat 4:** la miel entra en «HSA money», hay un corte en «milk» a los dos juntos y otro en «honey» al diagrama. Antes eran 13,8 y 15,3 s, que no caían en ninguna palabra.
 - **Beat 8:** la tarjeta entra como «FSA =» y «USE IT OR LOSE IT» se escribe en «name». Antes salía entera a los 43,0 s y se adelantaba 2,8 s a la voz; ahora sale en su palabra y cae hacia el 80 %.
 - **Beat 9:** hay un inserto de la hoja en «vacation days» y se quita el plano del personaje mirando las fichas, que a 2,36 palabras/s no cabía.
+- Producción con la locución real (VOZ_SECA, tempo 1,3; 15-11-2026). No cambia ninguna palabra ni ningún dato:
+  - la pausa baja de 8 a 7,6 s (unos 7,8 s sin voz contando los bordes de las tomas): con 8 s la tarjeta caía a los 44,3 s y ahora cae a los 43,9 s;
+  - el final mudo pasa de 2,0 a 2,8 s: la tarjeta «FSA =» cae al 78,1 % y «USE IT OR LOSE IT» al 80,9 % (con 2,0 s caía al 82,1 %). Total: 56,2 s;
+  - «expiration» cae a los 8,9 s y no a los 10,4 s (la frase empieza a los 7,8 s): el inserto de la pegatina va en su palabra, dentro del beat de 8 a 11 s;
+  - el calendario y el reloj están en la pared, encima del final de la encimera, y el acercamiento de la pausa es lineal: así el reloj, el 31 rodeado y el cartón «$404 left» comparten plano casi todo el hueco. La línea pequeña de EBRI va arriba a la derecha, porque abajo tapaba la nota del cartón;
+  - «INVESTED» y su aparte van juntos en un rótulo 2D encima de la ramita, y el pie fijo del diagrama va arriba, para no tapar la leche ni la miel;
+  - la puerta «2027» es una trampilla que se levanta, para que su etiqueta siga a la vista mientras entra el tarro;
+  - el zumbido baja 3 dB cuando vuelve la voz, como en el de España. Por encima de 800 Hz queda más de 30 dB por debajo de la voz, así que no la tapa aunque en RMS total esté cerca, porque es casi todo grave.
+- Revisión v2 (15-11-2026). Ningún cambio toca la voz, las palabras ni los tiempos; todo es encuadre y sonido:
+  - en el plano de «milk», la cámara va 7 cm a la derecha y 21 cm más atrás: la etiqueta «EXP: no.» de la miel caía en los botones de Instagram (x ≈ 900–1.060 px) y ahora acaba hacia los 850 px;
+  - el diagrama va 5,5 cm a la derecha y 6 cm más abierto: la miel y su ramita quedan antes de los ~890 px (antes, 900–950), y «before taxes» se acerca 3 cm al centro para no pegarse al borde izquierdo;
+  - el reloj: el texto es un 10 % más pequeño y, en el plano de las 12:00, queda centrado en vertical y algo a la izquierda (x ≈ 90–870 px, y ≈ 880–1.030 px). Abajo asoma la cabecera «DECEMBER» del calendario;
+  - la línea de EBRI de la pausa baja 40 px y empieza en x = 680 px: al final del acercamiento el reloj sale por arriba sin pasar por debajo de la caja;
+  - el zumbido pasa a ser `zumbido-movil` (`sfx.py`): el mismo, con el fundamental ~2,9 dB más bajo y un armónico suave en 180–350 Hz. En la mezcla final, entre los 38 y 39 s, la banda de 200–400 Hz sube de −29 a −22,5 dBFS (5,5 dB por debajo del total, antes 12), el fundamental baja de −19,3 a −22,2 dBFS y el total queda igual (−17 dBFS). Por encima de 800 Hz no cambia nada. El `zumbido` del vídeo de España no cambia.
 
 ### Cuentas para `cuadra()`
 

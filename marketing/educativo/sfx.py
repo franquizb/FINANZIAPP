@@ -1,10 +1,11 @@
 # Efectos de sonido propios para los Reels (sintetizados aquí: sin bancos de sonidos ni licencias).
-# Uso: python3 sfx.py <carpeta>  → <carpeta>/sfx-{whoosh,pop,ding,caja,tic,zumbido}.wav (44,1 kHz, mono)
+# Uso: python3 sfx.py <carpeta>  → <carpeta>/sfx-{whoosh,pop,ding,caja,tic,zumbido,zumbido-movil}.wav (44,1 kHz, mono)
 #   whoosh: barrido de ruido para los cambios de escena · pop: burbuja para que algo aparezca
 #   ding: campanita para un dato o una idea · caja: «cha-ching» de caja registradora para el dinero
 #   tic: clic seco (cuentas atrás, ruletas)
 #   zumbido: tono grave que sube durante ~8 s (volumen, tono y brillo) y se mantiene hasta 12 s, sin cola: el motor lo
 #     corta en seco donde diga reel.pausas (la pausa sin voz del formato «fábula explicada»)
+#   zumbido-movil: el mismo, con menos fundamental y un armónico suave en 180–350 Hz para el altavoz del móvil
 import os, sys, wave
 import numpy as np
 
@@ -31,8 +32,8 @@ def campana(f, dur, parciales=((1, 1), (2.76, .45), (5.4, .25), (8.93, .12))):
     n = int(dur * SR); t = np.arange(n) / SR
     return sum(g * np.sin(2 * np.pi * f * k * t) * np.exp(-t * (3 + 2.2 * k)) for k, g in parciales) * np.minimum(1, t / 0.002)
 
-def guardar(nombre, x, pico=0.9):
-    x = x / (np.max(np.abs(x)) + 1e-9) * pico
+def guardar(nombre, x, pico=0.9, escala=None):
+    x = x * escala if escala is not None else x / (np.max(np.abs(x)) + 1e-9) * pico
     with wave.open(os.path.join(dest, f'sfx-{nombre}.wav'), 'wb') as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
         w.writeframes((x * 32767).astype(np.int16).tobytes())
@@ -70,20 +71,30 @@ guardar('tic', pasa_banda(rng.standard_normal(n), 1500, 6000) * env(n, 0.0005, 0
 # zumbido: grave (≈ 49 → 62 Hz) con armónicos que se van abriendo para que se oiga en el altavoz del móvil, un batido lento
 # que inquieta y un rumor de ruido filtrado. Sube 8 s y aguanta arriba hasta los 12 s. Generador aparte para no cambiar
 # los efectos de arriba.
-rz = np.random.default_rng(11)
-n = int(12.0 * SR); t = np.arange(n) / SR
-sube = np.clip(t / 8.0, 0, 1)                                          # 0 → 1 en 8 s
-f0 = 49 * 2 ** (sube * 4 / 12) + 0.25 * np.clip(t - 8, 0, None)       # sube 4 semitonos
-fase = 2 * np.pi * np.cumsum(f0) / SR
-tono = np.zeros(n)
-for k, g in ((1, 1.0), (2, .8), (3, .7), (4, .55), (5, .42), (6, .3), (8, .18)):
-    abre = 1 if k <= 2 else (0.25 + 0.75 * sube) ** (k / 3)            # los armónicos altos crecen al subir
-    tono += g * abre * (np.sin(k * fase) + 0.6 * np.sin(k * fase * 1.006 + k))   # copia desafinada: batido lento
-k = int(SR / 180)                                                      # rumor: ruido con paso bajo (~180 Hz)
-rumor = np.convolve(rz.standard_normal(n), np.ones(k) / k, mode='same')
-rumor = np.convolve(rumor, np.ones(k) / k, mode='same') * 6
-vol = (0.06 + 0.94 * sube ** 1.8) * np.minimum(1, t / 0.3)            # entra suave (sin clic) y crece
-z = (tono / 3.2 + rumor * (0.3 + 0.7 * sube)) * vol
-z[-int(0.01 * SR):] *= np.linspace(1, 0, int(0.01 * SR))               # por si se usa entero
-guardar('zumbido', np.tanh(z * 1.4), 0.85)
+# zumbido-movil: el mismo con el fundamental G1 más bajo y un armónico suave en 180–350 Hz (4.º y 5.º: ≈ 196 → 310 Hz) que
+#   suena desde el principio, para que se oiga en el altavoz del móvil, que apenas da graves (en-hsa-vs-fsa, revisión v2).
+G1, ARM = 0.65, ((4, 0.9), (5, 0.75))
+def zumbido(movil=False):
+    rz = np.random.default_rng(11)
+    n = int(12.0 * SR); t = np.arange(n) / SR
+    sube = np.clip(t / 8.0, 0, 1)                                          # 0 → 1 en 8 s
+    f0 = 49 * 2 ** (sube * 4 / 12) + 0.25 * np.clip(t - 8, 0, None)       # sube 4 semitonos
+    fase = 2 * np.pi * np.cumsum(f0) / SR
+    tono = np.zeros(n)
+    for k, g in ((1, 1.0), (2, .8), (3, .7), (4, .55), (5, .42), (6, .3), (8, .18)):
+        abre = 1 if k <= 2 else (0.25 + 0.75 * sube) ** (k / 3)            # los armónicos altos crecen al subir
+        if movil and k == 1: g *= G1
+        tono += g * abre * (np.sin(k * fase) + 0.6 * np.sin(k * fase * 1.006 + k))   # copia desafinada: batido lento
+    if movil:
+        for k, g in ARM: tono += g * (np.sin(k * fase + 0.9 * k) + 0.6 * np.sin(k * fase * 1.004 + 2 * k))
+    k = int(SR / 180)                                                      # rumor: ruido con paso bajo (~180 Hz)
+    rumor = np.convolve(rz.standard_normal(n), np.ones(k) / k, mode='same')
+    rumor = np.convolve(rumor, np.ones(k) / k, mode='same') * 6
+    vol = (0.06 + 0.94 * sube ** 1.8) * np.minimum(1, t / 0.3)            # entra suave (sin clic) y crece
+    z = (tono / 3.2 + rumor * (0.3 + 0.7 * sube)) * vol
+    z[-int(0.01 * SR):] *= np.linspace(1, 0, int(0.01 * SR))               # por si se usa entero
+    return np.tanh(z * 1.4)
+zo = zumbido()
+guardar('zumbido', zo, 0.85)
+guardar('zumbido-movil', zumbido(True), escala=0.85 / (np.max(np.abs(zo)) + 1e-9))   # misma escala que el zumbido: no se normaliza
 print('✓ efectos en', dest)
