@@ -92,6 +92,26 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
   retención (el día 1 de la serie, 86 %, sacó la nota más baja).
 
 - **Arranque lleno**: el fotograma 0 ya tiene la escena completa y la primera frase.
+- **El gancho es VISUAL, no solo de voz** (propietario, 17 nov 2026: «el gancho es vocal y no visual; la gente se queda por la
+  vista, no solo por el oído»). Los datos lo confirman: en los 42 Reels publicados hasta el 17-11, los que tienen movimiento
+  continuo en los 3 primeros segundos retienen una mediana del 36 %, y los que arrancan casi quietos, del 25 %. Pasa en las
+  dos cuentas (Spearman 0,44). En España, la mediana de vistas es de 825 frente a 134. Reglas:
+  - **Fotograma 0 en plena acción**: el objeto principal ya se mueve (cae, entra, se rompe, gira, choca). Nada de tarjeta de
+    cita quieta ni de multitud parada.
+  - **Un acontecimiento visual antes de 0,7 s** que cuente el gancho sin sonido: con el móvil en silencio, la imagen y un
+    rótulo de 2–4 palabras bastan para entender la contradicción.
+  - **Ritmo**: algo grande cambia cada 1,5–2,5 s en los primeros 8 s (plano, cámara, objeto nuevo) y después cada 3–5 s.
+    Ningún plano fijo pasa de 2 s: la cámara siempre se mueve.
+  - **Prueba sin sonido** (la que manda): hoja de 0–3 s a 6 fotogramas por segundo
+    (`ffmpeg -vf "fps=6,scale=270:-1,tile=6x3"`). Sin oír nada, la hoja tiene que contar el gancho y cada fotograma se tiene
+    que ver distinto.
+  - **Medida de apoyo**: `python3 arranque.py out-reels/<slug>/<cuenta>/reel.mp4`. Con `quieto3` ≥ 0,45 el arranque está
+    casi quieto: se cambia o se justifica en el informe. Para estos arranques apuntamos a `quieto3=0.00` y `mov3` ≥ 2,5.
+  - **Lo que esta medida NO dice**: el movimiento de los píxeles no predice el alcance por sí solo. es-gasolina-1499 arrancó
+    quieto y pasó de 1.500 vistas porque su imagen ya contaba la cifra. Las cuentas de referencia de EE. UU. que reparten
+    tienen muchos segundos sin cambio visible (investigacion/2026-11-aprender-eeuu.md). Lo importante es que la imagen
+    cuente la historia; el movimiento ayuda a retener. Un rótulo que tiembla o una línea que oscila suben `mov3` sin ser un
+    gancho.
 - 25–35 s las píldoras; hasta 90 s un vídeo de contraste si cada 5–8 s pasa algo nuevo en pantalla.
 - **Texto de la publicación**: gancho de una línea, 2–3 líneas que aporten algo que no está en el vídeo, qué hacer hoy y
   (en la serie) «Mañana, día N: …». Nunca es la transcripción. Los vídeos con datos llevan las fuentes al final.

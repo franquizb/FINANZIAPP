@@ -1,103 +1,120 @@
-# Aprender de cuentas de EE. UU. que sí reparten (14-nov-2026)
+# Aprender de cuentas de EE. UU. que sí reparten (14-nov-2026, actualizado el 16-nov-2026)
 
-Fuentes: JSON de 13 cuentas pequeñas y 14 grandes (`scratchpad/ref-eeuu*`), MP4 de @tapsheet.marg y @primateeconomics, análisis previos de @tapsheet.marg, @casuallyfinance y @primateeconomics, y el informe `2026-11-experto-instagram.md`. No he llamado a ninguna API de Meta ni he publicado nada. **Aviso:** ninguno de los patrones de los análisis previos llegó con veredicto del verificador. En la sección 2 solo pongo los que **he recalculado yo** desde los JSON o los MP4. Los demás pasan a la sección 7.
+Fuentes: JSON de 13 cuentas pequeñas y 14 grandes (`scratchpad/ref-eeuu*`), MP4 de 8 cuentas, análisis de las 8 (@tapsheet.marg, @casuallyfinance, @primateeconomics, @monkey__economics, @basicfinancialliteracy, @fruitaistudio00, @smallstepfinance, @alux), nuestros propios MP4 (`out-reels/`) y el informe `2026-11-experto-instagram.md`. No he llamado a ninguna API de Meta ni he publicado nada. **Aviso:** ningún patrón de los análisis llegó verificado. En la sección 2 solo pongo los que **he recalculado yo** desde los JSON o los MP4; el resto va a la 7. **Observación del propietario (16-nov):** «poco movimiento; es vocal y no visual; la gente se queda por la vista, no solo por el oído». La he puesto a prueba con los vídeos (1, 2.9 y experimento 1).
 
-## 1. Por qué @finanziapp no pasa de ~150 y en qué se diferencia de estas cuentas
+## 1. Por qué @finanziapp no pasaba de ~150 y en qué se diferencia de estas cuentas
 
-Lo que sabemos: **todos** los Reels se quedan entre 115 y 156. Los tres últimos tienen un 22–30 % de omisión en 3 s y retienen el 36–51 %. En España, con ese mismo nivel de omisión (≤30,3 %), despegaron 3 de 5. En EE. UU. han despegado 0 de 3. Si la probabilidad de despegar fuera la española (~0,6), sacar 0 de 3 por azar pasaría un ~6 % de las veces. El gancho ya no basta para explicarlo.
+Lo nuevo: **el techo se ha roto una vez.** [en-save-invest-one-plan] (domingo 15-nov, ~11:00 NY, 62,8 s, voz de narrador) lleva 1.156 vistas, 1.032 de alcance, 5 guardados y 3 envíos, **con solo un 24 % de retención**. El resto sigue en 77–146, incluidos los que retienen el doble: en-gas-nine-tenths (49 %, 142) y en-curious-gas-stations (42 %, 143, publicado **el mismo domingo a las 18:00, 7 h después**). En España ya son 6 los Reels por encima de 1.300. La cuenta, por tanto, **sí puede recomendarse**; lo que falla es que casi ningún Reel supera la primera prueba. Y retener más no ha servido para superarla.
 
 | Hipótesis (causa principal) | Prob. | Por qué |
 |---|---|---|
-| **La cuenta o sus Reels no son recomendables**: Estado de la cuenta, contenido marcado como no original o IA sin declarar (audio con SynthID), o las 2 pruebas de «no soy un robot» del 11-nov | **35 %** | Un techo plano en todos los Reels, sea cual sea el gancho, es la firma de no pasar del primer escalón. En las cuentas de referencia nunca pasa: @tapsheet.marg, con 1.652 seguidores, solo tiene 3 de 50 Reels por debajo de 1.000. |
-| **En inglés el listón es más alto y nuestro formato no da motivo para enviar**: maniquíes 3D genéricos, voz grave y monótona, sin personaje, curiosidades abstractas | **30 %** | Las tres cuentas pequeñas que reparten tienen algo humano o un personaje (manos y cara reales; un gorila con voz cómica y expresiva) y un tema que el espectador usa ya o que está en las noticias de EE. UU. Un 36–51 % de retención en 25–35 s son unos 10–15 s vistos, y quizá no alcance frente a la competencia en inglés. |
-| **La prueba inicial va a un público equivocado**: cuenta nueva con 3 seguidores, gestionada desde España, sin historial en EE. UU. | **20 %** | La ficha oficial usa «los espectadores de tu país» como señal. No sabemos de qué país vienen nuestras ~130 vistas. |
-| **Azar** (solo 3 Reels con buena omisión) | **15 %** | n=3. @tapsheet.marg también tiene Reels de 444–448 vistas. |
+| **No damos motivo para guardar o enviar.** Curiosidades que se ven hasta el final pero que no sirven para nada hoy | **30 %** | El único que pasó es el único con una utilidad inmediata («dinero gratis» del match del 401(k) y una acción para hoy), y el único con guardados y envíos. Retuvo la mitad que los de la gasolina. En 7 de las 8 cuentas de referencia, los me gusta por vista tampoco predicen el reparto (2.8). |
+| **Vocal, no visual** (lo que dice el propietario): la voz cuenta la historia y la imagen solo la acompaña | **25 %** | En en-gas-nine-tenths, de 0 a 5 s lo único que cambia es la palabra del subtítulo sobre el mismo cartel «$3.49 9/10». Después vienen otros 5 s con el cartel de «20¢». En todas las cuentas de referencia la imagen se entiende sin sonido: @tapsheet.marg no habla, en @fruitaistudio00 aparece oro a los 2,5 s y @primateeconomics mete 8 s de gag visual sin voz. El que pasó es el nuestro con más «prueba visible»: la ecuación «$1 → $1.50 vs $1.004» fija desde el fotograma 0, la moneda que cae a 1,5 s y los $18,000 que se apilan. **En contra:** es-gasolina-1499 pasó de 1.300 casi sin moverse, y medir el movimiento en píxeles no separa (2.9). Lo que importa es lo que *dice* la imagen, no cuánto se mueve. |
+| **Azar** (ley de potencias) | **20 %** | Un solo despegue entre todos los Reels de EE. UU. En @tapsheet.marg, los 5 mejores de 50 se llevan el 74 % de las vistas. |
+| **Duración** | **10 %** | Instagram compara el visionado con el de «Reels de igual duración» (ficha oficial). Ver 15 s de 63 puede salir mejor parado que ver 16 s de 33. Además, los altos de referencia duran 47–103 s. |
+| **Hora**: 11:00 frente a 18:00 NY | **10 %** | Mismo día: 11:00 → 1.156 y 18:00 → 143. También puede ser que el segundo saliera 7 h después de uno que estaba despegando (en @monkey__economics, uno publicado 5,9 h después de su viral se quedó en 0,56; un solo caso). |
+| **Cuenta restringida** | **5 %** (antes 35 %) | Con 1.032 de alcance, la cuenta entera no está bloqueada. Solo queda la posibilidad de algún Reel suelto (revisar el Estado de la cuenta sigue costando 10 min). |
 
 Diferencias con las cuentas que reparten:
-- **Suelo de seguidores.** El peor Reel de @casuallyfinance tiene 5.298 vistas con 38.445 seguidores, y el peor educativo de @primateeconomics 34.975 con 39.348. Solo @tapsheet.marg se parece a nosotros en tamaño.
-- **Algo real o un personaje en el fotograma 0.** Una chica con el iPhone en la tienda, o la tarjeta dibujada «WHAT ARE TARIFFS?». Nosotros abrimos con maniquíes anónimos.
-- **Tema útil ya o de actualidad en EE. UU.** Un truco del iPhone con importes reales, aranceles en mayo de 2025, deuda y vivienda. Nosotros contamos curiosidades y una serie de 30 días con el mismo ángulo.
-- **Constancia.** @tapsheet.marg publica 2 al día a la misma hora y @casuallyfinance 47 de 50 a las 18:00 NY.
-- **Nada de promoción ni CTA** en los Reels que reparten (ver 2.5).
+- **Suelo de seguidores.** Su peor Reel tiene miles de vistas porque tienen miles o cientos de miles de seguidores. Solo @tapsheet.marg (1.652) se parece a nosotros.
+- **La imagen cuenta la historia.** Un iPhone en la mano y el saldo que baja; oro que aparece; una tarjeta «WHAT ARE TARIFFS?»; un mono con gorra «IRS» tachado en rojo. Nosotros ponemos maniquíes anónimos y subtítulos que repiten la voz.
+- **Tema útil ya o de actualidad en EE. UU.**, con dinero en juego desde la primera línea.
+- **Constancia sin ráfagas**, sin promoción y sin CTA.
 
 ## 2. Patrones que se sostienen (recalculados)
 
-1. **El mismo cuerpo de vídeo con otra apertura pasó de 1,9 M a 444. Confirmado con píxeles.** [alto](https://www.instagram.com/reel/DewwI61u8qz/) (1.923.929) frente a [bajo](https://www.instagram.com/reel/DfZzjL-u_nK/) (444), publicado 16 días después. Desfasando 0,1 s, la diferencia media de píxel en el segundo 12 es de 1,1. Entre vídeos distintos es de 55–86. Solo cambian los primeros ~2,5 s (cara, texto) y la música. Hay dos lecturas y no se pueden separar: o manda el arranque, o Instagram castiga la resubida. **Las dos llevan a lo mismo: cuidar los 2,5 s iniciales y no resubir.**
-2. **Mismo día y misma hora, resultados opuestos.** @tapsheet.marg tiene 24 días con 2 Reels en el mismo tramo (21 de ellos con 5 min o menos de diferencia). El mejor de cada par saca 8,4 veces más vistas que el otro (mediana), y en un caso 760 veces más. Dentro de su franja (9–12 h NY), la hora no decide.
-3. **Plantear el vídeo como «revelar un secreto» reparte; el dolor de dinero no.** Pies de foto con «stop gatekeeping»: 7 Reels, mediana de 389.980, 6 de 19 altos frente a 0 de 20 bajos (Fisher p=0,008). 👀 o 🫣: 5 de 19 frente a 0 de 20 (p=0,02). Con «broke/debt/10 years to learn»: mediana de 4.428, 1 alto y 5 bajos (p=0,18, **no significativo**). Ejemplos: [«It's time to stop gatekeeping👀»](https://www.instagram.com/reel/DewwI61u8qz/) frente a [«Been lowkey broke for 5 years…»](https://www.instagram.com/reel/DfKgcuUO1Gd/) (448, texto en pantalla). Ojo: el pie va siempre con un vídeo concreto, así que el efecto está mezclado con el del vídeo.
-4. **Una ley de potencias, pero con suelo alto.** @tapsheet.marg: 8,0 M de vistas en 50 Reels. El mejor se lleva el 29 % y los 5 mejores el 74 %. p10 de 2.299, mediana de 15.646 y 13 Reels por encima de 100 k, todo con 1.652 seguidores. **Un Reel suelto no sirve para juzgar un formato.**
-5. **La promoción y los patrocinios quedan los últimos en todas las cuentas.** @primateeconomics: los 12 educativos están entre 0,85 y 15,5 veces su mediana. [Patreon](https://www.instagram.com/reel/DODR_MnE6jX/) se queda en 0,49 y [Gusto](https://www.instagram.com/reel/DYyNVQKBerC/) en 0,27. En otras cuentas: @casuallyfinance [«Comment "MODELS"»](https://www.instagram.com/reel/Db_AR3MB9Ml/) 0,40. @basicfinancialliteracy, con patrocinios de 21Shares y Plus500, 0,23–0,32 (sus 3 peores). Business Insider con su propia lista: 0,27. Vox anunciando su app: 0,28.
-6. **Una pregunta corta al principio funciona; una pregunta al final de un planteamiento largo, no.** @casuallyfinance: [«Why isn't America's debt a crisis yet?»](https://www.instagram.com/reel/DeAgiEplPl0/) 7,69. «WTF is happening to the housing market?» 3,35. «Why would America build a secret emergency exit…» 2,03. Las 3 preguntas que llegan después de 97–111 caracteres se quedan en 0,57–0,87. Business Insider va igual: sus 3 peores acaban en pregunta («…But are brands convinced?», [0,18](https://www.instagram.com/reel/DfspuYwEWsD/)). Matiz: una cuarta pregunta inicial, «Who owes the money behind the AI bubble?», se queda en 1,38. Y en nuestros datos las preguntas fallan (56,8 % de omisión), así que **la afirmación sigue siendo la opción por defecto**.
-7. **Hora fija y constante.** @casuallyfinance publica 47 de 50 Reels entre las 18:00 y las 18:02 NY. @tapsheet.marg, todos entre las 9:10 y las 12:13 NY. Es constancia, no prueba de que esa hora sea la buena.
-8. **Lo que más rinde en las cuentas grandes: una persona o empresa con nombre más un hecho concreto, o una cifra inesperada sobre el bolsillo.** Business Insider, [Jensen Huang y el consejo de Nvidia](https://www.instagram.com/reel/Dfh-owfGRn0/) 5,90. Morning Brew, el mismo tema, [2,76](https://www.instagram.com/reel/DfiS1AkR_Uj/). @itsfinancialeducation, [«Your boss's stack grows every day you clock in. Yours doesn't.»](https://www.instagram.com/reel/DfiP1tdDFcs/) 3,81 (su mejor). @smallstepfinance, [«2026 tax brackets are here…»](https://www.instagram.com/reel/DPm9ISMjO1T/) 11,95. @basicfinancialliteracy, [«Do not put your money into a high yield savings account until you understand these 3 things:»](https://www.instagram.com/reel/DQRxmfYDm6F/) 6,79 y «There's a big tax surprise people don't know about when they reach retirement age» 7,95. Los bajos de esas mismas cuentas son listas de pasos sin giro: «There are 6 steps to buying a house…» 0,84, o una deducción contada en seco, 0,25.
+1. **El mismo cuerpo de vídeo con otra apertura pasó de 1,9 M a 444** (confirmado con píxeles). [alto](https://www.instagram.com/reel/DewwI61u8qz/) frente a [bajo](https://www.instagram.com/reel/DfZzjL-u_nK/), 16 días después: la diferencia de píxel es ~1 desde los 2,5 s. O manda el arranque, o Instagram castiga la resubida. **Las dos lecturas dicen lo mismo: cuidar los 2,5 s iniciales y no resubir.**
+2. **Las ráfagas hunden; los pares, no tanto.** @monkey__economics: los 22 Reels publicados a ≤30 min de otro tienen una mediana de 0,19, con 0 altos y 18 bajos ([ej.](https://www.instagram.com/reel/DMDpotOovFK/)). Los 28 sueltos: mediana de 2,08 y 16 altos (Fisher p=0,00001; [suelto, 5,56](https://www.instagram.com/reel/DLKTlW0oa1n/)). @fruitaistudio00: con otro Reel a menos de 12 h, 0,75 (n=12); sin él, 1,20 (n=38). @alux: con 0–2 Reels en la semana anterior, 1,48 (n=12); con 10 o más, 0,96 (n=24). **Matiz:** @tapsheet.marg publica 2 en el mismo minuto y mantiene el suelo, y el primero gana solo en 13 de 24 pares. Hunden las tandas de 3 a 8, no un par.
+3. **Promoción y patrocinios quedan los últimos.** @primateeconomics: los 12 educativos están entre 0,85 y 15,5. [Patreon](https://www.instagram.com/reel/DODR_MnE6jX/) 0,49 y [Gusto](https://www.instagram.com/reel/DYyNVQKBerC/) 0,27. @basicfinancialliteracy: sus 3 patrocinados, 0,23–0,32. @casuallyfinance [«Comment "MODELS"»](https://www.instagram.com/reel/Db_AR3MB9Ml/) 0,40.
+4. **Revelar o desmontar una creencia funciona; el reproche y el dolor de dinero no.** @tapsheet.marg: pies con «stop gatekeeping», mediana de 389.980 (6 de 19 altos frente a 0 de 20 bajos, p=0,008), y con «broke/debt», mediana de 4.428. @smallstepfinance: los «Most people think X… Not true» tienen mediana de 2,25 (4 de 4 por encima de 1; [3,10](https://www.instagram.com/reel/Dbf4uD4OxnJ/), [3,51](https://www.instagram.com/reel/DXxDPLGRgIS/)). Los «Most people [hacen algo mal]» dan 0,22–0,48 (3 de 3 bajos; [0,22](https://www.instagram.com/reel/DXuLSowJReZ/)). n=7.
+5. **Las listas, las chuletas y los «Part 2» no reparten.** @smallstepfinance: checklist, chuleta de ETF y lista del 8 al 15 dan 0,38–0,52 (3 de 3 bajos). @fruitaistudio00: los «Part N» tienen mediana de 0,24 (n=3); [«Who is richer?» 8,02](https://www.instagram.com/reel/Dd1uxKQRdIK/) frente a su [«Part 2» 1,75](https://www.instagram.com/reel/Dd4JyUzATmk/).
+6. **Dinero visible y concreto, a medias.** @fruitaistudio00: 8 títulos con «gold» tienen mediana de 3,46 y ninguno queda bajo ([«Bestie = Gold» 4,63](https://www.instagram.com/reel/DcWvYe8yLW8/)). @alux: con palabra de dinero en el gancho, 9 de 20 llegan a ≥1,5; sin ella, 1 de 26 (p=0,001). Pero dentro de agosto de 2025 la diferencia baja a 1,07 frente a 0,92: está mezclado con la época. Su único pico es dinero × pareja: [«The Biggest Financial Decision You'll Ever Make»](https://www.instagram.com/reel/DNayNPYRjar/), 43,3 veces la mediana.
+7. **Pregunta corta al principio, sí; pregunta al final de un planteamiento largo, no.** @casuallyfinance: [«Why isn't America's debt a crisis yet?»](https://www.instagram.com/reel/DeAgiEplPl0/) 7,69. Las 3 preguntas que llegan tras 97–111 caracteres dan 0,57–0,87. En nuestros datos las preguntas fallan, así que **la afirmación sigue siendo la opción por defecto.**
+8. **Ni los me gusta ni los comentarios por vista predicen el reparto.** Spearman índice ~ me gusta por vista: −0,32 (fruit), −0,30 (monkey), −0,07 (smallstep), −0,06 (tapsheet), −0,05 (bfl), 0,12 (alux), 0,23 (casually). Los comentarios solo acompañan en @smallstepfinance (0,44). Lo vemos también en casa: el que pasó tiene la peor retención. **Una buena retención no demuestra que vaya a repartirse.**
+9. **Mover más píxeles no es la palanca (medido).** Porcentaje de segundos sin cambio visible: altos de @primateeconomics 44–55 %, alto de @monkey__economics 68 %, nuestro es-gasolina-1499 78 %. @tapsheet.marg, 0 % (cámara en mano). Nuestros Reels de EE. UU. se quedan en un 6–27 %, y su ritmo de cambios de estado (2,4–4,3 cada 10 s) es el mismo que el de @primateeconomics (4,1–4,4). Movimiento hay. Lo que nos falta es que **la imagen diga algo que la voz no dice** (la tarjeta, el gag o la cifra que cambia), y eso no lo mide un script. Scripts: `scratchpad/analisis-eeuu/scripts/movimiento.py` y `eventos.py`.
+10. **Cuentas grandes: una persona o empresa con nombre más un hecho concreto, o una cifra sobre el bolsillo.** Business Insider, [Jensen Huang](https://www.instagram.com/reel/Dfh-owfGRn0/) 5,90. @itsfinancialeducation, [«Your boss's stack grows every day you clock in. Yours doesn't.»](https://www.instagram.com/reel/DfiP1tdDFcs/) 3,81. @smallstepfinance, [tramos fiscales de 2026 el día del anuncio](https://www.instagram.com/reel/DPm9ISMjO1T/) 11,95.
 
-A medias: en @casuallyfinance, los Reels en las posiciones 1–4 de un bloque de tema tienen mediana de 1,43, los de las 5–8 de 1,00 y a partir de la 9, 0,88. Se mezcla con el paso del tiempo y hay una excepción clara: 7,69 en la posición 7.
+A medias: @basicfinancialliteracy, sin patrocinados, rinde más en fin de semana (2,37 frente a 0,95), pero entre esos Reels hay sospechosos de promoción pagada. Nuestro despegue también fue un domingo por la mañana en NY.
 
 ## 3. Qué cambiar en nuestro formato para EE. UU.
 
-**Arranque (0–2,5 s).** Desde el fotograma 0: algo concreto y reconocible en movimiento (un precio, un objeto que todo el mundo tiene, un término de las noticias), una frase de 2 líneas en el tercio superior y la voz diciéndola al mismo tiempo. El primer plano no puede quedarse 3 s quieto. Plantillas de primera frase:
-1. `Your [iPhone/bank app] has a hidden [page/setting] that shows [X], and almost nobody opens it.`
-2. `[N] years paying [bill] and NOW I find out [hecho].`
-3. `[Term in this week's news], explained in [N] seconds.` (tarjeta grande con el término, como «WHAT ARE TARIFFS?»)
-4. `[A] vs [B]: most people think they're the same. They're not.` (Roth vs traditional, APR vs APY)
-5. `A $[X] [compra cotidiana] actually costs you $[Y].`
-6. `Your [paycheck/savings] [verbo] every year. Your [X] doesn't.`
-7. `[Company/CEO] just admitted [hecho o cita con fuente].`
-8. `Nobody tells you [institución] does this with your money.`
-9. `Don't [acción común] until you know these [N] numbers.`
-10. `Why is [precio cotidiano] always $[cifra rara]?` (solo como control del A/B: en nuestros datos las preguntas fallan)
+**Regla nueva, la «prueba del silencio»:** con el sonido quitado, en 3 s tiene que entenderse de qué va y qué está en juego, y en cada escena **algo cambia de estado en la imagen**: una moneda que cae, un saldo que baja, un tachón, una pila que crece. La voz explica; la imagen demuestra.
 
-**Duración:** 20–35 s, como ahora. La duración no separa altos de bajos en ninguna cuenta (@tapsheet.marg 20–24 s; @primateeconomics 50–67 s), y en nuestros datos los Reels de más de 60 s van 0 de 4. Lo que importa es que **el desenlace o la cifra aparezca antes de los 6 s**.
-**Ritmo:** un cambio visual cada ~1,7–2,4 s (@primateeconomics). Opcional: una pausa cómica corta a mitad del vídeo. Nada de planos de presentación.
-**Voz:** dejar la voz grave y monótona. Probar dos opciones: (a) **sin voz**, con música y un único texto (como @tapsheet.marg); (b) una voz con personaje, frases de 2–6 palabras, ~2,5–3 palabras/s (hoy vamos a 3,5) y mucha variación de tono. A medio plazo, un personaje fijo (un maniquí con nombre y forma de hablar propia, siempre con la misma unidad de dinero).
-**Texto en pantalla:** un solo titular de 2 líneas desde el 0,0 s hasta el desenlace. En la versión con voz, subtítulos más pequeños debajo. En la versión sin voz, nada más.
-**Final:** cortar justo al terminar la idea, sobre la cifra o la pantalla que la resume. Sin «follow», sin resumen, sin «Day 4 tomorrow» y sin enseñar la app. Para la serie «30 days…», cada capítulo con un gancho que funcione solo, el número del día solo en la portada o en el pie, y curiosidades de otros temas intercaladas cada 3–4 capítulos.
-**Texto de la publicación:** primera línea igual que el gancho, con palabras que la gente busca (≤90 caracteres). Después, 0–3 líneas con la cifra y la fuente, 0–5 hashtags de nicho y ningún «Comment WORD». Las dos cuentas que reparten hacen cosas opuestas (una línea con emoji frente a un miniartículo sin hashtags). Es decir, **el texto de la publicación no decide**. Aviso: la tarea pendiente «Comenta PALABRA» va en contra de esto (2.5).
-**Horas:** una o dos horas fijas de NY, todos los días: 11:00 y 18:30 NY (16:00 y 23:30 UTC en invierno). Coinciden con la franja de @tapsheet.marg y con la hora de @casuallyfinance, y entran en el 11–13 / 19–21 h del informe experto solo de forma aproximada: es una propuesta, no un dato. Nunca de madrugada en NY.
+**Arranque (0–2,5 s).** En el fotograma 0, el objeto o la cifra y un titular fijo de 2 líneas que se lee sin voz (como «$1 → $1.50 vs $1.004»). Primer cambio visible antes de 1,5 s. Plantillas de primera frase:
+1. `The same $[X] can [gain/lose] $[Y] — depending on [one choice].` (el que nos funcionó)
+2. `Most people think [creencia]. Not true.`
+3. `How to [pay less tax / retire earlier], explained by mannequins.`
+4. `$[X] once, at [edad]. By [edad]: $[Y].`
+5. `[A] vs [B]: most people think they're the same. They're not.`
+6. `The biggest financial decision you'll ever make isn't [X].`
+7. `Your [iPhone/bank app] has a hidden [page] that shows [X].`
+8. `[Term in this week's news], explained in [N] seconds.`
+9. `[Company/CEO] just admitted [hecho con fuente].`
+10. `A $[X] [compra cotidiana] actually costs you $[Y].`
+
+**Duración:** ya no hay que limitarse a 20–35 s. Hay dos formatos y los dos se prueban: corto de 25–35 s y **extenso de 50–65 s**, que es el que rompió el techo. En las cuentas de referencia la duración no separa altos de bajos, y sus altos duran 47–103 s.
+**Ritmo:** un elemento nuevo cada 1,2–3 s. En la primera mitad, nada de planos de 5 s sobre el mismo cartel. Opcional: una pausa sin voz de 5–8 s con un gag visual.
+**Voz:** la de narrador **puede quedarse** (con ella se rompió el techo). Hay que bajarla a ~2,6–3 palabras/s y meter menos cifras habladas, porque las cifras van en pantalla. En paralelo, probar una versión sin voz (experimento 3).
+**Texto en pantalla:** el titular o la ecuación, fijos arriba desde el 0,0 s. Los subtítulos palabra a palabra, más pequeños o quitados en la versión que va primero a lo visual (la que ya prueba en-hsa-vs-fsa).
+**Final:** cortar sobre la cifra o la imagen que lo resume. **Sin «Follow for the next one»**, que en-gas-nine-tenths sí lleva en pantalla. Sin «Part 2» ni «Day 4 tomorrow». En la serie «30 days…», cada capítulo con su gancho propio y el número solo en el pie de la publicación.
+**Texto de la publicación:** primera línea igual al gancho (≤90 caracteres), 0–3 líneas con la cifra y la fuente, 0–5 hashtags de nicho. Si se cierra con algo, que sea una pregunta concreta («Do you know your match formula?»), nunca «Comment WORD». **El texto no decide el reparto** en ninguna de las 8 cuentas.
+**Horas:** **11:00 NY** como hora principal (la del despegue y la franja de 9–12 h de @tapsheet.marg). Si hay un segundo Reel, a las 20:00 NY, separado ≥9 h, y nunca a menos de 12 h de uno que esté despegando. Nada de tandas de 3 o más.
 
 ## 4. Doce temas para EE. UU. con su primera frase
 
-Las cifras marcadas con [v] hay que verificarlas con una fuente antes de producir.
-1. **Suscripciones ocultas en el iPhone** (descubrimiento útil ya, como @tapsheet.marg): «Your iPhone has a hidden page listing every subscription you pay through Apple.»
-2. **El café de $7** (importe real): «A $7 iced coffee every workday is $1,820 a year.» (7 × 5 × 52)
-3. **Hipoteca al 6,5 %** (bolsillo, como el 3,71 de @casuallyfinance): «A $300,000 mortgage at 6.5% costs you $382,633 in interest. At 3%, $155,332.» (30 años, calculado)
-4. **Préstamo de coche:** «That $35,000 car at 9% for 84 months really costs $47,302.» (calculado)
-5. **Tramos fiscales 2027** (actualidad, como el 11,95 de @smallstepfinance): «The 2027 tax brackets are out, and your paycheck changes in January.» [v]
-6. **El penique** (noticia de EE. UU. que toca el bolsillo): «The U.S. stopped making pennies. Here's what happens to your change now.» [v: reglas de redondeo]
-7. **Pollo de Costco a $4,99** (precio raro + secreto de empresa): «Costco loses money on its $4.99 rotisserie chicken, on purpose.» [v]
-8. **Término de la semana** (como «WHAT ARE TARIFFS?», 15,5): «[Term everyone is saying this week], explained in 20 seconds.» Se elige el lunes según las noticias de EE. UU.
-9. **HSA en plena inscripción abierta (noviembre):** «There's one account the IRS doesn't tax going in, growing, or coming out.» [v: solo gastos médicos]
-10. **Black Friday y «pay in 4»:** «"Pay in 4" looks free. Here's the one way it stops being free.» [v]
-11. **Cena de Acción de Gracias** (dato anual del AFBF, ~19-nov): «Thanksgiving dinner for 10 costs $[X] this year, and one dish is most of it.» [v]
-12. **Contraste de sueldo** (como el 3,81 de @itsfinancialeducation): «Your company's 401(k) match is a raise. Most people leave part of it on the table.» [v]
+Las cifras marcadas con [v] hay que verificarlas con una fuente antes de producir; el resto está calculado. Entre paréntesis, la prueba visible que lleva cada uno.
+1. **Ahorro frente a cuenta remunerada** (como el que despegó): «Your savings account turns $10,000 into $10,038 a year. A high-yield one, about $10,400.» (dos montones que crecen distinto) [v: tipo de alto rendimiento actual; media de la FDIC del 0,38 %]
+2. **Interés compuesto para hijos** (como los altos de @smallstepfinance): «$1,500 at birth plus $150 a month. By 65, over $2 million.» (7 % anual, calculado: $2,19 M; la pila crece año a año)
+3. **Hipoteca:** «A $300,000 mortgage at 6.5% costs $382,633 in interest. At 3%, $155,332.» (dos casas y la de intereses que se hincha)
+4. **Coche a 84 meses:** «That $35,000 car at 9% for 84 months really costs $47,302.» (la etiqueta del precio que sube)
+5. **Tramos de 2027, el día del anuncio** (11,95 en @smallstepfinance): «The 2027 tax brackets are here. See where you land.» (tabla fija; formato sin voz) [v: fecha del IRS]
+6. **Dinero × pareja** (43,3 en @alux): «The biggest financial decision you'll ever make isn't your house. It's who you marry.» [v: dato de deuda o divorcio con fuente]
+7. **Impuestos con picardía** (16,18 en @monkey__economics): «How to legally pay less tax, explained by mannequins.» (maniquí con gorra «IRS» y final con castigo)
+8. **Creencia falsa sobre la jubilación** (3,10 en @smallstepfinance): «Most people think you can't touch retirement money before 59½. Not true.» [v: regla de los 55 y aportaciones a Roth]
+9. **Pollo de Costco a $4.99:** «Costco loses money on its $4.99 rotisserie chicken, on purpose.» [v]
+10. **Término de la semana** (15,5 en @primateeconomics): «[Term everyone is saying this week], explained in 20 seconds.» (tarjeta grande; se elige el lunes)
+11. **Cena de Acción de Gracias** (dato del AFBF, ~19-nov; la fiesta es el 26-nov): «Thanksgiving dinner for 10 costs $[X] this year, and one dish is most of it.» [v]
+12. **Suscripciones ocultas en el iPhone:** «Your iPhone has a hidden page listing every subscription you pay through Apple.» (la lista y el total)
 
-## 5. Tres experimentos para la semana que viene
+## 5. Tres experimentos para la semana que viene (23–29 nov)
 
-1. **¿La cuenta está restringida? Control cruzado.** Antes de nada, el propietario revisa el Estado de la cuenta de @finanziapp y hace una captura. Después, 3 Reels nuevos con su versión española publicada el mismo día en @finanziapp.es (horas locales equivalentes), declarando la IA en los dos. *Éxito o lectura a 72 h:* si los 3 en inglés siguen en ≤200 vistas y al menos 1 español pasa de 1.000 → tratamos @finanziapp como no recomendable: pedir revisión, no cambiar nada más esa semana y valorar con el propietario una cuenta nueva. Si alguno en inglés pasa de 500 → el problema es el formato o el público, no la cuenta.
-2. **Arranque en A/B, al estilo de @tapsheet.marg.** 3 días, 2 Reels al día del mismo tema con **cuerpos distintos** (para no repetir metraje), publicados con 5 min de diferencia a las 11:00 NY: uno con «descubrimiento + objeto real + importe» (plantillas 1, 2 y 5) y otro con nuestra apertura actual. *Éxito:* el «descubrimiento» gana en omisión en 3 de 3 pares (≥5 puntos menos) y al menos uno pasa de 1.000 vistas a 72 h.
-3. **Sin voz frente a voz con personaje.** 2 Reels sin voz (grabación real de la pantalla del iPhone o de un ticket, música, un único texto; temas 1 y 2) y 2 con una voz expresiva más lenta (temas 3 y 6), a las 18:30 NY. *Éxito:* el grupo ganador tiene ≥3 s más de visionado medio y ≥5 puntos menos de omisión. Que uno pase de 1.000 vistas descarta casi del todo la restricción de cuenta.
+1. **Prueba del silencio, primero lo visual frente a primero la voz** (pone a prueba lo que dice el propietario). 3 pares sobre el mismo tema, en días alternos a las 11:00 NY. Versión A: el formato actual (voz con subtítulos palabra a palabra). Versión B: titular fijo, un cambio de estado en la imagen cada ≤2 s, sin subtítulos de transcripción y voz a ~2,6 palabras/s. Antes de publicar, ver B sin sonido: si no se entiende, no sale. Usar como referencia el resultado a 72 h de en-hsa-vs-fsa (19-nov), que ya va en esa línea. *Éxito:* B gana a A en omisión por ≥5 puntos y en visionado medio por ≥2 s en 2 de 3 pares, y al menos un B pasa de 1.000 vistas a 72 h.
+2. **¿Se repite el despegue?** 2 extensos de 55–65 s, útiles y con una acción para hoy (temas 1 y 8), sin presentarlos como continuación del anterior. Frente a ellos, 2 curiosidades cortas de 30 s. Todos a las 11:00 NY, cada uno en su día. *Éxito:* al menos 1 de los 2 extensos pasa de 1.000 y suma ≥5 entre guardados y envíos. Si los dos se quedan por debajo de 200, el 1.156 fue sobre todo azar y la duración no es la palanca.
+3. **Sin voz** (como @tapsheet.marg y @smallstepfinance). Una imagen fija de 5–7 s en bucle con música, para el tema 5 el día que salgan los tramos o, si no salen, para el 3. Y una demo de 15–20 s del tema 12. *Éxito:* ≥500 vistas u omisión ≤25 % en alguno de los dos.
 
-Registro de todos a las 24, 48 y 72 h: omisión, tiempo medio visto, alcance, envíos y guardados.
+Registro de todos a las 24, 48 y 72 h: omisión, visionado medio, alcance, envíos y guardados. **Dejar de juzgar por el porcentaje de retención.**
 
 ## 6. Lo que NO hay que copiar
 
-- **Resubir el mismo metraje** cambiando solo la apertura: la resubida de @tapsheet.marg sacó 444, su peor Reel.
-- **Fingir que somos usuarios.** @tapsheet.marg es la cuenta de la propia app haciéndose pasar por una chica cualquiera («the app is tapsheet btw»). En EE. UU. hay normas de la FTC sobre publicidad encubierta y, además, va contra la marca. Si enseñamos FinanziApp, que sea desde nuestra cuenta y sin esconderlo.
-- **Lo que cuentan los pies de foto de dolor de dinero** («broke», «debt», «took me 10 years»), las muletillas iniciales («sooo», «ummm») y el tono de TikTok forzado.
-- **Las frases de Wealth** (10–60 M de vistas): son metraje ajeno con crédito («Media: …»), justo lo que Instagram castiga por no original desde abr-2026. Tampoco **el brainrot de IA** de @fruitaistudio00 ni los hashtags #explore #viral.
-- **Política y escándalos de famosos** (Vox 12,92, Visual Capitalist 11,09, el lío de Jensen Huang): reparten, pero no son nuestra marca y polarizan.
-- **Los Reels de más de 60 s** de @primateeconomics. Funcionan porque son recortes de YouTube con un personaje ya establecido.
-- **Promoción, patrocinio o «Comment WORD»** en los Reels de alcance (2.5).
-- **Treinta capítulos seguidos de la misma serie** sin gancho propio.
+- **Resubir el mismo metraje** con otra apertura: la resubida de @tapsheet.marg sacó 444.
+- **Fingir ser un usuario.** @tapsheet.marg es la cuenta de la propia app haciéndose pasar por una chica cualquiera. Es publicidad encubierta (FTC) y va contra la marca.
+- **El dolor de dinero y los reproches** («broke», «took me 10 years», «Most people waste…»), las muletillas («sooo»), las listas y chuletas como Reel y los «Part 2».
+- **Ráfagas** (3–8 Reels en minutos) y horarios automáticos de madrugada (@alux, @monkey__economics).
+- **Memes ajenos, metraje con crédito** (las frases de Wealth) **y brainrot de IA** (@fruitaistudio00): no son originales o no son nuestra marca. De @fruitaistudio00 nos quedamos con la idea (dinero que se transforma a la vista), no con el estilo.
+- **Motivación abstracta** («Your mind is your best asset»): los 5 peores de @alux.
+- **Política y escándalos de famosos**: reparten, pero polarizan.
+- **Promoción, patrocinios, «Comment WORD» y «Follow for the next one»** en los Reels de alcance. La tarea pendiente de terminar con «Comenta PALABRA» va en contra de esto.
 
 ## 7. Lo que no se ha podido comprobar
 
-- **Si nuestra cuenta está restringida** y de qué país vienen nuestras vistas: solo se ve en la app.
-- **Si las vistas de @tapsheet.marg incluyen promoción pagada.** 2,3 M con 1.652 seguidores es compatible con anuncios. No hay forma de saberlo desde fuera, y eso debilita los patrones 1–4.
-- **@casuallyfinance sin MP4:** duración, voz, subtítulos y ritmo desconocidos. Su gancho se infiere de la primera línea del texto.
-- Retención, omisión, envíos y guardados de las cuentas ajenas: no tenemos esos datos. Tampoco cuántos seguidores tenían cuando publicaron los Reels virales.
-- Sin recalcular: la correlación entre vistas y minuto (−0,01), los efectos del día de la semana, la longitud del pie y las muletillas (p=0,10), los hashtags (p≥0,054 con 8 pruebas) y que la voz de @primateeconomics sea humana.
-- Si la etiqueta de IA o el audio SynthID cambian el reparto (no hay nada oficial).
-- Las cifras [v] de la sección 4 y las horas exactas, que son una propuesta y no un dato.
+- **Por qué despegó en-save-invest-one-plan**: utilidad, imagen, duración, hora o azar. Con n=1 no se separan; para eso están los experimentos 1 y 2. Tampoco tenemos los guardados y envíos de los demás Reels de EE. UU. para comparar, ni de qué país vienen sus 1.032 cuentas.
+- **Si la imagen «cuenta» la historia**: es un juicio sobre fotogramas, no una medida. Lo único medido (2.9) dice que el movimiento en píxeles no separa.
+- **Promoción pagada** en las cuentas de referencia (@tapsheet.marg, los altos de @basicfinancialliteracy y @smallstepfinance, las promociones de @alux): desde fuera no se ve.
+- **Formatos sin MP4**: @casuallyfinance (ninguno), y en @fruitaistudio00, @smallstepfinance y @alux solo el alto. No hay bajos con vídeo para comparar.
+- Sin recalcular: los temas por bloque de @casuallyfinance, los efectos de día y hora, el parón de @monkey__economics, la republicación de @alux, los pares «worst/best» de @basicfinancialliteracy y que la voz de @primateeconomics sea humana.
+- Si la etiqueta de IA o el audio SynthID cambian el reparto. Las cifras [v] y las horas exactas son una propuesta, no un dato.
 
-Scripts y verificación: `scratchpad/analisis-eeuu/scripts/` (`grandes.py`, `verif.py`) y `scratchpad/analisis-eeuu/verif-dup/` (fotogramas de la comparación del metraje).
+Scripts: `scratchpad/analisis-eeuu/scripts/` (`verif.py`, `verif2.py`, `grandes.py`, `movimiento.py`, `eventos.py`, `hoja.py`). Hojas de nuestros Reels: `scratchpad/analisis-eeuu/propios/`.
+
+## Cambios del 16-11-2026
+
+- **Punto 1, reescrito.** Ya no es «por qué nunca pasa de 150», sino «por qué casi nunca». La restricción de cuenta baja del 35 % al 5 % (en-save-invest-one-plan llegó a 1.032 de alcance). Entran como causas principales la falta de motivo para guardar o enviar (30 %) y lo de «vocal, no visual» del propietario (25 %), con el dato en contra de que el movimiento en píxeles no separa. Sale «la prueba va a un público equivocado» (20 %), que se reparte entre hora y duración.
+- **Duración:** se quita «20–35 s» y «>60 s, 0 de 4». El despegue duró 62,8 s y se prueban los dos formatos.
+- **Voz:** se quita «dejar la voz grave y monótona»; el despegue lleva narrador. Solo se baja la velocidad.
+- **Retención:** antes era el criterio; ahora no se usa para juzgar (el despegue retuvo el 24 % y dos Reels con 42–49 % se quedaron en 143).
+- **Patrones nuevos** (recalculados): ráfagas (2.2), creencia frente a reproche (2.4), listas y «Part 2» (2.5), dinero visible (2.6), me gusta por vista (2.8) y movimiento medido (2.9).
+- **Horas:** de 11:00 + 18:30 a **11:00 NY** como hora principal, con un segundo Reel ≥9 h después y nunca cerca de uno que esté despegando. «2 al día» deja de ser regla.
+- **Formato:** la «prueba del silencio» y el titular fijo pasan a ser obligatorios. Se señala que en-gas-nine-tenths lleva un «Follow for the next one» que hay que quitar.
+- **Temas:** salen el penique (ya hecho), el café de $7 (reproche), «pay in 4» y el match del 401(k) (ya hecho). Entran ahorro frente a cuenta remunerada, interés compuesto para hijos, tramos de 2027, dinero × pareja, impuestos con picardía y el mito de los 59½.
+- **Experimentos:** el control cruzado de cuenta restringida se sustituye por la prueba del silencio, la repetición del extenso y el formato sin voz.
+- **No copiar:** sale «Reels de más de 60 s»; entran ráfagas, motivación abstracta, «Follow for the next one» y «Part 2».
