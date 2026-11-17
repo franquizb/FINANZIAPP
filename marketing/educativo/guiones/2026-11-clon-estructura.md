@@ -435,4 +435,9 @@ El propietario pidió que cada clon fuera **el siguiente vídeo** de su cuenta, 
 
 - **España:** por debajo de la mediana de la cuenta (unas 134 vistas y un 30 % de retención en los Reels que no despegan) y muy lejos de los ganadores (43–49 %). La gente se va antes del segundo 9, mucho antes de la pausa (35 s). El arranque con voz seca, sin subtítulos y con poco movimiento no engancha.
 - **EE. UU.:** algo por encima de la mediana de la cuenta (unas 131 vistas y un 25 %), con 2 guardados. No ha despegado.
-- **Primera lectura:** copiar el esqueleto del viral no basta. En España sale peor que nuestro formato habitual. Faltan las capturas de la gráfica de retención para saber en qué segundo se va la gente.
+- **Omisión en los 3 primeros segundos** (`reels_skip_rate`, API de Instagram, 17-11 a las 22:20 UTC): **57,7 %** en España y **62,9 %** en EE. UU. Son de las más altas de cada cuenta: los ganadores de España están en 24–30 % y el despegue de EE. UU. en 34,6 %. Ninguno tuvo guardados ni compartidos más allá de los 2 guardados de EE. UU., ni comentarios.
+- **Primera lectura:** a la mayoría la perdimos antes de que empezara el esqueleto. Los dos arrancan con la tarjeta-título «TIN vs TAE» / «HSA vs FSA», dicha y escrita, casi quieta (`quieto3` = 0,66 en `arranque.py`). La pausa y la respuesta al 80 % ni siquiera llegaron a probarse con la mayoría del público. Copiar el esqueleto del viral sin su arranque visual no basta, y en España sale peor que nuestro formato habitual. Las capturas de la gráfica de retención dirán dónde se va el resto.
+
+**Lo que esto enseña para todos los Reels** (43 Reels con omisión medida, 17-11):
+- La omisión de los 3 primeros segundos es la medida que más se parece al alcance. Spearman omisión ~ vistas: −0,88 en España y −0,61 en EE. UU. Los 5 de España que pasaron de 1.300 vistas tienen una omisión de 24–30 %; ninguno con más del 30,4 % pasó de 320.
+- Con arranque en movimiento (`quieto3` < 0,2) la omisión mediana es del 32 % (n=11); con arranque casi quieto (≥ 0,45), del 52 % (n=30). Hay excepciones que arrancan quietas pero con una cifra muy clara en pantalla: en-millas-79900 (22 %) y es-gasolina-1499 (30 %).

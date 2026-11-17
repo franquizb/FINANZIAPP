@@ -93,9 +93,11 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
 
 - **Arranque lleno**: el fotograma 0 ya tiene la escena completa y la primera frase.
 - **El gancho es VISUAL, no solo de voz** (propietario, 17 nov 2026: «el gancho es vocal y no visual; la gente se queda por la
-  vista, no solo por el oído»). Los datos lo confirman: en los 42 Reels publicados hasta el 17-11, los que tienen movimiento
-  continuo en los 3 primeros segundos retienen una mediana del 36 %, y los que arrancan casi quietos, del 25 %. Pasa en las
-  dos cuentas (Spearman 0,44). En España, la mediana de vistas es de 825 frente a 134. Reglas:
+  vista, no solo por el oído»). Los datos lo confirman con la medida que más pesa, la omisión de los 3 primeros segundos
+  (`reels_skip_rate`; Spearman con las vistas: −0,88 en España y −0,61 en EE. UU.). En 43 Reels, los que arrancan con
+  movimiento continuo tienen una omisión mediana del 32 %, y los que arrancan casi quietos, del 52 %. Los 5 de España que
+  pasaron de 1.300 vistas tienen una omisión de 24–30 %. Los clones, que arrancaron con una tarjeta-título quieta, dieron
+  58 % y 63 %. También retienen más: una mediana del 36 % frente al 25 %. Reglas:
   - **Fotograma 0 en plena acción**: el objeto principal ya se mueve (cae, entra, se rompe, gira, choca). Nada de tarjeta de
     cita quieta ni de multitud parada.
   - **Un acontecimiento visual antes de 0,7 s** que cuente el gancho sin sonido: con el móvil en silencio, la imagen y un
