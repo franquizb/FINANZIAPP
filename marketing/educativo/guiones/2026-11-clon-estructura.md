@@ -426,4 +426,13 @@ El propietario pidió que cada clon fuera **el siguiente vídeo** de su cuenta, 
 
 ### Resultados
 
-(Se rellenan a las 24, 48 y 72 h.)
+**24 h** (datos del 17-11 a las 18:20 UTC, API de Instagram):
+
+| Reel | Horas | Vistas | Alcance | Visto medio | Retención | Guardados | Me gusta |
+|---|---|---|---|---|---|---|---|
+| es-tin-vs-tae | 29 | 118 | 112 | 8,8 s de 59 s | **15 %** | 0 | 0 |
+| en-hsa-vs-fsa | 24,5 | 161 | 144 | 13,6 s de 56,2 s | 24 % | 2 | 1 |
+
+- **España:** por debajo de la mediana de la cuenta (unas 134 vistas y un 30 % de retención en los Reels que no despegan) y muy lejos de los ganadores (43–49 %). La gente se va antes del segundo 9, mucho antes de la pausa (35 s). El arranque con voz seca, sin subtítulos y con poco movimiento no engancha.
+- **EE. UU.:** algo por encima de la mediana de la cuenta (unas 131 vistas y un 25 %), con 2 guardados. No ha despegado.
+- **Primera lectura:** copiar el esqueleto del viral no basta. En España sale peor que nuestro formato habitual. Faltan las capturas de la gráfica de retención para saber en qué segundo se va la gente.
