@@ -304,5 +304,13 @@
     "etiqueta": "Benefits",
     "fotograma_ms": 37900,
     "encuadre_y": 545
+  },
+  "es-loteria-navidad": {
+    "titulo": "Pagas 20 €. Vale 14 de media",
+    "destacado": "14 de media",
+    "color": "ambar",
+    "serie": "hacemos-la-cuenta",
+    "fotograma_ms": 26600,
+    "encuadre_y": 760
   }
 }

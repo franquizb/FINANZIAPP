@@ -60,6 +60,7 @@ la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publi
 |---|---|---|---|
 | 1 | ¿Bajaría la vivienda un 30 % quitando impuestos? (`es-contraste-vivienda-30`; final B sin guiño: `…-30b`) | 12 nov 2026, 7:30 (programado) | «¿Qué te pareció la entrevista?» |
 | 2 | La rebaja de 20 céntimos que en realidad son 24: IVA sobre el impuesto de la gasolina (`es-iva-sobre-impuesto`, formato extenso, 55 s) | 15 nov 2026, ~18:00 Madrid (programado) | «¿Sabías que pagabas IVA sobre un impuesto?» |
+| 3 | Tu décimo de Navidad de 20 € vale 14 de media (`es-loteria-navidad`, extenso, 43 s, primer Reel con gancho visual: billete que entra en el bombo y sale un 14; guion en `guiones/2026-11-loteria-es.md`) | 18 nov 2026, 14:41 Madrid (programado) | «De media, la ilusión cuesta 7 euros por décimo. Y 86 de cada 100 veces, cuesta los 20» |
 
 ## Pendientes (preguntas abiertas)
 

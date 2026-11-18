@@ -23,7 +23,8 @@
 //   https://www.berkshirehathaway.com/letters/1993.html · Quote Investigator (9 Jan 2020) on the attribution.
 //
 // Compared with the script, only § marks were added (they are not read and don't change the voice takes): line 1 «§*nearly»,
-// line 3 «§*190-fold*» and «§*nine-tenths*», line 4 «§into». Educational only: no product, broker or brand on screen.
+// «§fear» and «§S&P» (v3: the plunge hits the floor on «fear», «−34%» on «S&P 500 down»), line 3 «§*190-fold*» and
+// «§*nine-tenths*», line 4 «§into». Educational only: no product, broker or brand on screen.
 // On screen «≈ ×190» (the voice says «about 190-fold»; the exact ratio is ×194.1).
 // The bars of the 2020 chart are the real closes; the trembling lines of scenes 0 and 6 are illustrative (no axis, no data).
 const { pildora3d } = require('./tres');
@@ -82,7 +83,7 @@ Past performance doesn't guarantee future results. Educational only, not financi
 
 const GUION = [
   [0, 'That clip says stock prices aren’t about the company, §just psychology. §{pop}*Half true.*'],
-  [1, 'In 2020, pandemic fear sent the S&P 500 down §*nearly 34%* in 33 days. §About five months later, §{ding}it hit a *new record*.'],
+  [1, 'In 2020, pandemic §fear sent the §S&P 500 down §*nearly 34%* in 33 days. §About five months later, §{ding}it hit a *new record*.'],
   [2, 'So what decides the price in the *end*?'],
   [3, '§{pop}*Profits.* §Since 1926, S&P 500 earnings per share grew about §*190-fold*, §and that growth plus dividends explains about §*nine-tenths* of the total return.'],
   [4, 'And turning $12,000 §into millions in days? §Real profits took about *a century* to grow that much. §{caja}No formula does that *reliably*.'],
@@ -111,19 +112,31 @@ const CSS = `
   .contador { position: absolute; left: 50%; font-size: 124px; line-height: 1; font-weight: 900; letter-spacing: -.04em; color: #f87171;
     text-shadow: 0 6px 40px rgba(0,0,0,.85); opacity: 0; white-space: nowrap; font-variant-numeric: tabular-nums; }
   .contador small { font-size: 50px; font-weight: 800; letter-spacing: -.01em; color: #fca5a5; }
-  /* frame 0: the quote card (it splits in two on «Half true») */
-  .cita { position: absolute; left: 90px; top: 486px; width: 900px; height: 300px; }
-  .mitad { position: absolute; left: 0; top: 0; width: 900px; box-sizing: border-box; background: rgba(9,14,27,.95); border: 3px solid rgba(148,163,184,.5);
-    border-radius: 28px; padding: 20px 46px 28px; text-align: center; transform-origin: 50% 100%; }
-  .mitad.izq { clip-path: inset(-60px 450px -60px -60px); } .mitad.der { clip-path: inset(-60px -60px -60px 450px); }
-  .mitad small { display: block; font: 700 25px/1.35 ${MONO}; letter-spacing: .16em; color: #94a3b8; margin-bottom: 8px; }
-  .mitad .q { display: block; font-size: 60px; line-height: 1.12; font-weight: 850; letter-spacing: -.02em; color: #fff; }
-  .hsello { position: absolute; left: 540px; top: 650px; border: 8px solid #f5b94a; color: #f5b94a; background: rgba(9,14,27,.9); border-radius: 20px;
-    padding: 10px 34px 14px; font-size: 92px; line-height: 1; font-weight: 900; letter-spacing: .02em; white-space: nowrap; opacity: 0;
-    box-shadow: 0 0 50px rgba(245,185,74,.35); }
-  .lado { position: absolute; top: 826px; font-size: 36px; font-weight: 850; padding: 8px 22px; border-radius: 16px; background: rgba(9,14,27,.92);
-    border: 3px solid; white-space: nowrap; opacity: 0; transform: translateX(-50%); }
-  .lado.t { color: #5eead4; border-color: #5eead4; } .lado.g { color: #94a3b8; border-color: #64748b; }
+  /* scene 1: «−34%» over «in 33 days», pinned (from the 3D) just right of the drop arrow, so it slams in next to the plunge */
+  .contador.dos { left: 0; transform-origin: 0 50%; }
+  .contador.dos small { display: block; font-size: 46px; margin-top: 2px; }
+  /* scene 0 (visual hook): a small headline with the quote slams in over a stampede, then «= JUST PSYCHOLOGY?»; on «Half true»
+     the frame freezes, the HALF TRUE stamp falls on the seam and the screen splits: left, short run (mood); right, long run (profits) */
+  .titular { position: absolute; left: 540px; top: 486px; width: 860px; box-sizing: border-box; background: rgba(9,14,27,.94); border: 3px solid rgba(148,163,184,.55);
+    border-radius: 24px; padding: 12px 34px 16px; text-align: center; }
+  .titular small { display: block; font: 700 22px/1.35 ${MONO}; letter-spacing: .16em; color: #94a3b8; margin-bottom: 4px; }
+  .titular .q { display: block; font-size: 40px; line-height: 1.14; font-weight: 850; letter-spacing: -.015em; color: #fff; }
+  .psico { position: absolute; left: 540px; top: 640px; font-size: 64px; line-height: 1; font-weight: 900; letter-spacing: -.02em; color: #f87171; white-space: nowrap;
+    background: rgba(9,14,27,.92); border: 4px solid #f87171; border-radius: 20px; padding: 12px 30px 16px; opacity: 0; box-shadow: 0 0 40px rgba(248,113,113,.35); }
+  .flash { position: absolute; inset: 0; background: radial-gradient(90% 60% at 50% 55%, rgba(239,68,68,0) 35%, rgba(239,68,68,.55) 100%); opacity: 0; }
+  /* the stamp lands on the quote (the claim), above «= JUST PSYCHOLOGY?», so «PSYCHOLOGY?» stays readable and «JUST» is struck out */
+  .hsello { position: absolute; left: 540px; top: 566px; border: 8px solid #f5b94a; color: #f5b94a; background: rgba(9,14,27,.94); border-radius: 20px;
+    padding: 8px 30px 12px; font-size: 82px; line-height: 1; font-weight: 900; letter-spacing: .02em; white-space: nowrap; opacity: 0;
+    box-shadow: 0 0 50px rgba(245,185,74,.35); z-index: 3; }
+  .psico .tacha { position: relative; display: inline-block; }
+  .psico .tacha i { position: absolute; left: -10px; right: -10px; top: 46%; height: 10px; border-radius: 5px; background: #f5b94a;
+    box-shadow: 0 0 16px rgba(245,185,74,.7); transform: scaleX(0) rotate(-4deg); transform-origin: 0 50%; }
+  .panel { position: absolute; left: 544px; top: 780px; width: 540px; height: 470px; box-sizing: border-box; background: rgba(6,10,20,.93);
+    border-left: 4px solid #e2e8f0; box-shadow: -10px 0 40px rgba(226,232,240,.25); }
+  .panel svg { position: absolute; left: 24px; top: 120px; width: 380px; height: 320px; overflow: visible; }
+  .velo { position: absolute; left: 0; top: 780px; width: 540px; height: 470px; background: linear-gradient(rgba(239,68,68,.16), rgba(239,68,68,.05)); opacity: 0; }
+  .mitadT.cero { top: 800px; z-index: 2; font-size: 27px; padding: 10px 26px 12px; }
+  .mitadT.cero b { font-size: 56px; }
   .pregunta { position: absolute; left: 70px; right: 70px; top: 500px; text-align: center; font-size: 86px; line-height: 1.05; font-weight: 900;
     letter-spacing: -.03em; color: #fff; text-shadow: 0 6px 40px rgba(0,0,0,.85); opacity: 0; }
   .pregunta b { color: #5eead4; }
@@ -228,6 +241,20 @@ const X3 = (() => {
     const cb = o.cabeza == null ? 1 : o.cabeza; cabeza.visible = cb > 0.01; cabeza.position.set(hx, hy, 0.02); cabeza.scale.setScalar(0.085 * Math.max(0.001, cb)); cabeza.material.color.set(hc);
     luzG.position.set(hx, hy, 0.7); luzG.color.set(hc); luzG.intensity = 1.6 * cb;
     return (i) => [o.x + X(i), o.y + v[i] * H, o.z];
+  }
+
+  // ——— red drop arrow: a tick at y0, a bar and a head pointing down that grows to y1 as q goes 0 → 1 ———
+  const flG = grupo(), mFl = basico(0xf87171);
+  const flB = new T.Mesh(geoU, mFl), flT = new T.Mesh(geoU, mFl), flP = new T.Mesh(new T.ConeGeometry(1, 1, 18), mFl);
+  flP.rotation.z = Math.PI; [flB, flT, flP].forEach(m => flG.add(m));
+  // o = { x, z, y0, y1, q, grosor }
+  function flecha(o) {
+    const q = Math.max(0, Math.min(1, o.q == null ? 1 : o.q)); if (q < 0.01) return;
+    flG.visible = true; flG.position.set(o.x, 0, o.z);
+    const g = o.grosor || 0.045, cab = Math.min(0.16, (o.y0 - o.y1) * 0.3) * q, yh = o.y0 - (o.y0 - o.y1) * q, lb = Math.max(0.001, o.y0 - yh - cab);
+    flB.position.set(0, o.y0 - lb / 2, 0); flB.scale.set(g, lb, g);
+    flP.position.set(0, yh + cab / 2, 0); flP.scale.set(g * 2.3, Math.max(0.001, cab), g * 2.3);
+    flT.position.set(0, o.y0, 0); flT.scale.set(g * 5, g * 0.8, g);
   }
 
   // ——— balance scale (pans on posts, so the blocks can stack high); amber pointer on the beam and a fixed dial above ———
@@ -362,38 +389,74 @@ const X3 = (() => {
   }
 
   function apagar() { objs.forEach(g => { g.visible = false; }); pools.forEach(a => { a.forEach(o => { o.visible = false; }); a.i = 0; }); luces.forEach(l => { l.intensity = 0; }); }
-  return { grafica, balanza, urna, papeleta, dial, tragaperras, calendario, apagar };
+  return { grafica, flecha, balanza, urna, papeleta, dial, tragaperras, calendario, apagar };
 })();
 W3.X = X3;
 `;
 
 const an = function (s, e, el) { aparecen(s, e, el); };
+// Scene 0, right half: an illustrative line of profits that climbs with small wobbles (no axis, no data), in a 380 × 320 box.
+const LINEA_LARGA = Array.from({ length: 23 }, (_, i) => {
+  const u = i / 22, y = 300 - 280 * (Math.exp(2.6 * u) - 1) / (Math.exp(2.6) - 1) - 7 * Math.sin(i * 1.9) * (i > 0 && i < 22 ? 1 : 0);
+  return Math.round(u * 380) + ',' + Math.round(y);
+}).join(' ');
 const fuente = (txt) => `<div class="fuente">${txt}</div>`;
 
 const ESCENAS = [
-  // 0 · Hook (full frame 0): the quote card in front of a big trembling price chart; a white crowd watches it and sways.
-  //     On «Half true» ({pop}) an amber HALF TRUE stamp splits the card: left half turquoise (short run: true), right half grey.
-  { html: () => `<div class="cita"><div class="mitad izq"><small>A VIRAL MOVIE CLIP</small><span class="q">“Share prices aren’t really based on how a company works”</span></div>
-        <div class="mitad der"><small>A VIRAL MOVIE CLIP</small><span class="q">“Share prices aren’t really based on how a company works”</span></div></div>
-      <div class="hsello">HALF TRUE</div>
-      <div class="lado t" style="left:300px">SHORT RUN: TRUE</div><div class="lado g" style="left:770px">LONG RUN: NO</div>`,
+  // 0 · Hook, visual (owner, 17 Nov 2026: the hook has to work with the sound off). Frame 0 is mid-crash: a live price ticker
+  //     dives and rebounds like mad while a stampede of mannequins runs with it (left when it falls, red and arms up; right when it
+  //     rises), and the camera pulls back fast from inside the crowd. The quote slams in as a small headline, then «= JUST
+  //     PSYCHOLOGY?» (≈0.45 s, with a red flash at the bottom of the first crash). On «just psychology» a second crash and a push-in.
+  //     On «Half true» ({pop}) everything freezes, the amber HALF TRUE stamp falls and the screen splits: left, the frozen
+  //     stampede, SHORT RUN · MOOD; right, a turquoise line of profits that keeps climbing, LONG RUN · PROFITS (illustrative, no data).
+  { html: () => `<div class="flash"></div><div class="velo"></div>
+      <div class="panel"><svg viewBox="0 0 380 320"><polyline points="${LINEA_LARGA}" fill="none" stroke="#2dd4bf" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/></svg></div>
+      <div class="titular"><small>A VIRAL MOVIE CLIP</small><span class="q">“Share prices aren’t really based on how a company works”</span></div>
+      <div class="psico">= <span class="tacha">JUST<i></i></span> PSYCHOLOGY?</div>
+      <div class="mitadT r cero" style="left:262px">SHORT RUN<b>MOOD</b></div><div class="mitadT t cero" style="left:782px">LONG RUN<b>PROFITS</b></div>
+      <div class="hsello">HALF TRUE</div>`,
     anim: function (s, e, el) {
-      const M = e.seg.flatMap(g => g.marcas), m1 = M[1] != null ? M[1] : 3.2;
-      const sp = tramo(s, m1 - 0.03, m1 + 0.25), parte = sale(tramo(s, m1 + 0.08, m1 + 0.5));
-      const st = el.querySelector('.hsello'); st.style.opacity = Math.min(1, sp * 3);
-      st.style.transform = 'translate(-50%,-50%) rotate(-9deg) scale(' + (1.9 - 0.9 * sale(sp)) + ')';
-      const iz = el.querySelector('.mitad.izq'), de = el.querySelector('.mitad.der');
-      iz.style.transform = 'translateX(' + (-18 * parte) + 'px) rotate(' + (-2.2 * parte) + 'deg)';
-      de.style.transform = 'translateX(' + (18 * parte) + 'px) rotate(' + (2.2 * parte) + 'deg)';
-      iz.style.borderColor = 'rgba(94,234,212,' + (0.5 + 0.5 * parte) + ')'; iz.style.boxShadow = '0 0 ' + (44 * parte) + 'px rgba(94,234,212,' + (0.4 * parte) + ')';
-      de.style.opacity = 1 - 0.5 * parte;
-      el.querySelectorAll('.lado').forEach((n, j) => { const p = rebote(tramo(s, m1 + 0.25 + 0.12 * j, m1 + 0.6 + 0.12 * j)); n.style.opacity = Math.min(1, p * 1.5); n.style.transform = 'translateX(-50%) scale(' + (0.7 + 0.3 * p) + ')'; });
+      const M = e.seg.flatMap(g => g.marcas), m0 = M[0] != null ? M[0] : 2.6, m1 = M[1] != null ? M[1] : 3.6;
+      const golpe = (a, d) => Math.exp(-Math.pow((s - a) / d, 2));
+      // headline: already slamming in on frame 0
+      const pt = rebote(tramo(s, -0.12, 0.24)), ti = el.querySelector('.titular');
+      ti.style.opacity = Math.min(1, 0.45 + pt); ti.style.transform = 'translateX(-50%) translateY(' + (-70 * (1 - pt)) + 'px) scale(' + (1.22 - 0.22 * pt) + ')';
+      // «= JUST PSYCHOLOGY?»: slams at ~0.4 s, kicks again on «just psychology»
+      const pp = tramo(s, 0.36, 0.6), ps = el.querySelector('.psico'), kick = golpe(m0 + 0.1, 0.12);
+      ps.style.opacity = Math.min(1, pp * 3);
+      ps.style.transform = 'translateX(-50%) rotate(' + (-5 * (1 - sale(pp)) + 2.5 * kick * Math.sin(s * 60)) + 'deg) scale(' + (2.3 - 1.3 * sale(pp) + 0.14 * kick) + ')';
+      // red flash at the bottom of each crash
+      el.querySelector('.flash').style.opacity = 0.8 * golpe(0.5, 0.14) + 0.6 * golpe(m0 + 0.62, 0.14);
+      // «Half true»: the stamp lands on the quote with the {pop} (a hair early, so the split screen gets as long as the cut allows),
+      // «JUST» is struck out, the right half slides in over the frozen stampede with its line already half drawn, the labels pop
+      const sp = tramo(s, m1 - 0.16, m1 + 0.04), st = el.querySelector('.hsello'), choque = s > m1 + 0.04 ? Math.exp(-(s - m1 - 0.04) * 14) * Math.sin((s - m1 - 0.04) * 70) : 0;
+      st.style.opacity = Math.min(1, sp * 4);
+      st.style.transform = 'translate(-50%,-50%) translateY(' + (6 * choque) + 'px) rotate(' + (-6 + 14 * (1 - sale(sp))) + 'deg) scale(' + (2.4 - 1.4 * sale(sp)) + ')';
+      el.querySelector('.psico .tacha i').style.transform = 'scaleX(' + sale(tramo(s, m1 + 0.02, m1 + 0.2)) + ') rotate(-4deg)';
+      const pa = sale(tramo(s, m1 - 0.1, m1 + 0.14)), pn = el.querySelector('.panel');
+      pn.style.transform = 'translateX(' + (520 * (1 - pa)) + 'px)'; pn.style.opacity = pa > 0.005 ? 1 : 0;
+      el.querySelector('.velo').style.opacity = pa;
+      const pl = el.querySelector('.panel polyline'), L = 900; pl.style.strokeDasharray = L; pl.style.strokeDashoffset = L * (1 - 0.45 - 0.55 * sale(tramo(s, m1 - 0.1, m1 + 0.45)));
+      el.querySelectorAll('.mitadT.cero').forEach((n, j) => { const p = rebote(tramo(s, m1 - 0.04 + 0.06 * j, m1 + 0.18 + 0.06 * j)); n.style.opacity = Math.min(1, p * 1.5); n.style.transform = 'translateX(-50%) scale(' + (0.7 + 0.3 * p) + ')'; });
     } },
-  // 1 · Short run: the chart becomes the real 2020 S&P 500 tape. It plunges in red from 3,386 (Feb 19) to 2,237 (Mar 23):
-  //     «−34% in 33 days»; the crowd shakes under a red glow. Then it climbs in turquoise and on {ding} sets a new record (Aug 18).
-  { html: () => `<div class="contador" data-t="translateX(-50%)" data-m="0" data-hasta="1" style="top:700px;left:650px">−34%<small> in 33 days</small></div>
-      <div class="chip turq" data-t="translateX(-50%)" data-m="2" style="top:790px;left:640px;font-size:52px">NEW RECORD</div>
-      ${fuente('Feb 19, 2020: 3,386 → Mar 23: 2,237 → Aug 18: 3,390<br>S&P 500 closes · S&P Dow Jones Indices (via FRED) · AP')}`, anim: an },
+  // 1 · Short run: the chart becomes the real 2020 S&P 500 tape. On the cut it is already plunging in red from 3,386 (Feb 19),
+  //     the camera diving with it; it hits the floor, 2,237 (Mar 23), on «fear» (red flash, camera shake). The camera pulls back
+  //     to show the crowd jumping back in red; «−34% in 33 days» slams in on «S&P 500 down» and on «nearly 34%» a red arrow
+  //     measures the drop from the Feb 19 level. Then it climbs in turquoise and on {ding} sets a new record (Aug 18).
+  { html: () => `<div class="flash"></div>
+      <div class="contador dos" style="top:730px;left:600px">−34%<small>in 33 days</small></div>
+      <div class="chip turq" data-t="translateX(-50%)" data-m="4" style="top:790px;left:640px;font-size:52px">NEW RECORD</div>
+      ${fuente('Feb 19, 2020: 3,386 → Mar 23: 2,237 → Aug 18: 3,390<br>S&P 500 closes · S&P Dow Jones Indices (via FRED) · AP')}`,
+    anim: function (s, e, el) {
+      aparecen(s, e, el);
+      const M = e.seg.flatMap(g => g.marcas), mF = M[0] != null ? M[0] : 1.5, mS = M[1] != null ? M[1] : 2.2, mN = M[2] != null ? M[2] : 3.4, m1 = M[3] != null ? M[3] : 6.1;
+      const golpe = (a, d) => Math.exp(-Math.pow((s - a) / d, 2));
+      el.querySelector('.flash').style.opacity = 0.75 * golpe(mF + 0.06, 0.13);
+      // «−34%»: slams in on «S&P 500 down», kicks on «nearly 34%», leaves when the climb starts (left/top come from the 3D)
+      const c = el.querySelector('.contador'), p = tramo(s, mS - 0.08, mS + 0.16);
+      c.style.opacity = Math.min(1, p * 4) * (1 - tramo(s, m1 - 0.25, m1));
+      c.style.transform = 'translateY(-50%) rotate(' + (-8 * (1 - sale(p))) + 'deg) scale(' + (1.75 - 0.75 * sale(p) + 0.14 * golpe(mN + 0.1, 0.1)) + ')';
+    } },
   // 2 · Open question: the crowd walks away; the turquoise mannequin alone in front of a huge, empty balance scale.
   { html: () => `<div class="pregunta" data-t="" data-m="-1">What decides the price <b>in the end?</b></div>`, anim: an },
   // 3 · Long run: on {pop} profit blocks start falling onto the pan; EPS $1.24 (1926) → $240.63 (2025), «≈ ×190» next to the
@@ -411,6 +474,8 @@ const ESCENAS = [
       const llena = sale(tramo(s, m3 + 0.1, m4 + 0.1)), am = sale(tramo(s, m4 + 0.15, m4 + 0.55));
       el.querySelector('.barras .tq').style.width = (90 * llena) + '%'; el.querySelector('.barras .am').style.width = (10 * am) + '%';
       el.querySelector('.barras .a2').style.opacity = am;
+      // slow zoom on the bar card while it fills, up to the cut
+      el.querySelector('.barras').style.transform += ' scale(' + (1 + 0.04 * tramo(s, m3 + 0.6, m4 + 1.8)) + ')';
     } },
   // 4 · The «formula»: left, the red slot machine rolling «$12,000 → MILLIONS · IN DAYS» (movie); right, the turquoise calendar
   //     whose pages flip 1926 → 2025 (real profits: ≈ ×190 in ~100 years). On {caja} the slot machine goes dark inside an amber
@@ -458,33 +523,83 @@ const TRES = function (t, k, s, e, W) {
     [-1.45, -0.42], [-0.45, -0.46], [0.55, -0.38], [1.5, -0.44]];
   const blanco = { color: '#f8fafc', cq: 0.4, brillo: 0.05 };
   const GX = 0, GY = 1.75, GZ = -2.6, GA = 4.4, GH = 2.85;   // chart of scenes 0 and 1
-  const CAM01 = [0, 3.0, 11.0, 0, 2.75, -1.5], CAM01b = [0, 3.0, 10.5, 0, 2.8, -1.5];
+
+  // Camera along keyframes [[time, [px, py, pz, lx, ly, lz]]…] (Hermite spline, never stops in between; it starts already moving
+  // with the speed of the first leg and eases into the last keyframe).
+  const ruta = (K, x) => {
+    if (x <= K[0][0]) return K[0][1];
+    if (x >= K[K.length - 1][0]) return K[K.length - 1][1];
+    let j = 0; while (x > K[j + 1][0]) j++;
+    const [t0, P0] = K[j], [t1, P1] = K[j + 1], dt = t1 - t0, u = (x - t0) / dt;
+    const vel = (n) => n === 0 ? K[1][1].map((v, c) => (v - K[0][1][c]) / (K[1][0] - K[0][0])) : n === K.length - 1 ? P0.map(() => 0)
+      : K[n + 1][1].map((v, c) => (v - K[n - 1][1][c]) / (K[n + 1][0] - K[n - 1][0]));
+    const V0 = vel(j), V1 = vel(j + 1), u2 = u * u, u3 = u2 * u;
+    return P0.map((v, c) => (2 * u3 - 3 * u2 + 1) * v + (u3 - 2 * u2 + u) * dt * V0[c] + (-2 * u3 + 3 * u2) * P1[c] + (u3 - u2) * dt * V1[c]);
+  };
+  // Orbit: turns the camera position by `ang` (rad) around the vertical axis through the point it looks at.
+  const orbita = (C, ang) => { const dx = C[0] - C[3], dz = C[2] - C[5], c = Math.cos(ang), s_ = Math.sin(ang); return [C[3] + dx * c + dz * s_, C[1], C[5] - dx * s_ + dz * c, C[3], C[4], C[5]]; };
 
   if (k === 0) {
-    const m0 = mk(0, 1.8), sube = q(m0 - 0.1, 0.6);
-    X.grafica({ x: GX, y: GY, z: GZ, ancho: GA, alto: GH, vals: VR(0.12 + 0.07 * sube, 44).map(v => v - 0.22), color: () => BLANCO, tablero: 1 });
-    directo = (i) => i < PUB.length ? Object.assign({ x: PUB[i][0], z: PUB[i][1], rot: Math.PI + 0.14 * Math.sin(i * 2.3), amp: 0 }, blanco) : fuera;
-    const amp = 0.05 + 0.05 * sube;
-    despues.push(() => PUB.forEach((_, i) => { W.gente[i].g.rotation.z = amp * Math.sin(t * 2.6 + i * 1.3); }));
-    camLerp(CAM01, CAM01b, p);
+    // A live ticker that crashes and rebounds like mad (illustrative: no axis, no data). h(x) = level 0..1 at time x; frame 0 is
+    // mid-dive, the first bottom at 0.5 s, a second crash on «just psychology» (m0) and everything freezes on «Half true» (m1).
+    const m0 = mk(0, 2.6), m1 = mk(1, 3.6), tt = Math.min(t, m1);
+    const KF = [[-3.3, 0.5], [-2.7, 0.74], [-2.1, 0.38], [-1.45, 0.8], [-0.85, 0.48], [-0.25, 0.92], [0.5, 0.07], [1.25, 0.9], [1.95, 0.3],
+      [m0 - 0.08, 0.88], [m0 + 0.62, 0.08], [m1 + 0.35, 0.62]];
+    const h = (x) => { if (x <= KF[0][0]) return KF[0][1]; let j = 0; while (j < KF.length - 2 && x > KF[j + 1][0]) j++;
+      const u = Math.min(1, (x - KF[j][0]) / (KF[j + 1][0] - KF[j][0])), w = u * u * (3 - 2 * u); return KF[j][1] + (KF[j + 1][1] - KF[j][1]) * w; };
+    const nz = (x) => 0.04 * Math.sin(x * 31) + 0.028 * Math.sin(x * 57 + 1.3) + 0.02 * Math.sin(x * 83 + 0.4);
+    const NT = 48, DT = 0.055, xs = Array.from({ length: NT }, (_, i) => tt - (NT - 1 - i) * DT);
+    const vals = xs.map(x => Math.max(0.03, Math.min(0.97, h(x) + nz(x))));
+    X.grafica({ x: GX, y: GY, z: GZ, ancho: GA, alto: GH, vals, color: (i) => h(xs[i + 1]) < h(xs[i]) ? ROJ : BLANCO, tablero: 1, columnas: 0.8 });
+    // The stampede runs with the price (left when it falls: red, arms up; right when it rises), each one a little late.
+    const FILAS = [-1.75, -1.1, -0.45, 0.2], NC = 22, SW = 3.6;
+    const CR = Array.from({ length: NC }, (_, i) => { const f = i % 4, c = Math.floor(i / 4);
+      return { x: -2.35 + c * 0.9 + 0.45 * (f % 2) + 0.18 * Math.sin(i * 2.7), z: FILAS[f] + 0.12 * Math.sin(i * 1.9), lag: 0.03 + 0.2 * ((i * 0.618) % 1) }; });
+    directo = (i) => {
+      if (i >= NC) return fuera;
+      const c = CR[i], x0 = tt - c.lag, v = SW * (h(x0) - h(x0 - 0.06)) / 0.06, baja = Math.max(0, Math.min(1, -v / 2.2));
+      return Object.assign({ x: c.x + SW * (h(x0) - 0.5), z: c.z, rot: (Math.PI / 2) * Math.tanh(v / 1.1), amp: Math.min(1.25, Math.abs(v) / 2), fase: tt * 13,
+        brazos: 0.45 * baja, color2: '#f87171', c2q: 0.9 * baja }, blanco);
+    };
+    // Camera: frame 0 inside the stampede, pulling back fast; drift; push-in on the second crash; on «Half true» the stampede
+    // freezes but the camera keeps pushing in slowly up to the cut (no still frames under the split screen).
+    W.camara(...ruta([[0, [2.3, 1.85, 5.9, 0.3, 2.8, -2.2]], [1.7, [0.35, 3.0, 10.6, 0, 2.85, -1.6]], [m0, [-0.5, 3.1, 10.1, 0, 2.9, -1.6]],
+      [m0 + 0.75, [-0.15, 3.2, 8.6, 0, 3.0, -2.0]], [m1, [-0.05, 3.22, 8.3, 0, 3.0, -2.0]], [m1 + 0.9, [-0.3, 3.14, 7.2, -0.25, 2.95, -2.0]]], t));
   } else if (k === 1) {
-    const m0 = mk(0, 2.4), m1 = mk(1, 4.4), m2 = mk(2, 6.0);
+    // Marks: «fear» (the floor), «S&P» (−34%), «nearly» (the drop arrow), «About» (the climb), «it hit» (the record).
+    const mF = mk(0, 1.5), mS = mk(1, 2.2), mN = mk(2, 3.4), m1 = mk(3, 6.1), m2 = mk(4, 7.15);
     const N = SP20.length, IT = SP20.indexOf(Math.min(...SP20)), vals = SP20.map(v => v / 3500);
-    const hasta = IT * sale(tramo(t, e.ini + 0.3, m0 + 0.2)) + (N - 1 - IT) * tramo(t, m1, m2);
-    const G = X.grafica({ x: GX, y: GY, z: GZ, ancho: GA, alto: GH, vals, hasta, color: (i) => i < IT ? ROJ : TQ, tablero: 1,
-      nivel: vals[0], nivelOp: 0.8 * q(m1 - 0.1, 0.4), cabeza: 1 - q(m2 + 0.6, 0.4) });
+    // Already falling on the cut and accelerating into the floor on «fear»; the climb runs from «About» to the record.
+    const hasta = IT * (0.1 + 0.9 * Math.pow(tramo(t, e.ini, mF + 0.03), 1.45)) + (N - 1 - IT) * tramo(t, m1, m2);
+    // Camera (set first: the labels and «−34%» are placed from it): tight on Feb 19, diving with the plunge; a shake on the floor;
+    // a fast pull-back that reveals the red crowd jumping back (and «−34%»); a slower drift while the drop is measured; then wide,
+    // tracking right with the climb and rising a little on the record. The plunge fills the frame instead of a quarter of the board.
+    const C = ruta([[e.ini, [-2.25, 4.75, 0.6, -2.15, 4.45, -2.6]], [Math.min(e.ini + 0.75, (e.ini + mF) / 2), [-2.0, 4.45, 1.3, -1.95, 4.15, -2.6]],
+      [mF, [-1.6, 4.2, 2.0, -1.75, 3.95, -2.6]], [mS + 0.06, [-1.2, 3.5, 4.6, -1.35, 3.3, -2.2]], [mN, [-0.8, 3.3, 6.4, -1.0, 3.15, -2.0]],
+      [m1, [0.35, 3.0, 10.0, 0.15, 2.85, -1.5]], [m2 + 0.4, [0.85, 3.25, 9.5, 0.55, 3.0, -1.6]], [e.fin, [1.0, 3.3, 9.3, 0.62, 3.05, -1.6]]], t);
+    const dF = t - mF, sacude = dF > 0 ? 0.07 * Math.exp(-dF * 7) : 0;
+    W.camara(C[0] + sacude * Math.sin(dF * 41), C[1] + sacude * Math.sin(dF * 53 + 1), C[2], C[3], C[4] + 0.5 * sacude * Math.sin(dF * 47), C[5]);
+    // Labels, line and glowing head keep about the same size on screen while the camera travels from ~3 m to ~12 m.
+    const dC = W.cam.position.distanceTo(new W.T.Vector3(-1.8, 4.0, GZ)), sc = Math.min(1, Math.max(0.42, dC / 10));
+    const G = X.grafica({ x: GX, y: GY, z: GZ, ancho: GA, alto: GH, vals, hasta, color: (i) => i < IT ? ROJ : TQ, tablero: 1, grosor: 0.065 * Math.max(0.7, sc),
+      nivel: vals[0], nivelOp: 0.8 * q(mN - 0.05, 0.35), cabeza: (1 - q(m2 + 0.6, 0.4)) * Math.max(0.5, sc) });
     const P0 = G(0), PT = G(IT), PN = G(N - 1);
-    W.rotulo('f19', 'Feb 19 · 3,386', P0[0] + 0.62, P0[1] + 0.4, P0[2] + 0.1, 1, BLANCO, 0.34);
-    W.rotulo('m23', 'Mar 23 · 2,237', PT[0] + 0.2, PT[1] - 0.42, PT[2] + 0.1, q(m0 - 0.05, 0.3), ROJ, 0.34);
-    W.rotulo('a18', 'Aug 18 · 3,390', PN[0] - 0.62, PN[1] + 0.4, PN[2] + 0.1, q(m2 - 0.05, 0.3), TQ, 0.34);
-    // Panic during the plunge (red, shaking), calm on the way up, arms up on the record.
-    const panico = q(e.ini + 0.3, 0.6) * (1 - q(m1 + 0.2, 0.9)), fiesta = q(m2, 0.35);
-    directo = (i) => i < PUB.length ? Object.assign({ x: PUB[i][0] + 0.05 * panico * Math.sin(t * 13 + i), z: PUB[i][1],
+    W.rotulo('f19', 'Feb 19 · 3,386', P0[0] + 0.62 * sc, P0[1] + 0.4 * sc, P0[2] + 0.1, 1, BLANCO, 0.34 * sc);
+    W.rotulo('m23', 'Mar 23 · 2,237', PT[0] + 0.2 * sc, PT[1] - 0.42 * sc, PT[2] + 0.1, Math.min(1, 1.3 * bote(mF - 0.02, 0.3)), ROJ, 0.34 * sc);
+    W.rotulo('a18', 'Aug 18 · 3,390', PN[0] - 0.62 * sc, PN[1] + 0.4 * sc, PN[2] + 0.1, q(m2 - 0.05, 0.3), TQ, 0.34 * sc);
+    // «nearly 34%»: a red arrow from the Feb 19 level down to the floor (it goes before the climb passes there); «−34%» sits right of it.
+    const FX = PT[0] + 0.16;
+    X.flecha({ x: FX, z: GZ + 0.04, y0: P0[1], y1: PT[1] + 0.03, q: sale(tramo(t, mN - 0.05, mN + 0.4)) * (1 - tramo(t, m1 - 0.25, m1 + 0.05)) });
+    const A = W.pantalla(FX, (P0[1] + PT[1]) / 2, GZ), cont = document.querySelector('.escena[data-n="1"] .contador');
+    if (cont) { cont.style.left = Math.round(A.x + 42) + 'px'; cont.style.top = Math.round(A.y) + 'px'; }
+    // The crowd jumps back in red when the tape hits the floor, then shakes in panic; calm on the way up, arms up on the record.
+    const panico = q(mF - 0.04, 0.25) * (1 - q(m1 + 0.2, 0.9)), fiesta = q(m2, 0.35), atras = sale(tramo(t, mF, mF + 0.45)) * (1 - q(m1, 1.2));
+    const salto = (i) => Math.sin(Math.PI * tramo(t, mF + 0.02 + 0.012 * i, mF + 0.5 + 0.012 * i));
+    directo = (i) => i < PUB.length ? Object.assign({ x: PUB[i][0] + 0.05 * panico * Math.sin(t * 13 + i), z: PUB[i][1] + 0.3 * atras,
       rot: Math.PI + 0.14 * Math.sin(i * 2.3) + 0.3 * panico * Math.sin(t * 5 + i * 1.7), amp: 0,
-      brazos: 0.22 * panico * (1 + Math.sin(t * 9 + i * 2)) + 0.8 * fiesta * (0.85 + 0.15 * Math.sin(t * 8 + i)),
+      brazos: Math.min(1, 0.22 * panico * (1 + Math.sin(t * 9 + i * 2)) + 0.75 * salto(i) + 0.8 * fiesta * (0.85 + 0.15 * Math.sin(t * 8 + i))),
       color2: '#f87171', c2q: 0.85 * panico }, blanco) : fuera;
-    despues.push(() => PUB.forEach((_, i) => { W.gente[i].g.rotation.z = (0.04 + 0.08 * panico) * Math.sin(t * (2.6 + 4 * panico) + i * 1.3); }));
-    camLerp(CAM01b, [0, 3.0, 10.1, 0, 2.85, -1.5], p);
+    despues.push(() => PUB.forEach((_, i) => { const g = W.gente[i].g; g.rotation.z = (0.04 + 0.08 * panico) * Math.sin(t * (2.6 + 4 * panico) + i * 1.3); g.position.y = 0.3 * salto(i); }));
   } else if (k === 2) {
     const BX = 0.25, BZ = -0.9;
     X.balanza({ x: BX, z: BZ, esc: 1.3, incl: 0.04 * Math.sin(t * 1.7) });
@@ -493,7 +608,7 @@ const TRES = function (t, k, s, e, W) {
       const x0 = -1.7 + (i % 5) * 0.85, z0 = 0.35 + Math.floor(i / 5) * 0.75, x1 = lado * (3.9 + 0.3 * (i % 3)), z1 = z0 - 0.4;
       return Object.assign({ x: x0 + (x1 - x0) * u, z: z0 + (z1 - z0) * u, rot: Math.atan2(x1 - x0, z1 - z0), amp: u > 0.01 && u < 0.99 ? 1 : 0, fase: t * 7, esc: 1 - tramo(u, 0.88, 1) }, blanco); };
     W.heroe({ x: -0.75, z: 1.25, gira: Math.PI - 0.45, luz: 0.6 + 0.3 * q(e.ini + 0.6, 0.5) });
-    camLerp([0.15, 2.4, 10.0, 0.15, 2.0, -0.9], [0.15, 2.35, 9.5, 0.15, 2.0, -0.9], p);
+    camLerp([-0.55, 2.55, 10.6, 0.15, 2.0, -0.9], [0.5, 2.25, 8.9, 0.15, 2.0, -0.9], p);   // push-in with a sideways arc
   } else if (k === 3) {
     const m0 = mk(0, 0.1), m1 = mk(1, 1.0), m2 = mk(2, 4.0), m3 = mk(3, 4.9);
     const BX = 0, BZ = -0.9, NB = 9, D = 0.32;
@@ -504,9 +619,12 @@ const TRES = function (t, k, s, e, W) {
     W.rotulo('x190', '≈ ×190', B.tope[0] - 0.95, B.tope[1] - 0.2, B.tope[2] + 0.3, Math.min(1, 1.4 * bote(m2 + 0.15, 0.35)), TQ, 0.42);
     W.rotulo('eps', 'PROFITS', B.tope[0], B.tope[1] + 0.32, B.tope[2] + 0.3, Math.min(1, 1.4 * bote(m0 + 0.2, 0.3)) * (1 - q(m2 - 0.2, 0.3)), TQ, 0.3);
     W.heroe({ x: -1.6, z: 0.6, gira: 1.1, luz: 0.85 });
-    // Close on the balance; when the bar card comes in, the camera rises so the card sits under the scale.
-    const sube = sale(tramo(t, m3 - 0.3, m3 + 0.6));
-    camLerp(mezcla([0, 2.3, 9.0, 0, 1.9, -0.9], [0, 2.3, 8.7, 0, 1.92, -0.9], Math.min(1, s / 4)), [0, 3.1, 10.8, 0, 1.65, -0.9], sube);
+    // Camera on a spline that never stops: push-in on the falling blocks; when the bar card comes in it rises so the card sits under
+    // the scale; then, while the bar fills (≈ 9/10, then the amber 1/10), it keeps pushing in (about a quarter closer) and orbits ~12° more around the
+    // balance up to the cut (the last keyframe lies after the cut, so it is still moving there).
+    W.camara(...ruta([[e.ini, orbita([0, 2.35, 9.6, 0, 1.9, -0.9], 0)], [e.ini + 4, orbita([0, 2.3, 8.6, 0, 1.92, -0.9], -0.1)],
+      [m3 - 0.3, orbita([0, 2.3, 8.2, 0, 1.95, -0.9], -0.15)], [m3 + 0.6, orbita([0, 3.1, 10.8, 0, 1.65, -0.9], -0.2)],
+      [e.fin + 0.8, orbita([0, 2.75, 7.6, 0, 2.0, -0.9], -0.4)]], t));
   } else if (k === 4) {
     const m0 = mk(0, 1.0), m1 = mk(1, 2.4), m2 = mk(2, 4.8);
     const SX = -1.08, CX = 1.2;   // slot machine far enough right for its amber frame to close inside the shot
@@ -520,7 +638,7 @@ const TRES = function (t, k, s, e, W) {
     const cae = q(m2, 0.4);
     directo = (i) => i === 0 ? { x: SX + 0.88, z: 0.35, rot: -Math.PI / 2 - 0.25, amp: 0, brazos: (1 - cae) * (0.55 + 0.35 * Math.sin(t * 7)), color: '#f87171', cq: 0.7 * (1 - cae), brillo: 0.2 } : fuera;
     W.heroe({ x: 0.45, z: 0.65, gira: 1.2, luz: 0.5 + 0.5 * q(m1 - 0.1, 0.4) });
-    camLerp([0, 2.0, 9.0, 0, 1.15, -0.3], [0, 1.98, 8.6, 0, 1.15, -0.3], p);
+    W.camara(...orbita(mezcla([0, 2.05, 9.5, 0, 1.15, -0.3], [0, 1.95, 8.4, 0, 1.15, -0.3], p), 0.1 - 0.2 * p));   // push-in with a slow orbit
   } else if (k === 5) {
     const m0 = mk(0, 2.4), m1 = mk(1, 4.6);
     const UX = -1.1, UZ = -0.2, BX = 1.05, BZ = -0.45;
@@ -541,7 +659,7 @@ const TRES = function (t, k, s, e, W) {
     const quieta = q(m1, 0.5), ultimo = t - (tB(NB - 1) + 0.35);
     const fin = ultimo > 0 ? Math.exp(-ultimo * 6) * Math.sin(ultimo * 16) * 0.2 : 0;
     X.balanza({ x: BX, z: BZ, esc: 0.56, ry: -0.8, n, cae: 2.0, incl: 0.85 + osc * (1 - quieta) + fin });
-    camLerp([0, 1.95, 8.4, 0, 1.05, -0.4], [0, 1.92, 8.1, 0, 1.05, -0.4], p);
+    camLerp([0, 2.05, 8.9, 0, 1.05, -0.4], [0, 1.85, 7.9, 0, 1.05, -0.4], p);   // straight push-in (the split screen stays on the centre line)
   } else {
     const m0 = mk(0, 1.8), m1 = mk(1, 3.6);
     const CHX = -0.85, CHY = 1.3, CHZ = -3.4, vals = VR(0.2, 36);
@@ -554,7 +672,7 @@ const TRES = function (t, k, s, e, W) {
     // Balance, hero and camera shifted so the right pan stays left of x≈900 px (Instagram's buttons start at x≈940).
     X.balanza({ x: 1.1, z: -0.45, esc: 0.6, n: 7, incl: 0.85 });
     W.heroe({ x: 0.55, z: 0.55, gira: -0.25, luz: 1 });
-    camLerp([0.3, 3.3, 11.2, 0.25, 1.9, -1.2], [0.3, 3.35, 11.7, 0.25, 1.92, -1.2], p);
+    W.camara(...orbita(mezcla([0.3, 3.0, 10.6, 0.25, 1.9, -1.2], [0.3, 3.6, 12.2, 0.25, 1.92, -1.2], p), 0.1 - 0.2 * p));   // crane up and pull back, orbiting
   }
   W.multitud(t, { directo });
   despues.forEach(f => f());
