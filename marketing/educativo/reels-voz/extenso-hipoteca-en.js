@@ -165,7 +165,7 @@ const CSS = `
   .rt { position: absolute; left: 50%; top: 1390px; padding: 10px 28px 14px; border-radius: 20px; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
     color: #fff; font-size: 58px; line-height: 1.12; font-weight: 900; letter-spacing: -.015em; white-space: nowrap; opacity: 0; font-variant-numeric: tabular-nums;
     box-shadow: 0 10px 40px rgba(0,0,0,.45); text-align: center; }
-  .rt.p { font-size: 46px; } .rt.g { font-size: 76px; } .rt.amb { border-color: #f5b94a; } .rt.roja { border-color: #f87171; } .rt.turq { border-color: #5eead4; }
+  .rt.p { font-size: 46px; } .rt.r48 { font-size: 48px; } .rt.g { font-size: 76px; } .rt.amb { border-color: #f5b94a; } .rt.roja { border-color: #f87171; } .rt.turq { border-color: #5eead4; }
   .rt .a { color: #f5b94a; } .rt .r { color: #f87171; } .rt .t { color: #5eead4; } .rt small { display: block; font: 700 26px/1.5 ${MONO}; letter-spacing: .08em; color: #cbd5e1; }
   .nota { position: absolute; left: 70px; top: 1505px; max-width: 820px; font: 600 24px/1.32 ${MONO}; color: #b6c2d4; background: rgba(7,11,22,.8);
     border-radius: 10px; padding: 6px 14px; opacity: 0; }
@@ -418,7 +418,7 @@ const ESCENAS = [
         <div class="f"><span>Interest rate</span><b>6.500%</b></div>
         <div class="f"><span>Payment due</span><b>$1,896.20</b></div>
         <div class="f pp"><span>Prepayment penalty</span><b>_____</b></div></div>
-      ${rt('turq', '<span class="t">−$61,000</span> · 4 YEARS SOONER')}`,
+      ${rt('turq r48', '<span class="t">−$61,000</span> · 4 YEARS SOONER')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.9, m2 = M[2] != null ? M[2] : 5.4, g = e.seg[0];
       const tpp = g.res[0] ? g.res[0].ini : 0.8, c = el.querySelector('.ext'), ent = sale(tramo(s, 0, 0.5)), va = suave(tramo(s, m0 + 0.35, m0 + 0.95));
       c.style.opacity = Math.min(1, ent * 1.4) * (1 - tramo(s, m0 + 0.8, m0 + 0.95));
@@ -583,7 +583,7 @@ const TRES = function (t, k, s, e, W) {
     // the first «+$100» goes in at m0 − 0.3; then 21 beats between m0 and m1 − 0.15
     const NB = 21, tb = (i) => m0 + (m1 - 0.15 - m0) * Math.pow(i / (NB - 1), 0.62);
     const ent = tramo(s, m0 - 0.35, m0 - 0.05);
-    if (ent < 1) { const p = mezcla(mp, DESTW, suave(ent)); p[1] += 0.3 * Math.sin(PI * ent); X.cien({ x: p[0], y: p[1], z: p[2] + 0.1, ry: 0.2 * Math.sin(s * 3), esc: 1 - 0.3 * ent }); }
+    if (ent < 1) { const p = mezcla(mp, DESTW, suave(ent)); p[1] += 0.3 * Math.sin(PI * ent); X.cien({ x: p[0], y: p[1] + 0.15 * (1 - ent), z: p[2] + 0.1, ry: 0.2 * Math.sin(s * 3), esc: 1 - 0.3 * ent }); }
     if (s > m0 - 0.05 && s < m0 + 0.3) X.halo({ x: DESTW[0], y: DESTW[1], z: 0.5, esc: 2.4, op: 0.6 * Math.sin(PI * tramo(s, m0 - 0.05, m0 + 0.3)), color: TQ });
     let quedan = 128;
     for (let i = 0; i < NB; i++) {
@@ -612,7 +612,7 @@ const TRES = function (t, k, s, e, W) {
     }
     const sig = (x) => [hxA(x) + 0.05, 1.9 + 0.05 * x, HZ + 6.3 + 0.1 * x, hxA(x) + 0.3, 1.6, HZ - 0.15 * x / TA];   // camera on the walking mannequin
     cam(ruta(orden([[0, sig(0)], [TA * 0.5, sig(TA * 0.5)], [m0 - 0.3, sig(TA)], [m1 - 0.2, orbita([0.7, 2.3, 10.8, 0.7, 1.45, 0], 0.25)],
-      [m1 + 0.8, [2.0, 5.0, 9.4, 1.5, 1.25, 0]], [m2 + 0.2, [0.1, 1.5, 7.4, 0.1, 0.35, 1.75]], [D + 0.5, [-0.2, 1.05, 6.4, -0.1, 0.3, 1.75]]]), s));
+      [m1 + 0.8, [2.0, 5.0, 9.4, 1.5, 1.25, 0]], [m2 + 0.2, [0.1, 1.3, 9.4, 0.1, 1.0, 1.75]], [D + 0.5, [-0.2, 1.15, 8.8, -0.1, 0.95, 1.75]]]), s));
   } else {
     // ——— close: the statement card (2D) over the dimmed houses; then the 6.5% drum drops in front of the red house and the 21
     //     blocks fall back on (107 → 128): «the rate builds the second house»; on {pop} turquoise blocks go into the white house
@@ -627,11 +627,11 @@ const TRES = function (t, k, s, e, W) {
       if (w > 0) { if (w >= 1) return null; const a = (j * 2.4) % (2 * PI); return rojoB({ dx: 2.6 * Math.cos(a) * w + 1.2 * w, dy: 3 * Math.sin(PI * Math.min(1, w * 1.3)) - 4 * w * w, dz: 2.4 * Math.abs(Math.sin(a)) * w, rx: 6 * w, rz: 4 * w, op: 1 - tramo(w, 0.7, 1) }); }
       return rojoB({ dy: 6 * (1 - u * u) });
     } });
-    if (s > m1 - 0.1) { const ud = tramo(s, m1 - 0.1, m1 + 0.3); X.dial({ x: RX - 0.25, y: 2.4 * (1 - ud * ud), z: 1.8, esc: 0.8 * (1 - sale(tramo(s, m2 + 0.05, m2 + 0.4))), num: 0, rueda: 0.3 * Math.sin(s * 9) * (1 - tramo(s, m1 + 0.2, m1 + 0.7)), turq: 0 }); }
+    if (s > m1 - 0.1) { const ud = tramo(s, m1 - 0.1, m1 + 0.3); X.dial({ x: RX - 0.25, y: 2.4 * (1 - ud * ud), z: 1.8, esc: Math.max(0.001, 0.8 * (1 - sale(tramo(s, m2 + 0.05, m2 + 0.4)))), num: 0, rueda: 0.3 * Math.sin(s * 9) * (1 - tramo(s, m1 + 0.2, m1 + 0.7)), turq: 0 }); }
     for (let i = 0; i < 5; i++) { const v = tramo(s, m2 - 0.35 + 0.05 * i, m2 - 0.05 + 0.05 * i); if (v > 0 && v < 1) { const p = mezcla([WX - 1.4 + 0.3 * i, 1.6, 2.2], [WX - 0.8 + 0.4 * i, 0.4, 0.4], suave(v)); X.bloque({ x: p[0], y: p[1] + 0.5 * Math.sin(PI * v), z: p[2], w: 0.22, h: 0.22, d: 0.22, color: '#2dd4bf', brillo: 0.5, ry: 4 * v }); } }
     if (s > m2 && s < m2 + 0.5) X.halo({ x: RX + 1.4, y: 1.4, z: 0.6, esc: 4, op: 0.5 * Math.sin(PI * tramo(s, m2, m2 + 0.5)), color: '#fca5a5' });
     cam(ruta(orden([[0, orbita([0.5, 2.3, 12.4, 0.5, 1.6, 0], 0.35)], [m0 + 0.9, orbita([0.6, 2.2, 11.0, 0.6, 1.5, 0], 0.15)], [m1 + 0.2, orbita([0.8, 2.5, 11.6, 0.8, 1.45, 0], -0.05)],
-      [m2, orbita([0.7, 2.4, 11.3, 0.7, 1.5, 0], -0.22)], [D + 0.6, orbita([0.6, 2.8, 13.0, 0.6, 1.6, 0], -0.38)]]), s));
+      [m2, orbita([0.7, 2.4, 11.3, 0.7, 1.5, 0], -0.22)], [D + 0.6, orbita([0.4, 2.8, 13.4, 0.4, 1.6, 0], -0.32)]]), s));
   }
   W.multitud(t, { directo });
 };
