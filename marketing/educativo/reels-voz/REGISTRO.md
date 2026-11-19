@@ -51,6 +51,7 @@ Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuent
 | 30 days to get your money in order | Day 2: charges that repeat, cancel one (`en-reto-02`) | 14 nov 2026, ~18:30 NY (programado) | What one hour of your work is really worth |
 | Money, explained | Gas stations barely make money on gas… or do they? (`en-curious-gas-stations`) | 15 nov 2026, ~18:00 NY (programado) | — |
 | Money, explained (extenso) | Saving and investing aren’t two goals, they’re one plan (`en-save-invest-one-plan`, 62 s) | 15 nov 2026, ~11:00 NY (programado) | — |
+| Money, explained | A $300,000 mortgage at 6.5% costs $382,633 in interest; at 3%, $155,332 (`en-mortgage-rate`, 40,6 s; gancho visual: la casa de intereses crece y supera a la del préstamo; tipo de Freddie Mac con su fecha, 12-11, nunca «this week»; guion en `guiones/2026-11-en-mortgage-rate.md`) | 21 nov 2026, 11:09 NY (programado; Facebook 11:21) | — |
 | Money, explained (extenso) | That $35,000 car really costs $47,302: mira la casilla «Total of Payments» (`en-car-84-months`, 50,7 s; gancho visual: la etiqueta del coche se hincha mes a mes; guion en `guiones/2026-11-en-car-84-months.md`) | 20 nov 2026, 11:13 NY (programado; Facebook 11:34) | — |
 | 30 days to get your money in order | Chapter 3: these $150 sneakers don’t cost $150, they cost 6.5 hours (`en-reto-03`, 39,9 s; gancho visual: la etiqueta se vuelve reloj; guion en `guiones/2026-11-en-reto-03.md`) | 19 nov 2026, 11:19 NY (programado; Facebook 11:42) | — (sin anunciar el siguiente; el día va solo en el pie del texto) |
 
