@@ -659,9 +659,10 @@ const pildoras = {
     slug: 'en-car-84-months', cuenta: 'en',
     T: { en: { titulo: 'That $35,000 car really costs $47,302', guion: GUION } },
     // Narrator voice of reto-en.js / extenso-en.js, slower than theirs (default tempo 1.17), as the US study asks (≈ 2.6–3 words/s):
-    // tempo 1.05 and pauses up to 0.4 s. With the script's 1.0, ritmo.py measured 2.51 words/s (it counts «$47,302» as one word),
-    // under the 2.6–3.2 target; 1.05 brings it into range (≈ 3.0 spoken words/s).
-    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.05, pausaMax: 0.4 } },
+    // tempo 1.0 (the script's value) and pauses up to 0.4 s. ritmo.py measures ≈ 2.5 words/s because Whisper writes «$35,000»,
+    // «$47,302», «$12,000» and «$3,700» as one word each; counting the words actually spoken (141) it is ≈ 2.8–2.9 words/s.
+    // (The 18-nov render used 1.05: ≈ 3.0 spoken words/s and 48.5 s; the 19-nov review asked to go back to 1.0.)
+    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.0, pausaMax: 0.4 } },
     fijo: () => `<div class="hud i fmt">MONEY, EXPLAINED</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT + SCRIPT2,
     escenas: ESCENAS, tres: TRES,

@@ -22,6 +22,10 @@
 // Compared with the script, only § marks were added or given a sound (they are not read and don't change the voice takes):
 // line 6 «§{whoosh}Those sneakers?» (the cut back to the frame-0 framing). Voice: VOZ_NARRADOR.en (same voice and prompt),
 // with less speed-up (tempo, see VOZ_R3) so it lands in 2.6–3 words/s, as the script asks.
+// v2 (19 Nov 2026, review of 18 Nov; same voice takes and words): the scene-4 card says «$1,032 ÷ 44 h 34 min ≈ $23.15» (with the
+// rounded $1,032 the division gives $23.156; $23.15 is exact with $1,031.84); «+4 h 34 min UNPAID» comes in 0.4 s later and 0.3 m
+// lower; the block shots are framed so the «?» slot stays inside 80 % of the width; the hook counter comes in at 1 (never 0); and
+// line 6 opens straight down on the ring of hours, with $23.15/h popping on «your real hour» and a swoop to a low view.
 const { pildora3d, hud, finSerie } = require('./tres');
 const { pildoras: ES } = require('./reto-es');
 const { cuadra } = require('../reels/_comun');
