@@ -553,8 +553,8 @@ function esc2(W, X, s, Dv, mk, res) {
   }
   if (s > tS0 - 0.05 && s < tS1 + 0.1) X.escaner({ x: xs, z: 0 });
   const lab = qq(s, m0 + 0.3, 0.3) * (1 - tramo(s, m2 - 0.2, m2));
-  W.rotulo('o28', '28 OCT', xCol(0), 1.9, 0, lab, '#94a3b8', 0.2); W.rotulo('n26', '26 NOV', xCol(29), 1.9, 0, lab, '#94a3b8', 0.2);
-  W.rotulo('ej', 'EJEMPLO', xCol(3), 2.3, 0, lab, '#94a3b8', 0.18);
+  W.rotulo('o28', '28 OCT', xCol(0) + 0.2, 1.95, 0, lab, '#94a3b8', 0.27); W.rotulo('n26', '26 NOV', xCol(29) - 0.2, 1.95, 0, lab, '#94a3b8', 0.27);
+  W.rotulo('ej', 'EJEMPLO', xCol(3) + 0.3, 2.4, 0, lab, '#94a3b8', 0.22);
   W.rotulo('n1820', '18–20 NOV', xCol(22), hCol(99) + 0.28, 0.1, qq(s, tS0 + 1.0, 0.25) * (1 - tramo(s, m2 - 0.2, m2)), '#f5b94a', 0.2);
   // El 99 sube a la etiqueta; la pegatina 199 se cae y la insignia gira a 0 %.
   const tL = Math.min(m1 + 2.05, m2 - 0.2), tF = tL - 0.7;
@@ -570,7 +570,8 @@ function esc2(W, X, s, Dv, mk, res) {
     // La pantalla enseña la etiqueta en miniatura (se enciende mientras la de verdad encoge y entra) y las 30 barras.
     X.movil({ x: PM[0], y: PM[1], z: PM[2], ry: gH, rx: -0.12, esc: suave(tramo(s, m2 - 0.3, m2)), pant: { tipo: 'escaneo', u: tramo(s, m2 + 0.55, m2 + 1.35), eti: 0.35 + 0.65 * tramo(s, m2 + 0.2, m2 + 0.5) } });
   }
-  if (s < m2 + 0.5) {
+  // La etiqueta no se dibuja hasta que empieza a bajar (en el plano general de la fila asomaba por arriba, sobre el HUD).
+  if (s > m1 + 0.45 && s < m2 + 0.5) {
     const C0 = [G2.PX, G2.PY - 0.95, G2.PZ], Q = [PM[0], PM[1] + 0.02, PM[2] + 0.03], c = mezcla(C0, Q, encoge);
     const baja = 2.6 * Math.pow(1 - sale(tramo(s, m1 + 0.55, m1 + 1.05)), 2);
     X.etiqueta(Object.assign({}, sway, { x: c[0], y: c[1] + 0.95 * escE + baja, z: c[2], ry: lerp(sway.ry, gH, encoge), esc: escE, peg: { r199: s < tL ? 1 : 0, a99: s >= tL ? 1 : 0 }, pegEsc: { a99: pop },
