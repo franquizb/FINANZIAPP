@@ -152,6 +152,15 @@
     "dia": 2,
     "fotograma_ms": 6800
   },
+  "en-reto-03": {
+    "titulo": "These $150 sneakers cost 6.5 hours",
+    "destacado": "6.5 hours",
+    "color": "rojo",
+    "serie": "reto",
+    "dia": 3,
+    "fotograma_ms": 2000,
+    "encuadre_y": 640
+  },
   "en-gas-nine-tenths": {
     "titulo": "Why gas prices end in 9/10¢",
     "destacado": "9/10¢",
@@ -262,6 +271,15 @@
     "dia": 6,
     "fotograma_ms": 1800
   },
+  "es-reto-07": {
+    "titulo": "Esa camiseta de 15 € puede salirte más cara",
+    "destacado": "más cara",
+    "color": "rojo",
+    "serie": "reto",
+    "dia": 7,
+    "fotograma_ms": 2600,
+    "encuadre_y": 560
+  },
   "es-iva-sobre-impuesto": {
     "titulo": "La rebaja de ~20~ 24 céntimos",
     "destacado": "24 céntimos",
@@ -312,5 +330,30 @@
     "serie": "hacemos-la-cuenta",
     "fotograma_ms": 26600,
     "encuadre_y": 760
+  },
+  "en-car-84-months": {
+    "titulo": "That $35,000 car really costs $47,302",
+    "destacado": "$47,302",
+    "color": "rojo",
+    "serie": "money-explained",
+    "etiqueta": "Car loans",
+    "fotograma_ms": 39300
+  },
+  "es-black-friday-30-dias": {
+    "titulo": "Rebaja del ~50 %~ 0 %",
+    "destacado": "0 %",
+    "color": "ambar",
+    "serie": "pildora",
+    "etiqueta": "Tus derechos",
+    "fotograma_ms": 30700,
+    "encuadre_y": 480
+  },
+  "es-agricultor": {
+    "titulo": "Pagas 1,73 €. Al campo llegan 0,28",
+    "destacado": "0,28",
+    "color": "ambar",
+    "serie": "hacemos-la-cuenta",
+    "fotograma_ms": 33600,
+    "encuadre_y": 640
   }
 }
