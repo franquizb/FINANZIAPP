@@ -151,13 +151,14 @@ const GUION = [
 const MONO = `'DejaVu Sans Mono', 'Liberation Mono', monospace`;
 const CSS = `
   .hud.i.fmt { letter-spacing: .14em; }
-  .rt { position: absolute; left: 50%; top: 1350px; padding: 10px 30px 15px; border-radius: 20px; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
+  .rt { position: absolute; left: 50%; top: 1335px; padding: 10px 30px 15px; border-radius: 20px; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
     color: #fff; font-size: 64px; line-height: 1.1; font-weight: 900; letter-spacing: -.015em; white-space: nowrap; opacity: 0; font-variant-numeric: tabular-nums;
     box-shadow: 0 10px 40px rgba(0,0,0,.45); }
   .rt.p { font-size: 52px; } .rt.pp { font-size: 46px; } .rt.amb { border-color: #f5b94a; } .rt.roja { border-color: #f87171; } .rt.turq { border-color: #5eead4; }
   .rt .a { color: #f5b94a; } .rt .r { color: #f87171; } .rt .t { color: #5eead4; }
-  .nota { position: absolute; left: 70px; top: 1478px; max-width: 820px; font: 600 24px/1.32 ${MONO}; color: #b6c2d4; background: rgba(7,11,22,.8);
-    border-radius: 10px; padding: 6px 14px; opacity: 0; }
+  /* Notas de fuente: una sola línea, por encima de los 1.500 px (debajo, Instagram pinta el usuario y el texto). */
+  .nota { position: absolute; left: 70px; top: 1450px; margin: 0; max-width: 850px; font: 600 22px/1.3 ${MONO}; color: #b6c2d4; background: rgba(7,11,22,.8);
+    border-radius: 10px; padding: 5px 14px; opacity: 0; white-space: nowrap; }
 `;
 
 // Mundo 3D propio (se añade al de tres.js): estantería, malla de patatas, bloques de la etiqueta-columna, carretera con las
@@ -366,7 +367,8 @@ const X3 = (() => {
   const geoR = new T.CylinderGeometry(RL + 0.012, RL + 0.012, 1, 44);
   const mRA = mat(AMBH, { emissive: AMBH, emissiveIntensity: 0.35 }), mRR = mat(ROJOH, { emissive: ROJOH, emissiveIntensity: 0.35 });
   const rellA = new T.Mesh(geoR, mRA), rellR = new T.Mesh(geoR, mRR); losG.add(rellA); losG.add(rellR);
-  const raya = new T.Mesh(new T.TorusGeometry(RL + 0.03, 0.016, 8, 60), mat(AMBH, { emissive: AMBH, emissiveIntensity: 0.9 })); losG.add(raya);
+  // Raya del Ministerio (91 %): gruesa y encendida para que se distinga del relleno de COAG (65 %).
+  const raya = new T.Mesh(new T.TorusGeometry(RL + 0.035, 0.03, 10, 64), mat(0xffd27a, { emissive: 0xffc35a, emissiveIntensity: 1.4 })); losG.add(raya);
   const ROJO_C = new T.Color(ROJOH), GRIS_L = new T.Color(0xcbd5e1);
   // o = { x, z, pos: [[dx, dy, dz, rx, rz] × 4] respecto a su sitio en la torre, roja: [0..1 × 4], relleno: 0..1 (del 65 %),
   //       rojaArriba: 0..1 (el 35 % de arriba de la losa de abajo), raya: 0..1, brillo (de lo rojo) }  → devuelve el sitio de cada losa
@@ -384,13 +386,25 @@ const X3 = (() => {
     return { sitios, HL, RL };
   }
 
-  // ——— cinta de fechas en el suelo (abril → octubre de 2026): o.mes = 0 (abril) … 6 (octubre) queda en o.x ———
-  const fechaG = grupo(), MESES = ['ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT'], PF = 0.8;
-  const fTx = lienzo(2048, 200, (x, w, h) => { x.fillStyle = 'rgba(9,14,27,.92)'; x.fillRect(0, 0, w, h); x.strokeStyle = '#475569'; x.lineWidth = 6; x.beginPath(); x.moveTo(0, h * 0.8); x.lineTo(w, h * 0.8); x.stroke();
-    MESES.forEach((m, i) => { const cx = (i + 0.5) * w / 7, k = i === 0 || i === 6; x.fillStyle = k ? '#f5b94a' : '#94a3b8'; x.font = (k ? '900 84px' : '700 64px') + ' Inter, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-      x.fillText(m + (k ? ' 2026' : ''), cx, h * 0.4); x.beginPath(); x.arc(cx, h * 0.8, k ? 16 : 10, 0, 2 * PI); x.fill(); }); }).tx;
-  const fPl = new T.Mesh(new T.PlaneGeometry(PF * 7, PF * 7 * 200 / 2048), new T.MeshBasicMaterial({ map: fTx, transparent: true, depthWrite: false, toneMapped: false })); fPl.rotation.x = -PI / 2; fechaG.add(fPl);
-  function fechas(o) { fechaG.visible = true; fechaG.position.set(o.x - ((o.mes || 0) - 3) * PF, 0.015, o.z); }
+  // ——— cinta de fechas corta y fija delante de las columnas (abril → octubre de 2026), inclinada hacia la cámara, con un punto
+  //     ámbar que recorre los meses: o.mes = 0 (abril) … 6 (octubre). Cabe entera en el cuadro y queda por encima de los rótulos 2D.
+  const fechaG = grupo(), PFW = 1.6, PFH = 0.234, FT = -PI / 2 + 0.45, FX0 = 150 / 2048, FY0 = 0.74;
+  const fTx = lienzo(2048, 300, (x, w, h) => {
+    x.fillStyle = 'rgba(9,14,27,.92)'; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 40); x.fill();
+    const y0 = h * FY0, xa = w * FX0, xb = w - w * FX0;
+    x.strokeStyle = '#64748b'; x.lineWidth = 10; x.beginPath(); x.moveTo(xa, y0); x.lineTo(xb, y0); x.stroke();
+    for (let i = 0; i < 7; i++) { const cx = xa + (xb - xa) * i / 6, k = i === 0 || i === 6; x.fillStyle = k ? '#f5b94a' : '#94a3b8'; x.beginPath(); x.arc(cx, y0, k ? 22 : 12, 0, 2 * PI); x.fill(); }
+    x.fillStyle = '#f5b94a'; x.font = '900 112px Inter, sans-serif'; x.textBaseline = 'middle';
+    x.textAlign = 'left'; x.fillText('ABR 2026', 56, h * 0.33); x.textAlign = 'right'; x.fillText('OCT 2026', w - 56, h * 0.33);
+    x.fillStyle = '#94a3b8'; x.textAlign = 'center'; x.font = '800 100px Inter, sans-serif'; x.fillText('→', w / 2, h * 0.33); }).tx;
+  const fPl = new T.Mesh(new T.PlaneGeometry(PFW, PFH), new T.MeshBasicMaterial({ map: fTx, transparent: true, depthWrite: false, toneMapped: false })); fPl.rotation.x = FT; fechaG.add(fPl);
+  function fechas(o) {
+    fechaG.visible = true; fechaG.position.set(o.x, 0.07, o.z);
+    const u = Math.max(0, Math.min(1, (o.mes || 0) / 6)), lx = (FX0 + (1 - 2 * FX0) * u - 0.5) * PFW, ly = (0.5 - FY0) * PFH;
+    const nx = 0, ny = -Math.sin(FT), nz = Math.cos(FT), px = o.x + lx, py = 0.07 + ly * Math.cos(FT) + ny * 0.012, pz = o.z + ly * Math.sin(FT) + nz * 0.012;
+    bloque(43, { x: px + nx, y: py, z: pz, w: 0.07, h: 0.02, d: 0.07, rx: FT + PI / 2, color: 0xffd27a, brillo: 1.2 });
+    destello(7, { x: px, y: py + 0.03, z: pz + 0.05, esc: 0.3, op: 0.5, color: 0xffc35a });
+  }
 
   function apagar() {
     objs.forEach(g => { g.visible = false; }); [bloques.map(b => b.o), planos, destellos, sueltas].forEach(a => a.forEach(m => { m.visible = false; }));
@@ -552,6 +566,11 @@ function gancho(W, X, tau, m0v, m1v) {
 
 // ——— escenas 1–8 ———
 const AMB = '#f5b94a', ROJO = '#f87171', BLANCO = '#e2e8f0', TURQ = '#5eead4';
+// Rótulo 3D que se pinta siempre por delante (sin prueba de profundidad): ninguna pieza lo tapa aunque la cámara gire.
+function rotuloEncima(W, clave, texto, x, y, z, op, css, alto) {
+  W.rotulo(clave, texto, x, y, z, op, css, alto);
+  for (const o of W.S.children) if (o.isSprite && o.position.x === x && o.position.y === y && o.position.z === z) { o.material.depthTest = false; o.renderOrder = 20; }
+}
 function rotuloLado(W, clave, texto, x, y, z, lado, op, css, alto) { alto = alto || 0.4; const w = W.anchoRotulo(texto) * alto / 0.352; W.rotulo(clave, texto, x + lado * w / 2, y, z, op, css, alto); }
 const eur = (v) => v.toFixed(2).replace('.', ',') + ' €';
 // Columna de trozos apilados. o = { x, y, z, vals, cols, q (crecido de cada trozo, 0..1), kc, w, d, ry, txt, br, gap, wig, t } → altura de arriba
@@ -595,10 +614,11 @@ function escena2(W, X, s, e, mk) {
   if (s < m2) {
     const pos = [0, 1, 2, 3].map(j => { const tj = 0.05 + 0.2 * j, u = tramo(s, tj, tj + 0.3), b = u >= 1 ? 0.05 * Math.sin(PI * tramo(s, tj + 0.3, tj + 0.46)) : 0; return [0, 3.4 * (1 - u * u) + b, 0, (1 - u) * 1.1, (1 - u) * 0.4]; });
     const roja = q(m1 + 0.12, 0.4);
-    const L = X.losas({ x: 0, z: 0, pos, roja: [0, roja, roja, roja], relleno: q(m1, 0.45), rojaArriba: roja, raya: q(m1 + 0.35, 0.3), brillo: 0.3 });
-    W.rotulo('cuatro', '4 × 1 €', 0, 0.62, 0.78, q(0.95, 0.3) * (1 - q(m1, 0.3)), BLANCO, 0.3);
-    W.rotulo('coag65', 'COAG', -0.28, 0.1, 0.8, q(m1 + 0.35, 0.3), AMB, 0.13);
-    W.rotulo('mapa91', 'MINISTERIO', 0.22, 0.36, 0.8, q(m1 + 0.5, 0.3), AMB, 0.13);
+    const L = X.losas({ x: 0, z: 0, pos, roja: [0, roja, roja, roja], relleno: q(m1, 0.45), rojaArriba: roja, raya: q(m1 + 0.3, 0.25), brillo: 0.3 });
+    rotuloEncima(W, 'cuatro', '4 × 1 €', 0, 0.62, 0.78, q(0.95, 0.3) * (1 - q(m1, 0.2)), BLANCO, 0.3);
+    // COAG a la altura del relleno ámbar (65 %) y MINISTERIO junto a la raya (91 %): por delante de las losas y sin fundidos largos.
+    rotuloEncima(W, 'coag65', 'COAG', -0.3, 0.12, 0.8, q(m1 + 0.25, 0.18), AMB, 0.14);
+    rotuloEncima(W, 'mapa91', 'MINISTERIO', 0.24, 0.355, 0.8, q(m1 + 0.4, 0.18), AMB, 0.14);
     const u = suave(tramo(s, 0, m2)), a = -0.55 + 1.0 * u;
     W.camara(...orbita([0, 0.75 + 0.75 * u, 4.6 - 0.5 * u, 0, 0.42, 0], a));
   } else {
@@ -688,10 +708,12 @@ function escena4(W, X, s, e, mk) {
   const SP = [0.55 * sep, yI + 0.22 * sep, 0.6 * sep];
   X.bloque(5, { x: SP[0], y: SP[1], z: SP[2], w: W4, h: Math.max(0.006, h2 - 0.012), d: D4, ry: -0.3 * sep, color: ROJOH, brillo: 0.35 + 0.45 * q(m1 - 0.05, 0.25) });
   if (sep > 0.3) X.destello(0, { x: SP[0], y: SP[1], z: SP[2] + 0.1, esc: 1.2, op: 0.2 + 0.3 * q(m1 - 0.05, 0.25), color: 0xff6b6b });
-  W.rotulo('via4', 'EL VIAJE · 1,38 €', 0, h0 + h1 * 0.68, D4 / 2 + 0.25, q(0.4, 0.3) * (1 - q(m1 - 0.2, 0.3)), ROJO, 0.17);
+  // La etiqueta va algo a la derecha del eje para que, con la cámara a la derecha, quede centrada en el cuadro.
+  W.rotulo('via4', 'EL VIAJE · 1,38 €', 0.14, h0 + h1 * 0.68, D4 / 2 + 0.25, q(0.4, 0.3) * (1 - q(m1 - 0.2, 0.3)), ROJO, 0.15);
   W.rotulo('iva4', 'IVA · 0,07 €', SP[0], SP[1] + 0.16, SP[2] + 0.1, q(m0 + 0.6, 0.3), ROJO, 0.15);
   let C;
-  if (s < m0) { const u = suave(tramo(s, 0, m0)); C = [1.0, 0.3 + 1.45 * u, 2.7, 0.05, 0.22 + 1.4 * u, 0]; }
+  // Grúa: empieza con la columna entera en cuadro (la punta por debajo de los subtítulos, ~520 px) y sube y se acerca hasta la punta.
+  if (s < m0) { const u = suave(tramo(s, 0, m0)); C = mezcla([0.45, 0.6, 4.4, 0.02, 0.82, 0], [1.0, 1.75, 2.7, 0.05, 1.62, 0], u); }
   else if (s < m1) { const u = suave(tramo(s, m0, m1)); C = mezcla([1.0, 1.75, 2.7, 0.05, 1.62, 0], [1.35, 1.6, 4.7, 0.15, 1.12, 0.1], u); }
   else { const u = sale(tramo(s, m1, D + 0.3)); C = mezcla([1.35, 1.6, 4.7, 0.15, 1.12, 0.1], [SP[0] + 0.55, SP[1] + 0.2, SP[2] + 1.55, SP[0], SP[1] - 0.05, SP[2]], u); }
   W.camara(...C);
@@ -700,7 +722,7 @@ function escena4(W, X, s, e, mk) {
 // 5 · El pico: «en abril, 61 céntimos; en octubre, menos de la mitad. Y en la tienda, solo bajó un 10 %.»
 function escena5(W, X, s, e, mk) {
   const D = e.fin - e.ini, m0 = mk(0, 0.8), m1 = mk(1, 3.3), m2 = mk(2, 5.0), q = (a, d) => sale(tramo(s, a, a + (d || 0.4)));
-  const K5 = 0.85, XC = -0.62, XT = 0.62, WC = 0.6, DC = 0.5;
+  const K5 = 0.85, XC = -0.58, XT = 0.58, WC = 0.6, DC = 0.5;
   const bC = sale(tramo(s, m1 + 0.05, m1 + 0.95)), vC = lerp(PR.oA, PR.O, bC), bT = sale(tramo(s, m2 + 0.1, m2 + 0.75)), vT = lerp(PR.dA, PR.D, bT);
   X.bloque(0, { x: XC, y: vC * K5 / 2, z: 0, w: WC, h: vC * K5, d: DC, color: AMBH, brillo: 0.3 });
   X.bloque(1, { x: XT, y: vT * K5 / 2, z: 0, w: WC, h: vT * K5, d: DC, color: BLANCOH, brillo: 0.1 });
@@ -710,12 +732,14 @@ function escena5(W, X, s, e, mk) {
   // Solo las cifras de verdad (abril y octubre): la etiqueta cambia a mitad de la bajada, sin cifras intermedias.
   W.rotulo('vC', eur(bC < 0.5 ? PR.oA : PR.O), XC, vC * K5 + 0.17, 0.28, q(m0, 0.3), AMB, 0.19);
   W.rotulo('vT', eur(bT < 0.5 ? PR.dA : PR.D), 0, vT * K5 - 0.12, 0.3, q(0.1, 0.3), BLANCO, 0.19);
-  W.rotulo('campo5', 'CAMPO', XC, 0.13, 0.42, 1, AMB, 0.14);
-  W.rotulo('tienda5', 'TIENDA', XT, 0.13, 0.42, 1, BLANCO, 0.14);
-  X.fechas({ x: 0, z: 0.62, mes: 6 * suave(tramo(s, m1 - 0.25, m1 + 0.9)) });
+  W.rotulo('campo5', 'CAMPO', XC, 0.18, 0.42, 1, AMB, 0.14);
+  W.rotulo('tienda5', 'TIENDA', XT, 0.18, 0.42, 1, BLANCO, 0.14);
+  X.fechas({ x: 0, z: 0.7, mes: 6 * suave(tramo(s, m1 - 0.25, m1 + 0.9)) });
+  // Encuadre abierto: las dos columnas, sus etiquetas y la cinta de fechas caben enteras en todo el plano (la punta de la tienda
+  // por debajo de los subtítulos y su borde derecho antes de los botones de Instagram); la cinta queda por encima de los rótulos 2D.
   let C;
-  if (s < m2) { const u = suave(tramo(s, 0, m2)); C = mezcla([-1.5, 1.45, 5.0, -0.1, 0.72, 0], [-0.75, 1.15, 4.1, -0.35, 0.6, 0], u); }
-  else { const u = sale(tramo(s, m2, D)); C = mezcla([-0.75, 1.15, 4.1, -0.35, 0.6, 0], [0.2, 1.75, 4.7, -0.05, 0.72, 0], u); }
+  if (s < m2) { const u = suave(tramo(s, 0, m2)); C = mezcla([-1.35, 1.25, 5.9, 0.05, 0.64, 0.2], [-0.75, 1.15, 5.45, -0.02, 0.62, 0.2], u); }
+  else { const u = sale(tramo(s, m2, D)); C = mezcla([-0.75, 1.15, 5.45, -0.02, 0.62, 0.2], [0.35, 1.5, 5.7, 0.1, 0.66, 0.2], u); }
   W.camara(...C);
 }
 
@@ -785,13 +809,14 @@ const ESCENAS = [
   // 1 · «SEGÚN COAG» y, en «39 céntimos», «COAG 0,28 · MINISTERIO 0,39».
   { html: () => `<div class="rt amb" data-t="translateX(-50%)">SEGÚN <span class="a">COAG</span></div>
       <div class="rt amb pp" data-t="translateX(-50%)">COAG <span class="a">0,28</span> · MINISTERIO <span class="a">0,39</span></div>
-      ${nota('COAG (organización agraria): media de octubre de 2026<br>Ministerio de Agricultura: semana del 19 al 25 oct. 2026')}`,
-    anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 2.2, m1 = M[1] != null ? M[1] : 3.2, r = el.querySelectorAll('.rt');
-      ver(r[0], s, 0.25, m1 - 0.05); ver(r[1], s, m1); ver(el.querySelector('.nota'), s, 0.4); } },
+      ${nota('COAG (organización agraria): media de octubre de 2026')}
+      ${nota('Ministerio de Agricultura: semana del 19 al 25 oct. 2026')}`,
+    anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 2.2, m1 = M[1] != null ? M[1] : 3.2, r = el.querySelectorAll('.rt'), n = el.querySelectorAll('.nota');
+      ver(r[0], s, 0.25, m1 - 0.05); ver(r[1], s, m1); ver(n[0], s, 0.4, m0 - 0.05); ver(n[1], s, m0); } },
   // 2 · «NI 1 DE CADA 4 €» en el «ding»; «¿Y EL RESTO?» en la pregunta.
   { html: () => `<div class="rt amb" data-t="translateX(-50%)">NI <span class="a">1</span> DE CADA 4 €</div>
       <div class="rt roja" data-t="translateX(-50%)">¿Y EL <span class="r">RESTO</span>?</div>
-      ${nota('De cada 4 € en patatas, al campo: 0,65 € según COAG<br>y 0,91 € según el Ministerio')}`,
+      ${nota('De cada 4 €, al campo: 0,65 € (COAG) · 0,91 € (Ministerio)')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m1 = M[1] != null ? M[1] : 3.0, m2 = M[2] != null ? M[2] : 4.6, r = el.querySelectorAll('.rt');
       ver(r[0], s, m1 + 0.05, m2 - 0.05); ver(r[1], s, m2 + 0.25); ver(el.querySelector('.nota'), s, m1 + 0.4, m2 - 0.05); } },
   // 3 · El viaje: un rótulo por parada.
@@ -805,14 +830,15 @@ const ESCENAS = [
       ver(r[0], s, t0, t1 - 0.1); ver(r[1], s, t1 - 0.05, m1); ver(r[2], s, m1 + 0.05, m2); ver(r[3], s, m2 + 0.05, m3); ver(r[4], s, m3 + 0.05); } },
   // 4 · «IVA 4 % ≈ 0,07 €» en la «caja».
   { html: () => `<div class="rt roja" data-t="translateX(-50%)">IVA 4 % ≈ <span class="r">0,07 €</span></div>
-      ${nota('Ley 37/1992, art. 91: IVA del 4 % para<br>frutas, verduras, hortalizas y tubérculos')}`,
+      ${nota('Ley 37/1992, art. 91: IVA del 4 % en hortalizas y tubérculos')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.3, m1 = M[1] != null ? M[1] : 3.0;
       ver(el.querySelector('.rt'), s, m1 + 0.05); ver(el.querySelector('.nota'), s, m1 + 0.2); } },
   // 5 · «SEGÚN COAG»; «CAMPO: −54 %» en «menos de la mitad»; «TIENDA: −10 %» en «un 10 %» (los dos se quedan: la portada).
-  { html: () => `<div class="rt amb p" data-t="translateX(-50%)">SEGÚN <span class="a">COAG</span></div>
-      <div class="rt amb" data-t="translateX(-50%)" style="top:1335px">CAMPO: <span class="a">−54 %</span></div>
-      <div class="rt" data-t="translateX(-50%)" style="top:1445px">TIENDA: −10 %</div>
-      ${nota('COAG, índice de precios en origen y destino:<br>patata, abril y octubre de 2026 (€/kg)')}`,
+  // Los dos rótulos caben por encima de 1.500 px (la cinta de fechas y las columnas quedan por encima de 1.300).
+  { html: () => `<div class="rt amb p" data-t="translateX(-50%)" style="top:1310px">SEGÚN <span class="a">COAG</span></div>
+      <div class="rt amb p" data-t="translateX(-50%)" style="top:1310px">CAMPO: <span class="a">−54 %</span></div>
+      <div class="rt p" data-t="translateX(-50%)" style="top:1408px">TIENDA: −10 %</div>
+      ${nota('COAG, precios en origen y destino: patata, abr. y oct. 2026')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, R = e.seg[0].res, r = el.querySelectorAll('.rt');
       const m1 = M[1] != null ? M[1] : 3.3, m2 = M[2] != null ? M[2] : 5.0, tM = R[1] ? R[1].ini : m1 + 0.6, tD = R[2] ? R[2].ini : m2 + 1.0;
       ver(r[0], s, 0.2, tM - 0.05); ver(r[1], s, tM); ver(r[2], s, tD); ver(el.querySelector('.nota'), s, 0.3, tD - 0.05); } },
@@ -822,7 +848,7 @@ const ESCENAS = [
   // 7 · «PRECIO POR KILO» y, en «que es obligatorio», «PRECIO POR KILO · OBLIGATORIO».
   { html: () => `<div class="rt turq" data-t="translateX(-50%)">MIRA EL <span class="t">€/KG</span></div>
       <div class="rt turq" data-t="translateX(-50%)"><span class="t">€/KG</span> OBLIGATORIO</div>
-      ${nota('Real Decreto 3423/2000: precio por kilo obligatorio,<br>junto al precio y bien legible (también a granel)')}`,
+      ${nota('Real Decreto 3423/2000: €/kg obligatorio, también a granel')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, R = e.seg[0].res, r = el.querySelectorAll('.rt'), m1 = M[1] != null ? M[1] : 2.9, t0 = R[0] ? R[0].ini : 1.5;
       ver(r[0], s, t0, m1); ver(r[1], s, m1 + 0.05); ver(el.querySelector('.nota'), s, m1 + 0.1); } },
   // 8 · Cierre: «LA PATATA: NI 1 DE CADA 4 €»; cola: «PAGAS 1,73 €» como en el fotograma 0.

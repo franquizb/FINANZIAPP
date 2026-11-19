@@ -34,6 +34,9 @@
 // 26% stays red («$12,302 INTEREST») before the seam opens (one object, so it fits the vertical frame). Scene 2 compares two
 // cost towers (same white $35,000 base, different red interest cap) instead of two walls plus towers. Educational only: no
 // lender, dealer, carmaker or brand on screen; the disclosure sheet is a generic format marked EXAMPLE.
+// 19-nov review (voice lines unchanged): tempo back to the script's 1.0; the wall (scene 1) and the disclosure sheet (scene 6) stay
+// below the subtitles; scene 6 opens on the whole sheet and travels evenly over the four boxes; the parking lot (3) starts further
+// back; the floor labels of scene 5 stay inside the frame; the closing pull-back no longer shows the mannequin cut in half.
 const { pildora3d } = require('./tres');
 const { VOZ_NARRADOR } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
@@ -535,7 +538,8 @@ const TRES = function (t, k, s, e, W) {
     let base = 0, llegadas = 0; const bases = []; for (let j = 0; j < 84; j++) { bases.push(base); base += slab(j); }
     X.pared((j) => {
       const c = Math.floor(j / 12), r = j % 12, x = X0 + c * PX, y = 0.17 + r * PY, f = FRAC[j];
-      const sj = -0.18 + 1.45 * j / 83, uf = tramo(s, sj, sj + 0.3), caida = 3.6 * (1 - uf * uf), bo = uf >= 1 ? 0.05 * Math.exp(-(s - sj - 0.3) * 14) * Math.sin((s - sj - 0.3) * 30) : 0;
+      const sj = -0.18 + 1.45 * j / 83, uf = tramo(s, sj, sj + 0.3), caida = (8.0 - y) * (1 - uf * uf),   // from 8 m: above the frame, so no tile hangs behind the subtitles
+        bo = uf >= 1 ? 0.05 * Math.exp(-(s - sj - 0.3) * 14) * Math.sin((s - sj - 0.3) * 30) : 0;
       if (s < sj) return {};
       const yy = y + caida + bo, rx = 0.5 * (1 - uf), hw = TH_ * (1 - f), hr = TH_ * f;
       const b = [x, yy - TH_ / 2 + hw / 2, 0, TW_, hw, TD_, rx, 0, 0];
@@ -548,8 +552,10 @@ const TRES = function (t, k, s, e, W) {
     const tope = bases[Math.max(0, llegadas - 1)] + (llegadas ? slab(llegadas - 1) : 0);
     if (s > m1) X.letrero({ txt: dinero(INTAC[llegadas]), x: CXr, y: tope + 0.42, z: 0.2, alto: 0.4, css: ROJ, op: q(m1, 0.3) });
     if (s > m1) W.rotulo('int', 'INTEREST', CXr, tope + 0.9, 0.2, q(m1 + 0.3, 0.3), ROJ, 0.26);
-    cam(ruta([[0, [-3.7, 1.75, 5.8, -2.25, 1.5, 0]], [1.5, [-1.0, 2.25, 8.4, -0.6, 1.9, 0]], [m1, [0.5, 2.6, 10.7, 0.0, 2.0, 0]],
-      [m2, [0.7, 3.0, 12.3, 0.0, 2.05, 0]], [D + 0.5, [-0.1, 3.4, 12.9, -0.05, 2.15, 0]]], s));
+    // camera (19-nov review): the wall never climbs above ≈ 495 px (the subtitles stay on the dark sky) and every YEAR label is in
+    // frame from the moment it pops: columns 1–5 at the start, all 7 by 1.5 s, then the red column too (checked with three.js).
+    cam(ruta([[0, [-2.6, 2.3, 9.2, -1.5, 2.12, 0]], [1.5, [-1.5, 2.45, 10.8, -0.85, 2.15, 0]], [m1, [0.1, 2.6, 13.0, -0.18, 2.2, 0]],
+      [m2, [0.35, 2.8, 13.5, -0.12, 2.28, 0]], [D + 0.5, [-0.15, 3.0, 13.9, -0.1, 2.32, 0]]], s));
   } else if (k === 2) {
     // ——— two cost towers, same white $35,000 base: 84 months (red cap $12,302) vs 60 months (red cap $8,592, turquoise edges).
     //     On {ding} the slice of the 84 tower above the 60 one breaks off, turns turquoise and floats: −$3,710 ———
@@ -591,7 +597,8 @@ const TRES = function (t, k, s, e, W) {
     ROJOS.forEach((i, jr) => { const r = Math.floor(i / 11), c = i % 11, Lc = 6.6 * sale(tramo(s, m1 + 0.05 * jr, m1 + 0.9 + 0.05 * jr)); if (Lc < 0.02) return;
       const z0 = RZ(r) + 0.45; X.brillo({ x: (c - 5) * PXp + 0.3, y: 0.016, z: z0 + Lc / 2, w: 0.2, h: 0.014, d: Lc, color: '#ef4444', op: 0.95 });
       if (jr === 1) X.letrero({ txt: '84+ MONTHS', x: (c - 5) * PXp + 0.3, y: 0.35, z: z0 + Lc + 0.25, alto: 0.5, css: ROJ, op: tramo(Lc, 2, 4) }); });
-    cam(ruta([[0, [-4.3, 1.45, 4.9, -1.2, 0.95, -1.3]], [m0, [-1.4, 4.4, 8.9, 0, 0.4, -1.4]], [m1, [-0.2, 9.2, 9.4, 0, 0, -0.7]], [D + 0.5, [0.2, 14.5, 7.4, 0, 0, 0.2]]], s));
+    // starts higher and further back (19-nov review): the nearest walker is ≈ 6.4 m away, a third of the frame tall, never huge
+    cam(ruta([[0, [-3.9, 2.7, 7.6, -0.9, 0.85, -1.2]], [m0, [-1.4, 4.4, 8.9, 0, 0.4, -1.4]], [m1, [-0.2, 9.2, 9.4, 0, 0, -0.7]], [D + 0.5, [0.2, 14.5, 7.4, 0, 0, 0.2]]], s));
   } else if (k === 4) {
     // ——— the price board: PER MONTH $727 → the digits roll down to $563; the mannequin cheers; the red «$47,302» tag rises behind ———
     const m0 = mk(0, 2.71);
@@ -607,25 +614,35 @@ const TRES = function (t, k, s, e, W) {
     // ——— time line: the car drives YEAR 0 → 4+; OWED (loan balance) vs WORTH (average depreciation) bars ride behind it; the road
     //     under it turns red while it owes more than it's worth; at month 44 they cross ———
     const m0 = mk(0, 3.63), m1 = mk(1, 4.99), Y = 2.6 / 12, mf = Math.min(84, mesR(s, m1)), mes = Math.floor(mf), xc = mf * Y;
+    // camera first (19-nov review): the floor labels are placed or faded with their position on screen, so none is cut by the edge
+    const xf = xc + (44 * Y + 0.4 - xc) * sale(tramo(s, m1 + 0.2, D));
+    cam(ruta([[0, [xf - 1.0, 3.9, 8.6, xf + 0.6, 0.75, -0.5]], [m0, [xf - 0.3, 5.0, 9.0, xf + 0.8, 0.55, -0.6]], [m1, [xf + 0.3, 6.0, 9.4, xf + 0.8, 0.45, -0.7]], [D + 0.5, [xf - 0.4, 6.4, 9.9, xf + 0.2, 0.45, -0.7]]], s));
+    const ancho = (txt, alto) => W.anchoRotulo(txt) * alto / 0.352;
+    const enCuadro = (x, y, z, w) => { const a = W.pantalla(x - w / 2, y, z), b = W.pantalla(x + w / 2, y, z); return tramo(Math.min(a.x, 1080 - b.x), 14, 64); };
     X.coche({ x: xc, z: 0, ry: PI, dist: xc, esc: 0.78 });
     X.bloque({ x: 8.5, y: 0.006, z: 0, w: 23, h: 0.012, d: 2.5, color: '#1e293b' });
-    for (let n = 0; n <= 7; n++) { X.brillo({ x: n * 12 * Y, y: 0.016, z: 0, w: 0.06, h: 0.01, d: 2.5, color: '#94a3b8', op: 0.7 }); W.rotulo('yr' + n, 'YEAR ' + n, n * 12 * Y, 0.12, 1.75, 1, '#94a3b8', 0.24); }
+    for (let n = 0; n <= 7; n++) { X.brillo({ x: n * 12 * Y, y: 0.016, z: 0, w: 0.06, h: 0.01, d: 2.5, color: '#94a3b8', op: 0.7 });
+      // on the far edge of the road (z −1.15): in front (z 1.75) they sat behind the 2D label at 1,290 px; here the car hides each
+      // one as it drives past and it shows again behind the car
+      const op = enCuadro(n * 12 * Y, 0.14, -1.15, ancho('YEAR ' + n, 0.24)); if (op > 0.01) W.rotulo('yr' + n, 'YEAR ' + n, n * 12 * Y, 0.14, -1.15, op, '#94a3b8', 0.24); }
     const vis = q(m0 - 0.1, 0.4), hasta = Math.min(mf, 44);
     if (vis > 0.01 && hasta > 1) X.brillo({ x: (Y + hasta * Y) / 2, y: 0.02, z: 0, w: (hasta - 1) * Y, h: 0.012, d: 2.1, color: '#ef4444', op: 0.6 * vis });
-    if (vis > 0.01) W.rotulo('uw', 'UNDERWATER', Math.max(Y * 3, Math.min(hasta * Y, xc) - 0.75), 0.14, 1.3, vis, ROJ, 0.3);
+    if (vis > 0.01) {   // «UNDERWATER» rides behind the car but never further left than 46 px from the frame edge
+      const wu = ancho('UNDERWATER', 0.3); let xu = Math.max(Y * 3, Math.min(hasta * Y, xc) - 0.75);
+      const a = W.pantalla(xu - wu / 2, 0.3, 1.3), a1 = W.pantalla(xu - wu / 2 + 1, 0.3, 1.3);
+      if (a.x < 46) xu += (46 - a.x) / Math.max(1, a1.x - a.x);
+      W.rotulo('uw', 'UNDERWATER', xu, 0.3, 1.3, vis * enCuadro(xu, 0.3, 1.3, wu), ROJ, 0.3); }   // y 0.3: clear of the 2D label
     const SC = 2.3 / 35000, xb = xc + 1.55, hO = SALDO[mes] * SC, hV = VALOR[mes] * SC;
     X.bloque({ x: xb - 0.32, y: hO / 2, z: -1.85, w: 0.5, h: hO, d: 0.5, color: '#ef4444', brillo: 0.35 });
     X.bloque({ x: xb + 0.32, y: hV / 2, z: -1.85, w: 0.5, h: hV, d: 0.5, color: '#e2e8f0' });
     W.rotulo('o', 'OWED', xb - 0.32, hO + 0.25, -1.85, 1, ROJ, 0.22); W.rotulo('w', 'WORTH', xb + 0.32, hV + 0.25, -1.85, 1, BLANCO, 0.22);
     if (mf >= 44) { const x44 = 44 * Y, p44 = bote(44 * (m1 + 0.5) / 44 - 0.0, 0.3);
       X.brillo({ x: x44, y: 0.02, z: 0, w: 0.09, h: 0.014, d: 2.5, color: '#ffffff', op: 1 }); X.letrero({ txt: '44 MONTHS', x: x44, y: 0.75, z: 1.15, alto: 0.42, css: ROJ, op: Math.min(1, p44 * 1.3) }); }
-    const xf = xc + (44 * Y + 0.4 - xc) * sale(tramo(s, m1 + 0.2, D));
-    cam(ruta([[0, [xf - 1.0, 3.9, 8.6, xf + 0.6, 0.75, -0.5]], [m0, [xf - 0.3, 5.0, 9.0, xf + 0.8, 0.55, -0.6]], [m1, [xf + 0.3, 6.0, 9.4, xf + 0.8, 0.45, -0.7]], [D + 0.5, [xf - 0.4, 6.4, 9.9, xf + 0.2, 0.45, -0.7]]], s));
   } else if (k === 6) {
     // ——— blackout; a huge generic disclosure sheet falls standing; light runs over the four boxes; the amber frame closes on
     //     «Total of Payments» ———
     const m0 = mk(0, 1.41), m1 = mk(1, 2.67), m2 = mk(2, 5.53), m3 = mk(3, 6.91);
-    X.apagon(0.22); W.niebla(8, 24);
+    X.apagon(0.22); W.niebla(14, 34);   // fog starts further away: the opening wide shot is ≈ 15 m from the sheet
     const uc = tramo(s, -0.1, 0.5), yc = 5.5 * (1 - uc * uc), bo = uc >= 1 ? 0.06 * Math.exp(-(s - 0.5) * 9) * Math.sin((s - 0.5) * 24) : 0;
     const bx = -3.7 + 7.4 * sale(tramo(s, m1 - 0.1, m2 + 0.4)), CX = [-2.31, -0.77, 0.77, 2.31];
     const velo = (i, a) => a * tramo(bx, CX[i] + 0.6, CX[i] + 1.2);
@@ -633,16 +650,23 @@ const TRES = function (t, k, s, e, W) {
     const Hh = X.hojaTIL({ x: 0, y: yc + bo, z: 0, rx: -0.3 * (1 - uc), velos: [velo(0, 0.6), velo(1, 0.6), velo(2, 0.4), 0], barrido: s > m1 - 0.1 && s < m2 + 0.4 ? bx : null, marco: q(m3 - 0.06, 0.4), pulso });
     X.halo({ x: 0, y: 1.4, z: -0.6, esc: 11, op: 0.35, color: '#fff1c2' });
     X.brillo({ x: 0, y: 0.004, z: 0.9, w: 7.2, h: 0.01, d: 1.6, color: '#fff1c2', op: 0.12 });
-    const cy = 1.25;
-    cam(ruta([[0, [-1.1, 5.4, 8.6, -0.7, 3.4, 0]], [0.55, [-1.3, 3.0, 7.7, -0.9, 1.9, 0]], [m0, [-1.7, 2.1, 6.9, -1.4, cy, 0]], [m1, [-2.31, 1.65, 6.0, -2.31, cy, 0]],
-      [m2, [2.31, 1.65, 6.0, 2.31, cy, 0]], [m3, [2.31, 1.6, 5.35, 2.31, cy, 0]], [D + 0.5, [2.25, 1.58, 5.05, 2.29, cy, 0]]], s));
+    // camera (19-nov review, checked with three.js): the sheet lands in a wide shot with the four boxes and its footnote in frame
+    // (0–1 s), dollies in to box 1 and travels at an even speed (each box, Amount Financed included, is whole for ≈ 1 s), then a short
+    // push on «Total of Payments». The sheet's top edge never goes above ≈ 505 px (the subtitles stay on the dark background) and its
+    // footnote stays above the 2D label (≤ 1,270 px).
+    const cy = 1.22;
+    cam(ruta([[0, [0, 3.9, 16.5, 0, 3.6, 0]], [0.55, [0, 1.75, 14.6, 0, 1.5, 0]], [m0, [-0.75, 1.5, 12.0, -0.85, 1.32, 0]], [m1, [-2.0, 1.36, 8.4, -2.05, cy, 0]],
+      [m1 + (m2 - m1) * 0.325, [-0.63, 1.36, 8.25, -0.63, cy, 0]], [m1 + (m2 - m1) * 0.657, [0.82, 1.36, 8.2, 0.82, cy, 0]], [m2, [2.31, 1.36, 8.15, 2.31, cy, 0]],
+      [m3, [2.31, 1.36, 7.75, 2.31, cy, 0]], [m3 + 0.35, [2.31, 1.36, 7.55, 2.31, cy, 0]], [D + 0.5, [2.27, 1.35, 7.45, 2.29, cy, 0]]], s));
   } else {
     // ——— close: the turquoise mannequin in front of the car; the «$563/mo» sticker falls; the amber box comes back; on {pop} its
     //     figure rises and becomes the red tag over the car; low travelling like frame 0 ———
     const m0 = mk(0, 1.63), m1 = mk(1, 3.27), m2 = mk(2, 4.63);
     const fall = tramo(s, m0 + 0.1, m0 + 0.95);
     const Cc = X.coche({ x: 0, z: 0, dist: 0.6, peg: { op: 1 - tramo(fall, 0.55, 1), dy: -0.9 * fall * fall, dx: -0.5 * fall, rz: 1.6 * fall } });
-    W.heroe({ x: -1.15, z: 2.0, gira: 0.5, luz: q(0, 0.7), brazos: 0 });
+    // the camera leaves him behind at ≈ 3.5 s; once off screen his light fades and he goes, so the final pull-back (which would
+    // show him cut in half at the left edge) ends on the car and the tag alone, like frame 0 (19-nov review)
+    W.heroe({ x: -1.15, z: 2.0, gira: 0.5, luz: q(0, 0.7) * (1 - tramo(s, 3.6, 4.3)), brazos: 0, visible: s < 4.3 });
     cam(ruta([[0, [-4.0, 1.9, 5.8, -1.0, 1.35, 1.0]], [m0, [-2.6, 2.1, 4.9, -0.6, 1.3, 0.3]], [m1, [0.2, 2.3, 7.4, 0.6, 1.6, 0.3]], [m2, [2.5, 1.25, 8.4, 1.1, 1.75, 0]], [D, [0.3, 0.8, 9.1, 0.35, 1.55, 0]]], s));
     const BX = 1.15, BY = 2.0, BZ = 1.2, ab = bote(m1, 0.35) * (1 - tramo(s, m2 + 0.2, m2 + 0.6));
     if (ab > 0.01) X.cajaAmbar({ x: BX, y: BY, z: BZ, esc: 0.2 + 0.8 * ab, op: Math.min(1, ab * 1.5) });

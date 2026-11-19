@@ -97,8 +97,10 @@ function golpes(p, tiempos, ini, finFrase, op = {}) {
   let g = [];
   p.palabras.forEach((w, k) => {
     g.push({ txt: w.txt, res: w.res, ini: ini + tiempos[k][0], fin: ini + tiempos[k][1] });
-    const largo = g.map(x => x.txt).join(' ').length;
-    if (largo >= maxLargo || /[.,!?:;…»”]$/.test(w.txt) || g.length === maxPal) { out.push(g); g = []; }
+    const largo = g.map(x => x.txt).join(' ').length, fin = /[.,!?:;…»”]$/.test(w.txt);
+    // Una cifra no se separa de su «%» («4 %», «10 %»): el «%» nunca empieza golpe.
+    const sigue = p.palabras[k + 1], pegado = !fin && sigue && /^%/.test(sigue.txt);
+    if (!pegado && (largo >= maxLargo || fin || g.length >= maxPal)) { out.push(g); g = []; }
   });
   if (g.length) out.push(g);
   return out.map((ws, i) => ({ ini: ws[0].ini, fin: i < out.length - 1 ? out[i + 1][0].ini : finFrase, palabras: ws }));

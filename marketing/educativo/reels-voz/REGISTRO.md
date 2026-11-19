@@ -38,6 +38,7 @@ el único que despega. El texto de la publicación es corto: gancho, qué hacer 
 | 4 | El truco de las 24 horas: si no es comida ni urgencia, espera un día antes de pagar (`es-reto-04`) | 13 nov 2026, 7:30 (programado) | Págate a ti primero, el mismo día que cobras |
 | 5 | Págate a ti primero: transferencia automática el día que cobras (`es-reto-05`) | 14 nov 2026, 10:24 Madrid | Las comisiones del banco que puedes dejar de pagar |
 | 6 | Las comisiones del banco: busca mantenimiento y tarjeta en el extracto (`es-reto-06`) | 15 nov 2026, ~10:30 Madrid (programado) | — (desde aquí, sin anunciar el siguiente: cierre con lo aprendido) |
+| 7 | Lo barato que no usas es lo más caro: precio ÷ usos reales antes del Black Friday (`es-reto-07`, 32,2 s; gancho visual: dos etiquetas que se dividen y se cruzan; guion en `guiones/2026-11-es-reto-07.md`) | 19 nov 2026, 12:46 Madrid (programado; Facebook 13:04) | — |
 
 Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuento en el próximo vídeo. Síguenos» o «La respuesta, en el siguiente vídeo».
 
@@ -61,7 +62,7 @@ la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publi
 |---|---|---|---|
 | 1 | ¿Bajaría la vivienda un 30 % quitando impuestos? (`es-contraste-vivienda-30`; final B sin guiño: `…-30b`) | 12 nov 2026, 7:30 (programado) | «¿Qué te pareció la entrevista?» |
 | 2 | La rebaja de 20 céntimos que en realidad son 24: IVA sobre el impuesto de la gasolina (`es-iva-sobre-impuesto`, formato extenso, 55 s) | 15 nov 2026, ~18:00 Madrid (programado) | «¿Sabías que pagabas IVA sobre un impuesto?» |
-| 3 | Tu décimo de Navidad de 20 € vale 14 de media (`es-loteria-navidad`, extenso, 43 s, primer Reel con gancho visual: billete que entra en el bombo y sale un 14; guion en `guiones/2026-11-loteria-es.md`) | 18 nov 2026, 14:41 Madrid (programado) | «De media, la ilusión cuesta 7 euros por décimo. Y 86 de cada 100 veces, cuesta los 20» |
+| 3 | Tu décimo de Navidad de 20 € vale 14 de media (`es-loteria-navidad`, extenso, 43 s, primer Reel con gancho visual: billete que entra en el bombo y sale un 14; guion en `guiones/2026-11-loteria-es.md`) | Facebook 18 nov 2026, 15:01 Madrid; Instagram falló ese día (texto de 2.237 caracteres) y se reprogramó para el 19 nov, 18:32 Madrid | «De media, la ilusión cuesta 7 euros por décimo. Y 86 de cada 100 veces, cuesta los 20» |
 
 ## Pendientes (preguntas abiertas)
 

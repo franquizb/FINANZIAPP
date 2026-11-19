@@ -223,6 +223,15 @@
           "estado": "listo",
           "slug": "es-loteria-navidad",
           "nota": "Programado en Instagram · 42.98 s"
+        },
+        {
+          "fecha": "2026-11-19",
+          "hora": "11:46",
+          "tipo": "Reel",
+          "tema": "Día 7/30 · Lo barato que no usas es lo más caro",
+          "estado": "listo",
+          "slug": "es-reto-07",
+          "nota": "Programado en Instagram y Facebook · 32.17 s"
         }
       ],
       "pendientes": [
