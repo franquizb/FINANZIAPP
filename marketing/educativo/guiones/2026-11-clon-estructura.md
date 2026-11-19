@@ -460,6 +460,42 @@ Medias de cada cuenta en esa misma descarga (todos los Reels):
 - **Ventana limpia más larga de lo previsto:** desde los clones no ha salido nada más en ninguna de las dos cuentas. es-loteria-navidad no se publicó en Instagram el 18-11 (texto de 2.237 caracteres, el máximo es 2.200; Facebook sí lo publicó a las 14:01 UTC). Se ha recortado y vuelto a programar para el 19-11 a las 17:32 UTC, y `encolar-instagram.cjs` ya no deja encolar un texto de más de 2.150 caracteres.
 - **Capturas de retención:** siguen sin llegar. Se vuelven a pedir al propietario (gráfica de retención de los dos Reels en la app de Instagram, en Estadísticas del Reel).
 
+**72 h** (19-11 a las 18:47 UTC: 77 h en España y 73 h en EE. UU.; API de Instagram):
+
+| Reel | Vistas (24 h → 48 h → 72 h) | Alcance | Retención | Omisión 3 s | Guardados | Compartidos | Comentarios |
+|---|---|---|---|---|---|---|---|
+| es-tin-vs-tae | 118 → 120 → **120** | 113 | 15 % | 57,1 % | 0 | 0 | 0 |
+| en-hsa-vs-fsa | 161 → 163 → **163** | 146 | 24 % | 63,4 % | 2 | 0 | 0 |
+
+| Cuenta (todos los Reels, 19-11) | Mediana de vistas | Mediana de retención | Mediana de omisión 3 s |
+|---|---|---|---|
+| España (26) | 142 | 31,5 % | 42,7 % |
+| EE. UU. (22) | 131,5 | 27 % | 47,8 % |
+
+- Ninguno se ha movido desde el primer día. El de España queda por debajo de la mediana en todo. El de EE. UU. queda un poco por encima en vistas (163 frente a 131,5), cerca de la mediana de retención (24 % frente al 27 %) y con una omisión 15,6 puntos peor que la mediana.
+- **Capturas de la gráfica de retención:** no han llegado (se pidieron el 17 y el 19). Por eso no se puede saber si la poca gente que siguió se fue en la pausa o antes de la respuesta. Lo que sí se sabe: el tiempo medio visto (8,6 s de 59 y 13,2 s de 56) queda muy por delante de la pausa (≈35 s) y de la respuesta (≈80 %). La mayoría no llegó a ninguna de las dos.
+- **Contraste del mismo día con el gancho visual** (primeras horas, no comparables aún con 72 h, pero apuntan en la misma dirección): es-loteria-navidad, 28,9 % de omisión y 42 % de retención en su primera hora y cuarto; en-reto-03, 29,9 % y 33 % a las 2,5 h; es-reto-07, 41,3 % y 40 % con 561 vistas a las 7 h. Los tres empiezan con el objeto ya en movimiento y un rótulo que cuenta el gancho antes de 0,7 s.
+
+### Conclusiones del experimento (72 h)
+
+**Límite:** un Reel por cuenta, y cambian varias cosas a la vez (arranque, voz, subtítulos, duración y tema). Lo que sigue es lo que los datos permiten decir, no una prueba pieza por pieza.
+
+| Pieza del esqueleto | ¿Funcionó? | Por qué |
+|---|---|---|
+| Gancho de 2 s con tarjeta-título («TIN vs TAE» / «HSA vs FSA»), dicha y escrita, casi quieta (`quieto3` 0,66) | **No** | 57 % y 63 % de omisión en los 3 primeros segundos, frente a un 24–35 % de los que despegan. Es la causa principal del resultado: casi 6 de cada 10 se fueron antes de que empezara el esqueleto. |
+| Rótulos sin subtítulos | **No hay señal a favor** | El de España, sin subtítulos, tiene la peor retención de la cuenta (15 %). es-reto-03, es-reto-05 y es-iva-sobre-impuesto, tres de los cinco que despegaron, llevan subtítulos palabra a palabra. No se puede separar del arranque, pero no hay ningún motivo para quitarlos. |
+| Voz seca y lenta (`VOZ_SECA`) | **No hay señal a favor** | Con la voz de narrador y gancho visual, los Reels del 19-11 retienen más (33–42 %) que los clones (15–24 %). No se puede aislar la voz, pero la seca no aporta nada medible. |
+| Pausa con zumbido (≈59–72 %) | **Sin probar** | Con 8,6 y 13,2 s de tiempo medio, casi nadie llegó al segundo 35. Sin las capturas no se sabe qué hizo la poca gente que sí llegó. |
+| Respuesta tardía (≈80 %) | **Sin probar** | Por lo mismo: el público se fue mucho antes. Que se retrase la respuesta solo puede ayudar si el arranque ya ha retenido a la gente. |
+| Final en bucle | **Sin efecto medible** | La retención queda muy lejos del 100 %, así que no hubo repeticiones que se notaran. |
+| Tema útil con fecha límite (EE. UU.: HSA/FSA en plena inscripción abierta) | **Algo sí** | Es el único de los dos con guardados (2) y queda por encima de la mediana de vistas pese al arranque. En EE. UU. los temas útiles con una acción concreta siguen siendo los que se guardan (el despegue en-save-invest-one-plan: 5 guardados y 3 compartidos). |
+
+**Qué se lleva al formato habitual de cada cuenta**
+- **Las dos cuentas:** nunca abrir con una tarjeta-título ni con la pregunta del tema. El fotograma 0 ya en acción y un acontecimiento con rótulo antes de 0,7 s (las reglas «El gancho es VISUAL» de AGENTES.md, desde el 17-11). Es lo único que el experimento demuestra con claridad, y los Reels del 19-11 ya lo cumplen.
+- **España:** mantener la voz de narrador, los subtítulos palabra a palabra y 30–55 s. No volver a la voz seca ni quitar los subtítulos.
+- **EE. UU.:** mantener temas útiles con una acción para hoy (lo que se guarda) y la voz de narrador lenta (2,6–3 palabras/s).
+- **Lo que queda por probar, y solo con un arranque visual que ya retiene:** la respuesta tardía (≈80 %) y una pausa corta (≤ 1 s, no de 2–3 s). Si se prueba, en un solo Reel de EE. UU. de la semana del 23 al 29, con el resto del formato habitual sin tocar, para poder atribuir el resultado.
+
 **Lo que esto enseña para todos los Reels** (43 Reels con omisión medida, 17-11):
 - La omisión de los 3 primeros segundos es la medida que más se parece al alcance. Spearman omisión ~ vistas: −0,88 en España y −0,61 en EE. UU. Los 5 de España que pasaron de 1.300 vistas tienen una omisión de 24–30 %; ninguno con más del 30,4 % pasó de 320.
 - Con arranque en movimiento (`quieto3` < 0,2) la omisión mediana es del 32 % (n=11); con arranque casi quieto (≥ 0,45), del 52 % (n=30). Hay excepciones que arrancan quietas pero con una cifra muy clara en pantalla: en-millas-79900 (22 %) y es-gasolina-1499 (30 %).
