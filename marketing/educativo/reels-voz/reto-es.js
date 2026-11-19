@@ -241,7 +241,8 @@ W3.X7 = X7;
 // Las dos etiquetas cuelgan con la parte de arriba a la misma altura (YT). Altura ∝ √(coste por uso) y la suma de las dos, 3,2 m:
 // el área es proporcional a lo que cuesta cada uso. tau = tiempo de la escena 0.
 const G7 = { XC: -0.92, XZ: 0.92, YT: 4.65, Z: 0 };
-function caida7(tau) { return tau < 0.45 ? 0.9 * (1 - Math.pow((tau + 0.15) / 0.6, 2)) : -0.2 * Math.exp(-(tau - 0.45) / 0.28) * Math.sin((tau - 0.45) * 2 * PI7 * 2.3); }
+// tau < −0,15 solo se usa en la cola del cierre: las etiquetas bajan desde arriba y frenan donde empieza la caída del fotograma 0.
+function caida7(tau) { return tau < -0.15 ? 0.9 + 14 * Math.pow(tau + 0.15, 2) : tau < 0.45 ? 0.9 * (1 - Math.pow((tau + 0.15) / 0.6, 2)) : -0.2 * Math.exp(-(tau - 0.45) / 0.28) * Math.sin((tau - 0.45) * 2 * PI7 * 2.3); }
 function altos7(pc, pz) { const a = Math.sqrt(pc), b = Math.sqrt(pz); return [3.2 * a / (a + b), 3.2 * b / (a + b)]; }
 function estado7(tau) {
   const u = usos7(tau), nZ = usosVis7(Math.max(0, tau)), nC = Math.min(5, nZ), [hC, hZ] = altos7(15 / Math.min(5, u), 120 / u);
@@ -284,7 +285,9 @@ function camGancho7(tau, fin, y) {
     [1.3, [3.7, 4.0, 6.3, -0.1, 3.4, 0]], [1.7, [4.1, 3.2, 5.7, -0.2, 3.5, 0]], [2.1, [2.6, 5.6, 7.4, -0.25, 3.05, 0]],
     [2.5, [0.8, 4.8, 8.2, -0.25, 2.95, 0]], [2.85, [1.6, 4.3, 7.7, -0.2, 3.05, 0]], [3.15, [-1.6, 3.75, 6.0, -0.92, 3.3, 0]],
     [Math.max(3.3, fin - 0.95), [-1.0, 3.7, 5.6, -0.92, 3.32, 0]], [Math.max(3.45, fin - 0.75), [1.95, 4.25, 2.7, 0.95, 4.15, 0]], [fin + 0.3, [1.25, 4.2, 2.55, 0.92, 4.15, 0]]];
-  const C = ruta7(K, tau), dyc = 0.85 * caida7(tau) * (1 - tramo(tau, 0.45, 0.95)), sh = tau > 0.65 ? 0.07 * Math.exp(-(tau - 0.65) * 10) : 0;
+  // tau < 0 (cola del cierre): la cámara llega al primer fotograma clave con su misma velocidad, para que el bucle encadene.
+  const C = tau < 0 ? K[0][1].map((v, c) => v + (K[1][1][c] - v) / K[1][0] * tau) : ruta7(K, tau);
+  const dyc = 0.85 * Math.min(0.9, caida7(tau)) * (1 - tramo(tau, 0.45, 0.95)), sh = tau > 0.65 ? 0.07 * Math.exp(-(tau - 0.65) * 10) : 0;
   return [C[0] + sh * Math.sin(tau * 83), C[1] + dyc + sh * Math.cos(tau * 71), C[2], C[3], C[4] + dyc, C[5]];
 }
 // Cámara por fotogramas clave [[t, [px, py, pz, lx, ly, lz]]…] (spline de Hermite que nunca se para; de desmentido-en.js).
@@ -316,7 +319,7 @@ const CSS7 = `
   .cu7 .fte { display: block; margin-top: 6px; font: 600 20px/1.3 'DejaVu Sans Mono', monospace; color: #94a3b8; }
   .nota7 { position: absolute; left: 70px; top: 1460px; max-width: 800px; font: 600 23px/1.32 'DejaVu Sans Mono', monospace; color: #b6c2d4; background: rgba(7,11,22,.8);
     border-radius: 10px; padding: 6px 14px; opacity: 0; }
-  .fin .manana { max-width: 780px; } .fin .sigue { font-size: 48px; }`;
+  .fin .manana { max-width: 780px; } .fin .sigue { font-size: 48px; line-height: 1.2; } .fin .sigue .mala7 { color: #f87171; }`;
 
 // Capa 2D del día 7: rótulos de 2–4 palabras en el tercio central-bajo (y ≈ 1.330 px) y tarjetas de cuenta (y ≈ 1.290 px).
 const ESC7 = [
@@ -347,8 +350,18 @@ const ESC7 = [
     anim: function (s, e, el) { const M = e.seg.flatMap(g => g.marcas), R = e.seg.flatMap(g => g.res), m2 = M[2] != null ? M[2] : 4.6;
       const t30 = R[0] ? R[0].ini : 1.6, tG = R[1] ? R[1].ini : m2 + 1.3;
       ver7(el.querySelector('.rt7'), s, t30, m2 - 0.05); ver7(el.querySelector('.nota7'), s, 0.3, m2 - 0.05); ver7(el.querySelector('.cu7'), s, tG); } },
-  // 5 · Tarjeta final de la serie: lo que se lleva el espectador (sin «Mañana» ni «Síguenos»).
-  finSerie({ dia: 7, total: TOTAL, serie: SERIE, etiquetaManana: 'HOY · DÍA 7', manana: 'Antes de comprar: precio ÷ usos reales', sigue: '<b>Lo barato que no usas</b> es lo más caro' })
+  // 5 · Tarjeta final de la serie: lo que se lleva el espectador (sin «Mañana» ni «Síguenos»). La frase va en dos líneas (no llega a
+  // los botones de Instagram) y la parte mala, en rojo (lo que se escapa). Es la animación de finSerie más el fundido de la tarjeta en
+  // los últimos 0,55 s, para que la cola enseñe las etiquetas del arranque y el bucle encadene.
+  { html: finSerie({ dia: 7, total: TOTAL, serie: SERIE, etiquetaManana: 'HOY · DÍA 7', manana: 'Antes de comprar: precio ÷ usos reales',
+      sigue: '<span class="mala7">Lo barato que no usas</span><br>es lo más caro' }).html,
+    anim: function (s, e, el) {
+      const m = e.seg[0].marcas[0] != null ? e.seg[0].marcas[0] : 1.2, D = e.fin - e.ini;
+      const n = el.querySelector('.num'); n.style.transform = 'scale(' + (0.8 + 0.2 * rebote(tramo(s, 0, 0.4))) + ')';
+      const ma = el.querySelector('.manana'), p = sale(tramo(s, m - 0.1, m + 0.4)); ma.style.opacity = p; ma.style.transform = 'translateY(' + (1 - p) * 40 + 'px)';
+      el.querySelector('.sigue').style.opacity = tramo(s, m + 0.9, m + 1.4);
+      el.querySelector('.fin').style.opacity = 1 - tramo(s, D - 0.55, D - 0.15);
+    } }
 ];
 
 // Coreografía 3D del día 7 (una escena = un plano, corte seco; la cámara no se para nunca).
@@ -374,7 +387,9 @@ const TRES7 = function (t, k, s, e, W) {
     const nC = Math.max(1, Math.min(5, 1 + Math.floor((s - 0.05) / paso + 1e-9)));
     const uZ = 5 * Math.pow(60, tramo(s, m1 + 0.1, m2)), nZ = Math.floor(uZ + 1e-9);
     const [hC, hZ] = altos7(15 / nC, 120 / uZ), cq = sale(tramo(uZ, 40, 52));
-    const sw = (a, f) => a * Math.sin(f * s), Y1 = 4.2;
+    // En la parte A las etiquetas cuelgan más bajas (3,35 m) para que la de la camiseta llene el plano con la fila debajo;
+    // mientras la cámara cruza al lado de las zapatillas, suben a su altura (4,2 m).
+    const sw = (a, f) => a * Math.sin(f * s), Y1 = 3.35 + 0.85 * suave7(tramo(s, m1 - 0.35, m1 + 0.45));
     X.etiqueta(0, { x: XC, y: Y1, rz: sw(0.03, 2.1), alto: hC, estilo: 'blanco', estilo2: 'rojo', cq, titulo: 'CAMISETA', precio: '15 €', porUso: num7(15 / nC), unidad: '€ POR USO', usos: 'USOS ' + nC,
       pop: 1 + 0.12 * Math.sin(Math.min(1, ((s - 0.05) % paso) / 0.15) * PI7) * (s < para ? 1 : 0) });
     X.etiqueta(1, { x: XZ, y: Y1, rz: sw(0.025, 1.7), alto: hZ, estilo: 'blanco', estilo2: 'turq', cq, titulo: 'ZAPATILLAS', precio: '120 €', porUso: num7(120 / nZ), unidad: '€ POR USO', usos: 'USOS ' + nZ });
@@ -390,9 +405,11 @@ const TRES7 = function (t, k, s, e, W) {
       }
       return fuera;
     };
-    // Las dos etiquetas siempre enteras (sus alturas se comparan): travelling a la izquierda con la fila, barrido a la derecha y subida.
-    const A = ruta7([[0, [-0.4, 2.95, 7.3, 0.12, 2.8, 0]], [m1 - 0.2, [-0.9, 2.9, 7.2, 0.1, 2.78, 0]], [m1 + 0.5, [1.0, 3.05, 7.3, 0.15, 2.8, 0]],
-      [m2, [1.2, 3.4, 7.8, 0.0, 2.8, 0]], [D + 0.2, [0.5, 3.8, 8.5, -0.2, 2.75, 0]]], s);
+    // Parte A: la cámara pegada al lado de la camiseta (la etiqueta de las zapatillas, con su 24,00, queda fuera de cuadro hasta el
+    // cruce) con travelling a la izquierda siguiendo la fila. En «Las zapatillas» cruza al otro lado y se abre para que quepan las
+    // dos etiquetas enteras (desde ahí sus alturas se comparan); después, subida.
+    const A = ruta7([[0, [-0.9, 2.95, 5.0, -0.85, 2.62, 0.3]], [1.1, [-1.3, 2.8, 4.25, -1.05, 2.6, 0.3]], [m1 - 0.4, [-1.55, 2.75, 4.0, -1.2, 2.6, 0.3]],
+      [m1 + 0.5, [1.0, 3.05, 7.3, 0.15, 2.8, 0]], [m2, [1.2, 3.4, 7.8, 0.0, 2.8, 0]], [D + 0.2, [0.5, 3.8, 8.5, -0.2, 2.75, 0]]], s);
     cam(A);
   } else if (k === 2) {
     // El héroe mira las zapatillas grandes; en «No:» deja de andar y el contador baja a 0 (el coste por uso sube) y se vuelve
@@ -412,11 +429,17 @@ const TRES7 = function (t, k, s, e, W) {
     const anda = 1 - tramo(s, m0 - 0.1, m0 + 0.25);
     W.heroe({ x: HX, z: HZ, gira: PI7 + 0.12, amp: anda, fase: s * 7 });
     let C;
+    const O = orbita7([0.2, 2.5, 6.6, TX, 3.6, 0], -0.7);
     if (s < m0) C = ruta7([[0, [0.55, 1.0, 6.4, TX, 3.75, 0]], [m0 + 0.6, [0.4, 1.1, 5.7, TX, 3.7, 0]]], s);
     else if (s < m2) { const u = suave7(tramo(s, m0, m2)); C = orbita7(mezcla7([0.4, 1.1, 5.7, TX, 3.7, 0], [0.2, 2.5, 6.6, TX, 3.6, 0], u), -0.7 * u); }
-    else {   // la cámara sube a un picado amplio (la etiqueta cae a la vista, sin pasar pegada) y baja hacia el cajón
-      const u = sale(tramo(s, m2 - 0.1, m2 + 0.55)), w = sale(tramo(s, m2 + 0.55, D));
-      C = mezcla7(mezcla7(orbita7([0.2, 2.5, 6.6, TX, 3.6, 0], -0.7), [1.3, 6.3, 7.4, 0.6, 2.9, 0.3], u), [BX + 1.2, 4.4, BZ + 3.6, BX - 0.45, 0.6, BZ], w);
+    else {
+      // Picado que sigue la caída: la cámara sube y baja hacia el cajón mientras mira al centro de la etiqueta (un poco hacia el
+      // centro del cajón), así que la etiqueta no sale nunca del cuadro, no sube a los subtítulos y acaba entera dentro del cajón.
+      const rx = -1.2 * ec, rz = 0.03 * Math.sin(s * 1.9) + 1.3 * ec, h2 = AL * (1 - 0.45 * ec) / 2;
+      const cen = [pc[0] + Math.sin(rz) * h2, pc[1] - Math.cos(rz) * Math.cos(rx) * h2, pc[2] - Math.cos(rz) * Math.sin(rx) * h2];
+      const P = ruta7([[m2, O.slice(0, 3)], [m2 + 0.55, [-1.0, 5.3, 7.4]], [D + 0.15, [2.55, 4.9, 5.6]]], s);
+      const L = mezcla7(O.slice(3), [cen[0] - 0.2, cen[1] - 0.15, cen[2]], suave7(tramo(s, m2, m2 + 0.4)));
+      C = [...P, ...L];
     }
     cam(C);
   } else if (k === 3) {
@@ -472,6 +495,12 @@ const TRES7 = function (t, k, s, e, W) {
       C = orbita7(C, -0.9 * sale(tramo(s, tG - 0.2, D)));
       cam(C);
     }
+  } else if (s > D - 0.6) {
+    // Cola (la tarjeta se funde en los últimos 0,55 s): las etiquetas blancas del fotograma 0 bajan desde arriba y la cámara llega
+    // al encuadre del arranque. El último fotograma es casi el primero: al repetirse, el vídeo encadena.
+    const fin = ESC[1].ini, g0 = gancho7(W, X, s - D, 2.6, fin);
+    directo = (i) => i === 0 ? { x: XC, z: 0.1, rot: 0.15, amp: 0, color: 0x6b7280, cq: 0.45, brillo: 0 } : fuera;
+    cam(camGancho7(s - D, fin, g0.y));
   } else {
     // Cierre (bajo la tarjeta de la serie): las dos etiquetas del final del gancho y el héroe turquesa caminando debajo.
     const [hC, hZ] = altos7(3, 0.4), fase = s * 9;

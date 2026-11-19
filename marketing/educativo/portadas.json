@@ -355,5 +355,14 @@
     "serie": "hacemos-la-cuenta",
     "fotograma_ms": 33600,
     "encuadre_y": 640
+  },
+  "en-mortgage-rate": {
+    "titulo": "A $300,000 loan. $382,633 in interest.",
+    "destacado": "$382,633",
+    "color": "rojo",
+    "serie": "money-explained",
+    "etiqueta": "Mortgages",
+    "fotograma_ms": 3900,
+    "encuadre_y": 480
   }
 }

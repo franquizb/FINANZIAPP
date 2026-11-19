@@ -34,6 +34,12 @@
 // house in scene 1 stays in place (not beside it). «THIS WEEK» is a 3D tag over the 7.11% drum (with the Freddie Mac date in the
 // note) instead of a 2D label that covered the drum. Educational only: no lender, servicer or brand on screen; the statement card
 // is a generic format marked «Example statement».
+// Second pass (19 Nov 2026): a darker band behind the subtitles (.vin), because the houses and the white chip grid reach
+// 262–470 px in several shots; in the hook the camera keeps the white house in frame from 1.0 to 2.5 s (it used to leave it
+// out); the «$300,000 → $382,633» tags fade before «is more than you borrowed» (they ran into the subtitles and the edge); the
+// $1,896 slab is framed whole and falls from lower; the walking shot of scene 5 and the 30-year bar shot are pulled back so the
+// roofs stay under the subtitles; «30 YRS» fades before «26 YRS» appears; the closing drum shrinks away on «shrink it» and the
+// closing label is 48 px (both reached Instagram's buttons on the right). Voice re-timed (see voz below).
 const { pildora3d } = require('./tres');
 const { VOZ_NARRADOR } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
@@ -531,7 +537,7 @@ const TRES = function (t, k, s, e, W) {
     const GX = 0.45, GY = 4.35, GZ = 2.05, PASO = 0.21;
     const celda = (i) => [GX + ((i % 10) - 4.5) * PASO, GY + (4.5 - Math.floor(i / 10)) * PASO, GZ];
     if (s < m0) {
-      const u = tramo(s, -0.1, 0.42), y = mp[1] + 3.2 * (1 - u * u), rb = u >= 1 ? 0.05 * Math.exp(-(s - 0.42) * 10) * Math.sin((s - 0.42) * 25) : 0;
+      const u = tramo(s, -0.1, 0.42), y = mp[1] + 2.2 * (1 - u * u), rb = u >= 1 ? 0.05 * Math.exp(-(s - 0.42) * 10) * Math.sin((s - 0.42) * 25) : 0;
       X.losa({ x: mp[0], y: y + rb + 0.12, z: mp[2] + 0.05, ry: HG, rx: -0.15 + 0.6 * (1 - u), rz: 0.4 * (1 - u) });
     } else {
       // the 100 chips: from the slab to their cell, colour wave on «85 cents», then the flights (shuffled order)
@@ -559,7 +565,7 @@ const TRES = function (t, k, s, e, W) {
       W.rotulo('b85', '85¢', x0 + LT * 0.15 + LT * 0.425, 0.42, 1.75, q(m2 + 0.5, 0.3), ROJ, 0.28);
     }
     cam(ruta(orden([[0, orbita([HX + 0.1, 1.6, HZ + 4.8, HX + 0.1, 1.5, HZ], 0.38)], [m0, orbita([HX + 0.15, 1.95, HZ + 4.6, HX + 0.15, 1.85, HZ], 0.12)],
-      [m0 + 0.45, orbita([0.1, 2.9, 8.6, 0.1, 3.3, 2.2], 0.0)], [m0 + 0.8, orbita([0.4, 3.7, 8.7, 0.4, 4.25, 2.0], -0.08)], [m1 + 0.45, orbita([0.4, 3.55, 9.0, 0.4, 4.1, 2.0], -0.2)],
+      [m0 + 0.45, orbita([0.1, 3.5, 8.6, 0.1, 4.2, 2.2], 0.0)], [m0 + 0.8, orbita([0.4, 3.7, 8.7, 0.4, 4.25, 2.0], -0.08)], [m1 + 0.45, orbita([0.4, 3.55, 9.0, 0.4, 4.1, 2.0], -0.2)],
       [m1 + 1.7, orbita([0.3, 2.3, 11.6, 0.3, 1.45, 0.6], -0.3)], [m2, orbita([0.2, 2.2, 11.8, 0.2, 1.25, 0.6], -0.2)], [D + 0.5, orbita([0.2, 2.3, 11.3, 0.2, 1.15, 0.6], 0.05)]]), s));
   } else if (k === 4) {
     // ——— ten years: the year chip runs 1 → 10; in the white house only the paid principal lights up (15 turquoise blocks), the
@@ -640,9 +646,10 @@ const pildoras = {
   'en-mortgage-rate': pildora3d({
     slug: 'en-mortgage-rate', cuenta: 'en',
     T: { en: { titulo: 'A $300,000 mortgage at 6.5% costs $382,633 in interest', guion: GUION } },
-    // Narrator voice of reto-en.js / extenso-en.js (never VOZ_SECA), slower than theirs (default tempo 1.17): tempo 1.05 and
-    // pauses up to 0.4 s, as in extenso-coche-en.js (with 1.0 that one measured 2.51 words/s, under the 2.6–3.2 target).
-    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.05, pausaMax: 0.4 } },
+    // Narrator voice of reto-en.js / extenso-en.js (never VOZ_SECA), slower than theirs (default tempo 1.17, pauses 0.26 s).
+    // With tempo 1.05 and pauses up to 0.4 s the render measured 2.49 words/s (ritmo.py), under the 2.6–3.2 target; 1.12 and
+    // 0.3 s re-time the same reviewed takes (only atempo and pause trimming change, no new synthesis).
+    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.12, pausaMax: 0.3 } },
     fijo: () => `<div class="hud i fmt">MONEY, EXPLAINED</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT,
     escenas: ESCENAS, tres: TRES,
