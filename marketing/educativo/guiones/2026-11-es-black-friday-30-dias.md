@@ -275,12 +275,13 @@ Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y
   "color": "ambar",
   "serie": "pildora",
   "etiqueta": "Tus derechos",
-  "fotograma_ms": 33800
+  "fotograma_ms": 2960,
+  "encuadre_y": 600
 }
 ```
 
 - **Titular:** 4 palabras. El «50 %» va tachado (la sintaxis `~…~`, como «~2 años~ 3 años» de es-garantia-3-anos) y el destacado «0 %» va en ámbar (lo detectado). La etiqueta «Tus derechos» es la misma que la de es-garantia-3-anos, otro vídeo de derechos que funcionó.
-- **`fotograma_ms`:** apunta al calendario aterrizando en «28 OCT» con el corchete de 30 días (frase 5). Completa el titular sin repetirlo. Hay que ajustarlo con la locución real.
+- **`fotograma_ms`:** 2,96 s del gancho (19/11/2026): etiqueta «ANTES 99 € · AHORA 99 €» con la insignia «0 %», las columnas con los 3 días ámbar, la hoja «26 NOV · 199 €» y el rótulo «REBAJA REAL: 0 %» entero. Antes apuntaba al 28 OCT, pero ese fotograma enseñaba la etiqueta del ejemplo 2 (149 → 99, un −34 %), que no cuadraba con el «0 %» del titular, y dejaba rótulos cortados.
 - **Alternativa**, si se prefiere que la portada diga España y el precio: `"titulo": "Tu «antes» de ~199 €~ 99 €"`, `"destacado": "99 €"`.
 
 ## Para los comentarios

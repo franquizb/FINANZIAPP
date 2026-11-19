@@ -68,6 +68,8 @@ la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publi
 
 | 4 | Pagas 1,73 € por un kilo de patatas; al agricultor le pagaron 28 céntimos (`es-agricultor`, extenso, 48,6 s; responde a la pregunta abierta en el #7; COAG y Ministerio; guion en `guiones/2026-11-es-agricultor.md`) | 20 nov 2026, 14:54 Madrid (programado; Facebook 15:01) | «De cada 4 euros en patatas, la patata no llega a 1» |
 
+| 5 | Black Friday: el «antes» tiene que ser el precio más bajo de los últimos 30 días (`es-black-friday-30-dias`, extenso, 38,7 s; gancho visual: el calendario rebobina hasta el 20 NOV a 99 € y el 199 se rompe; Ley 7/1996, art. 20; guion en `guiones/2026-11-es-black-friday-30-dias.md`) | 21 nov 2026, 11:48 Madrid (programado; Facebook 12:03) | «El "antes" es el más bajo de los 30 días anteriores» |
+
 ## Pendientes (preguntas abiertas)
 
 - ~~ES: ¿Qué parte de lo que pagas en el súper le llega de verdad al agricultor?~~ ← respondida en `es-agricultor` (20 nov).

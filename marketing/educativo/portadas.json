@@ -346,8 +346,8 @@
     "color": "ambar",
     "serie": "pildora",
     "etiqueta": "Tus derechos",
-    "fotograma_ms": 30700,
-    "encuadre_y": 480
+    "fotograma_ms": 2960,
+    "encuadre_y": 600
   },
   "es-agricultor": {
     "titulo": "Pagas 1,73 €. Al campo llegan 0,28",
