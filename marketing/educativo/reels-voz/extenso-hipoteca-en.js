@@ -1,8 +1,9 @@
 // Long format (30–45 s) · @finanziapp (US), in 3D (reels-voz/tres.js), series «Money, explained».
 // en-mortgage-rate · «A $300,000 mortgage at 6.5%: the interest alone is more than you borrowed.» (example, 30-year fixed)
 // Final, verified script: guiones/2026-11-en-mortgage-rate.md (visual hook, scenes, cuadra(), sources, post, cover).
-// Expiry: scene 2 and the post text carry Freddie Mac's rate of THIS week (7.11% on Nov 12, 2026). Before publishing on
-// Nov 21, update both with the PMMS of Thursday Nov 19 (and the 7.11% checks below); the voice does not change.
+// Rate with its date (supervisor, 19 Nov 2026): scene 2 and the post text show Freddie Mac's 7.11% WITH its date (Nov 12,
+// 2026), never «this week», so the video is still true on Saturday Nov 21 without waiting for the PMMS of Nov 19. The voice
+// says «Rates today are nowhere near 3%», true for any rate above ~5%.
 //
 // Sources (as given in the script, checked 18 Nov 2026):
 // - Freddie Mac, Primary Mortgage Market Survey (PMMS): 30-year fixed 7.11% on Nov 12, 2026 (7.18% the week before; 6.24% a
@@ -40,12 +41,24 @@
 // $1,896 slab is framed whole and falls from lower; the walking shot of scene 5 and the 30-year bar shot are pulled back so the
 // roofs stay under the subtitles; «30 YRS» fades before «26 YRS» appears; the closing drum shrinks away on «shrink it» and the
 // closing label is 48 px (both reached Instagram's buttons on the right). Voice re-timed (see voz below).
+// Third pass (19 Nov 2026, same voice takes): the 3D tag over the 7.11% drum says «FREDDIE MAC · NOV 12, 2026» instead of
+// «THIS WEEK», and the drum slides out before «CAN YOU SHRINK IT?» enters; the white house is whole from frame 0, at the stamp
+// (2.2–3 s), at the arrow (≈4 s, labels lower and centred) and in the closing shot; «INTEREST > LOAN» enters exactly on
+// payment 218 (TCRUCE); labels at 1.335 px and the note at 1.436–1.499 px (under the 1.500 px limit; it fades when a
+// two-line label comes in); in scene 1 it waits for the drum to settle and in scene 2 it takes over from the drum's date tag
+// when the drum leaves; the 85/15 bar and the 30-year bar are narrower
+// and centred, their «30 YRS» / «26 YRS» labels above the ticks; the statement card keeps moving (slow zoom and tilt, the
+// amber box wipes across the line) with a clearer push on the houses; the last subtitle reads «shrink it.» together.
 const { pildora3d } = require('./tres');
 const { VOZ_NARRADOR } = require('./_comun');
 const { cuadra } = require('../reels/_comun');
 
 // ——— all the checks in the script (guiones/2026-11-en-mortgage-rate.md, «Cuentas a comprobar con cuadra()») ———
 const R0 = Math.round, R1 = x => Math.round(x * 10) / 10, R2 = x => Math.round(x * 100) / 100;
+// Freddie Mac's weekly rate (PMMS, 30-year fixed) for scene 2 (drum, «THIS WEEK» note, swell of the red house) and the post.
+// It is the ONLY place to change it: update tasa and fecha here and the expected values of the four «esta semana» checks below.
+const SEMANA = { tasa: 7.11, fecha: 'Nov 12, 2026' };
+SEMANA.txt = SEMANA.tasa.toFixed(2) + '%';
 // hipoteca a tipo fijo, 30 años, pago mensual (fórmula de anualidad, sin redondear la cuota)
 const P = 300000, N = 360;
 const cuota = (r, n = N, p = P) => { const i = r / 1200; return p * i / (1 - Math.pow(1 + i, -n)); };
@@ -73,9 +86,9 @@ cuadra('bloques intereses 3 %', R0(intereses(3) / B), 52);
 // Tipos de referencia (Freddie Mac PMMS, CSV histórico descargado el 18-11-2026)
 cuadra('media 2021 → «3%»', R1(2.958), 3.0);
 cuadra('media 2026 hasta el 12-nov → «6.5%»', R1(6.544), 6.5);
-cuadra('esta semana lejos del 3 %', 7.11 - 3 > 4, true);                   // «nowhere near 3%» (7,11 % el 12-11-2026)
-cuadra('intereses al 7,11 %', R0(intereses(7.11)), 426523);
-cuadra('cuota al 7,11 %', R2(cuota(7.11)), 2018.12);
+cuadra('esta semana lejos del 3 %', SEMANA.tasa - 3 > 4, true);            // «nowhere near 3%» (PMMS de SEMANA.fecha)
+cuadra('esta semana: intereses', R0(intereses(SEMANA.tasa)), 426523);
+cuadra('esta semana: cuota', R2(cuota(SEMANA.tasa)), 2018.12);
 // Cada punto (rótulo «Each +1 point ≈ +$200/month»)
 cuadra('+1 punto (6,5 → 7,5) cuota', R2(cuota(7.5) - cuota(6.5)), 201.44);
 cuadra('−1 punto (6,5 → 5,5) cuota', R2(cuota(6.5) - cuota(5.5)), 192.84);
@@ -123,8 +136,9 @@ cuadra('100 $ extra desde el año 11: ahorro', R0(intereses(6.5) - conExtraDesde
 cuadra('pantalla: «$1,896» (cuota sin céntimos)', Math.floor(cuota(6.5)), 1896);
 cuadra('pantalla: extracto «$1,896.20»', R2(cuota(6.5)).toFixed(2), '1896.20');
 cuadra('pantalla: escena 1, se van 128 − 52 bloques', 128 - R0(intereses(3) / B), 76);
-cuadra('pantalla: escena 2, 142 bloques al 7,11 %', R0(intereses(7.11) / B), 142);
-cuadra('pantalla: escena 2, la casa roja crece ×1,06 (√ del área)', R2(Math.sqrt(intereses(7.11) / intereses(6.5))), 1.06);
+cuadra('pantalla: escena 2, bloques al tipo de esta semana', R0(intereses(SEMANA.tasa) / B), 142);
+const HIN_SEMANA = R2(Math.sqrt(intereses(SEMANA.tasa) / intereses(6.5)));     // the red house swells by √ of the interest ratio
+cuadra('pantalla: escena 2, la casa roja crece ×1,06 (√ del área)', HIN_SEMANA, 1.06);
 cuadra('pantalla: escena 3, 85 fichas rojas + 15 turquesa', [R0(int1 / pagado1 * 100), 100 - R0(int1 / pagado1 * 100)].join('+'), '85+15');
 cuadra('pantalla: escena 4, bloques que aún se deben (gris)', R0(saldo(6.5, 120) / B), 85);
 cuadra('pantalla: escena 4, 15 + 85 = 100', 15 + 85, 100);
@@ -138,7 +152,7 @@ cuadra('escena 4: saldo año 10 (página)', SALDO_ANO[10], 254328);
 
 const TEXTO = `A $300,000 mortgage at 6.5% costs $382,633 in interest. At 3%, $155,332.
 
-Same loan, same 30 years. Each 1-point change in the rate moves this payment by about $200 a month, roughly $70,000 over the loan. Freddie Mac's weekly average for a 30-year fixed was 7.11% on Nov 12, 2026.
+Same loan, same 30 years. Each 1-point change in the rate moves this payment by about $200 a month, roughly $70,000 over the loan. Freddie Mac's weekly average for a 30-year fixed was ${SEMANA.txt} on ${SEMANA.fecha}.
 
 In year one, about 85% of the principal-and-interest payment goes to interest. That's why extra principal works best early: $100 more a month from the start saves about $61,000 in interest and ends the loan 4 years sooner, if you keep it to the end. Ask your servicer to apply it to principal.
 
@@ -168,13 +182,15 @@ const CSS = `
   /* Darker band behind the subtitles (262–470 px): the houses and the white chips reach that band in several shots */
   .vin { background: radial-gradient(130% 80% at 50% 46%, transparent 52%, rgba(3,5,12,.62) 100%),
       linear-gradient(rgba(7,11,22,.92) 0%, rgba(7,11,22,.76) 13%, rgba(7,11,22,.68) 24.5%, rgba(7,11,22,.22) 29.5%, transparent 33%, transparent 76%, rgba(7,11,22,.8) 100%); }
-  .rt { position: absolute; left: 50%; top: 1390px; padding: 10px 28px 14px; border-radius: 20px; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
+  /* Labels at 1.335 px (one line ends at 1.430) and the note at 1.436–1.499 px, under AGENTES' 1.500 px limit (Instagram's
+     caption covers the bottom); the note fades whenever a two-line label (bottom ≈ 1.470) comes in */
+  .rt { position: absolute; left: 50%; top: 1335px; padding: 10px 28px 14px; border-radius: 20px; background: rgba(9,14,27,.9); border: 3px solid #e2e8f0;
     color: #fff; font-size: 58px; line-height: 1.12; font-weight: 900; letter-spacing: -.015em; white-space: nowrap; opacity: 0; font-variant-numeric: tabular-nums;
     box-shadow: 0 10px 40px rgba(0,0,0,.45); text-align: center; }
   .rt.p { font-size: 46px; } .rt.r48 { font-size: 48px; } .rt.g { font-size: 76px; } .rt.amb { border-color: #f5b94a; } .rt.roja { border-color: #f87171; } .rt.turq { border-color: #5eead4; }
   .rt .a { color: #f5b94a; } .rt .r { color: #f87171; } .rt .t { color: #5eead4; } .rt small { display: block; font: 700 26px/1.5 ${MONO}; letter-spacing: .08em; color: #cbd5e1; }
-  .nota { position: absolute; left: 70px; top: 1505px; max-width: 820px; font: 600 24px/1.32 ${MONO}; color: #b6c2d4; background: rgba(7,11,22,.8);
-    border-radius: 10px; padding: 6px 14px; opacity: 0; }
+  .nota { position: absolute; left: 70px; top: 1418px; max-width: 820px; font: 600 22px/1.25 ${MONO}; color: #b6c2d4; background: rgba(7,11,22,.84);
+    border-radius: 10px; padding: 4px 12px; opacity: 0; }
   .chip { position: absolute; top: 505px; background: rgba(9,14,27,.9); border: 3px solid #cbd5e1; border-radius: 20px; padding: 6px 22px 10px;
     font-variant-numeric: tabular-nums; white-space: nowrap; }
   .chip small { display: block; font: 700 22px/1.35 ${MONO}; letter-spacing: .14em; color: #94a3b8; }
@@ -364,6 +380,16 @@ function brazos(a, qa, qp) {
   });
 }
 function manos(hx, hz, g, qp, esc, y) { const ly = (2.2 * (1 - qp) + 1.5 * qp) * (esc || 1.06) / 1.06, lz = (0.3 * (1 - qp) + 0.62 * qp) * (esc || 1.06) / 1.06; return [hx + Math.sin(g) * lz, ly + (y || 0), hz + Math.cos(g) * lz]; }
+
+// Subtitles (SUB, built by reel-voz.js just before this script): a short last word of a sentence (≤ 3 letters) never stays
+// alone in its beat; it takes the last word of the beat before, so the closing line reads «extra payments / shrink it.»
+// instead of «extra payments shrink / it.». Only the grouping changes: the words and their timings are the voice's.
+for (let i = 1; i < SUB.length; i++) {
+  const g = SUB[i], p = SUB[i - 1], w = g.palabras[0].txt;
+  if (g.palabras.length === 1 && /[.!?]$/.test(w) && w.replace(/[.,;:!?]+$/, '').length <= 3 && p.palabras.length >= 3 && Math.abs(p.fin - g.ini) < 1e-6) {
+    g.palabras.unshift(p.palabras.pop()); g.ini = g.palabras[0].ini; p.fin = g.ini;
+  }
+}
 `;
 
 // 2D layer: 2–4 word labels in the lower-middle third (y ≈ 1.390 px), a small note at the bottom left (y ≈ 1.505), two chips at the
@@ -385,26 +411,27 @@ const ESCENAS = [
       ch[1].style.transform = 'scale(' + (1 + 0.14 * Math.sin(PI * tramo(s, TCRUCE, TCRUCE + 0.3))) + ')'; ch[1].style.transformOrigin = '100% 0';
       ch[1].style.boxShadow = '0 0 ' + Math.round(60 * fl) + 'px rgba(248,113,113,' + (0.9 * fl).toFixed(2) + ')';
       const sale_ = 1 - tramo(s, m1 - 0.2, m1 + 0.02); ch.forEach(c => { c.style.opacity = sale_; });
-      ver(r[0], s, TCRUCE, m2); ver(r[1], s, m2 + 0.15);
-      el.querySelector('.nota').style.opacity = 1;
+      // «INTEREST > LOAN» starts entering on the frame the counter passes $300,000 (ver() starts 0.1 s before its mark)
+      ver(r[0], s, TCRUCE + 0.1, m2); ver(r[1], s, m2 + 0.15);
+      el.querySelector('.nota').style.opacity = 1 - tramo(s, m2 + 0.02, m2 + 0.17);
     } },
   // 1 · The rate: the drum spins from 6.5% to 3% (turquoise) and 76 red blocks fly off: 52 left, «$155,332».
   { html: () => `${rt('turq', 'AT 3%: LESS THAN <span class="t">HALF</span>')}
       ${nota('3% ≈ 2021 average · 6.5% ≈ 2026 average so far<br>Freddie Mac PMMS, 30-year fixed')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.2, m1 = M[1] != null ? M[1] : 2.4, r = el.querySelectorAll('.rt');
-      ver(r[0], s, m1 + 0.3); ver(el.querySelector('.nota'), s, m0 + 0.2); } },
+      ver(r[0], s, m1 + 0.3); ver(el.querySelector('.nota'), s, m0 + 1.0); } },   // the note waits until the drum has settled and the camera has risen
   // 2 · Today: the drum spins on to 7.11% (red), the red house rebuilds and swells ×1.06; the turquoise mannequin walks up to it.
   { html: () => `<div class="chip izq roja" style="opacity:0"><small>EACH +1 POINT</small><b>≈ +$200/mo</b></div>
       ${rt('turq', 'CAN YOU <span class="t">SHRINK IT?</span>')}
-      ${nota('Freddie Mac PMMS · 30-year fixed average<br>week of Nov 12, 2026')}`,
+      ${nota('Freddie Mac PMMS · 30-year fixed average<br>Nov 12, 2026: 7.11%')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 2.9, r = el.querySelectorAll('.rt');
-      ver(r[0], s, m0 + 0.15); ver(el.querySelector('.chip'), s, 1.3); ver(el.querySelector('.nota'), s, 0.35); } },
+      ver(r[0], s, m0 + 0.15); ver(el.querySelector('.chip'), s, 1.3); ver(el.querySelector('.nota'), s, m0 + 0.1); } },   // the date tag rides on the drum; the note takes over when it leaves
   // 3 · Year one: the $1,896 slab breaks into 100 chips; 85 go red to the red house, 15 turquoise to the white one.
   { html: () => `<div class="chip izq" style="opacity:0"><small>YEAR</small><b>1</b></div>
       ${rt('roja', '<span class="r">85¢</span> OF EVERY $1')}${rt('roja p', 'YEAR 1: <span class="r">$19,401</span> INTEREST<br><span class="t">$3,353</span> PRINCIPAL')}
       ${nota('Example: $300,000 · 30-year fixed · 6.5%<br>principal &amp; interest only')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.2, m1 = M[1] != null ? M[1] : 2.3, m2 = M[2] != null ? M[2] : 4.4, r = el.querySelectorAll('.rt');
-      ver(el.querySelector('.chip'), s, m0); ver(r[0], s, m1 + 0.2, m2); ver(r[1], s, m2 + 0.1); ver(el.querySelector('.nota'), s, 0.2); } },
+      ver(el.querySelector('.chip'), s, m0); ver(r[0], s, m1 + 0.2, m2); ver(r[1], s, m2 + 0.1); ver(el.querySelector('.nota'), s, 0.2, m2 + 0.12); } },
   // 4 · Ten years: the white house is still mostly grey (owed), 15 turquoise blocks paid; the red one has 61 of its 128.
   { html: () => `<div class="chip izq"><small>YEAR</small><b class="y">1</b></div>
       ${rt('', 'PAID <span class="a">$227,544</span>')}${rt('', 'STILL OWE <span class="a">$254,328</span>')}`,
@@ -416,7 +443,7 @@ const ESCENAS = [
       ${rt('turq g', '30 → <span class="t">26</span> YEARS')}
       ${nota('Example: 6.5% · extra applied to principal<br>no prepayment penalty')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 2.6, m1 = M[1] != null ? M[1] : 4.2, m2 = M[2] != null ? M[2] : 5.8, r = el.querySelectorAll('.rt');
-      ver(r[0], s, m0, m1); ver(r[1], s, m1 + 0.15, m2 + 0.55); ver(r[2], s, m2 + 0.65); ver(el.querySelector('.nota'), s, 0.3); } },
+      ver(r[0], s, m0, m1); ver(r[1], s, m1 + 0.15, m2 + 0.55); ver(r[2], s, m2 + 0.65); ver(el.querySelector('.nota'), s, 0.3, m1 + 0.17); } },
   // 6 · Close: a generic statement card with the «Prepayment penalty» line in amber; then the red house builds back to 128 and,
   //     on {pop}, loses 21 at once: «−$61,000 · 4 YEARS SOONER». Hard cut on that image.
   { html: () => `<div class="ext" data-t="translateX(-50%)"><div class="cab"><span>EXAMPLE STATEMENT</span><span>MORTGAGE</span></div>
@@ -427,10 +454,14 @@ const ESCENAS = [
       ${rt('turq r48', '<span class="t">−$61,000</span> · 4 YEARS SOONER')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.9, m2 = M[2] != null ? M[2] : 5.4, g = e.seg[0];
       const tpp = g.res[0] ? g.res[0].ini : 0.8, c = el.querySelector('.ext'), ent = sale(tramo(s, 0, 0.5)), va = suave(tramo(s, m0 + 0.35, m0 + 0.95));
+      // the card never stands still: after entering it keeps a slow zoom (0.95 → 1.03), a slow turn and a tilt of ~3° until it leaves
+      const dr = tramo(s, 0.2, m0 + 0.95);
       c.style.opacity = Math.min(1, ent * 1.4) * (1 - tramo(s, m0 + 0.8, m0 + 0.95));
-      c.style.transform = 'translateX(' + (-50 - 140 * va) + '%) perspective(1400px) rotateY(' + (65 * (1 - ent)) + 'deg) rotateZ(' + (-9 * va) + 'deg) scale(' + (0.75 + 0.25 * ent) + ')';
-      const pp = el.querySelector('.pp'), a = rebote(tramo(s, tpp - 0.05, tpp + 0.3));
-      pp.style.borderColor = 'rgba(245,185,74,' + Math.min(1, a).toFixed(2) + ')'; pp.style.background = 'rgba(245,185,74,' + (0.22 * Math.min(1, a)).toFixed(2) + ')';
+      c.style.transform = 'translateX(' + (-50 - 140 * va) + '%) translateY(' + (-24 * dr) + 'px) perspective(1400px) rotateY(' + (65 * (1 - ent) - 7 * dr) + 'deg) rotateZ(' + (1.6 - 3.2 * dr - 9 * va) + 'deg) scale(' + ((0.75 + 0.25 * ent) * (0.95 + 0.08 * dr)) + ')';
+      // the amber box «writes» the line: it wipes from left to right while its border lights up
+      const pp = el.querySelector('.pp'), a = rebote(tramo(s, tpp - 0.05, tpp + 0.3)), wp = Math.round(100 * sale(tramo(s, tpp - 0.05, tpp + 0.55)));
+      pp.style.borderColor = 'rgba(245,185,74,' + Math.min(1, a).toFixed(2) + ')';
+      pp.style.background = 'linear-gradient(90deg, rgba(245,185,74,.26) ' + wp + '%, rgba(245,185,74,0) ' + Math.min(100, wp + 4) + '%)';
       pp.style.transform = 'scale(' + (1 + 0.06 * Math.sin(PI * tramo(s, tpp, tpp + 0.4))) + ')';
       ver(el.querySelector('.rt'), s, m2 + 0.3); } }
 ];
@@ -469,9 +500,9 @@ const TRES = function (t, k, s, e, W) {
     // from one to the other; the red house swells again
     if (s > m1 - 0.05) {
       const fu = 1 - tramo(s, m2 - 0.3, m2 + 0.0), a = Math.min(1, 1.3 * bote(m1, 0.35)) * fu, b = Math.min(1, 1.3 * bote(m1 + 0.12, 0.35)) * fu, cr = 1 + 0.25 * sale(tramo(s, m1 + 0.3, m1 + 1.1));
-      W.rotulo('w300', '$300,000', WX, 3.5, 0.3, a, BLANCO, 0.42 * cr);
-      W.rotulo('r382', '$382,633', RX + 0.35, 3.65 + 0.15 * (cr - 1), 0.3, b, ROJ, 0.48 * cr);
-      X.flecha({ x0: WX + 0.62 * cr, y: 3.55, z: 0.3, largo: 2.35 - 1.1 * cr + 0.2, q: sale(tramo(s, m1 + 0.15, m1 + 0.55)) * fu });
+      W.rotulo('w300', '$300,000', WX, 3.38, 0.3, a, BLANCO, 0.42 * cr);
+      W.rotulo('r382', '$382,633', RX + 0.35, 3.5 + 0.15 * (cr - 1), 0.3, b, ROJ, 0.48 * cr);
+      X.flecha({ x0: WX + 0.62 * cr, y: 3.43, z: 0.3, largo: 2.35 - 1.1 * cr + 0.2, q: sale(tramo(s, m1 + 0.15, m1 + 0.55)) * fu });
     }
     // on «is more than you borrowed»: the tape of 360 payments unrolls on the floor in front of the houses
     X.cinta({ x0: -3.0, z: 1.3, largo: 7.6, u: sale(tramo(s, m2, m2 + 1.3)), ancho: 0.5 });
@@ -479,11 +510,12 @@ const TRES = function (t, k, s, e, W) {
     if (s > tc && s < tc + 0.35) X.halo({ x: RX, y: 2.9, z: 0.4, esc: 3.2, op: 0.6 * Math.sin(PI * tramo(s, tc, tc + 0.35)), color: '#fecaca' });
     // camera: low travelling right → left with crane up (both houses in frame at the crossing) → orbit to three quarters on the
     // red side while the annex grows → crane up → 5% push on the stamp → pull back sweeping round to the double shot → down to the
-    // floor along the tape. Never still.
-    const C = ruta(orden([[0, [3.3, 1.2, 9.6, 0.8, 1.5, 0]], [0.5, [2.2, 1.65, 10.9, 0.35, 1.6, 0]], [tc, [1.2, 1.95, 12.3, 0.1, 1.6, 0]],
-      [1.0, orbita([1.0, 2.2, 12.6, 1.0, 1.5, 0], 0.26)], [1.5, orbita([1.15, 2.8, 12.4, 1.15, 1.6, 0], 0.4)], [2.0, [4.6, 4.5, 12.2, 1.1, 1.9, 0]],
-      [TS, [2.4, 3.0, 10.8, 1.3, 1.55, 0]], [3.0, orbita([0.9, 3.0, 13.4, 0.9, 1.6, 0], 0.18)], [m1, orbita([0.8, 3.0, 13.2, 0.8, 1.65, 0], -0.12)],
-      [m1 + 0.7, orbita([0.55, 2.7, 13.0, 0.55, 1.6, 0], -0.24)], [m2, orbita([0.6, 1.5, 10.8, 0.6, 1.15, 0.4], -0.36)], [m2 + 1.0, [-3.9, 1.7, 5.6, 0.4, 0.3, 1.3]],
+    // floor along the tape. Never still. Third pass: aimed further left and a little further back, so the white house is whole
+    // from frame 0 and at the stamp; the shot of the arrow is centred between the two labels.
+    const C = ruta(orden([[0, [2.4, 1.2, 11.3, 0.1, 1.5, 0]], [0.5, [1.7, 1.6, 11.9, 0.05, 1.6, 0]], [tc, [1.1, 1.95, 12.6, 0.05, 1.6, 0]],
+      [1.0, orbita([0.6, 2.2, 13.0, 0.6, 1.5, 0], 0.26)], [1.5, orbita([0.7, 2.8, 12.9, 0.7, 1.6, 0], 0.4)], [2.0, [3.6, 4.6, 13.0, 0.6, 1.9, 0]],
+      [TS, [1.3, 3.0, 13.0, 0.45, 1.55, 0]], [m1, orbita([0.3, 3.0, 13.4, 0.3, 1.9, 0], -0.12)],
+      [m1 + 0.7, orbita([0.1, 2.7, 13.4, 0.1, 1.9, 0], -0.24)], [m2, orbita([0.6, 1.5, 10.8, 0.6, 1.15, 0.4], -0.36)], [m2 + 1.0, [-3.9, 1.7, 5.6, 0.4, 0.3, 1.3]],
       [D + 0.6, [-2.6, 1.55, 5.4, 1.4, 0.35, 1.3]]]), s);
     const sh = s > tc ? 0.06 * Math.exp(-(s - tc) * 11) : 0, sh2 = s > TS ? 0.04 * Math.exp(-(s - TS) * 12) : 0;
     cam([C[0] + (sh + sh2) * Math.sin(s * 83), C[1] + (sh + sh2) * Math.cos(s * 71), C[2], C[3], C[4], C[5]]);
@@ -504,13 +536,15 @@ const TRES = function (t, k, s, e, W) {
     } });
     if (s > m1 - 0.05) W.rotulo('s155', '$155,332', RX, 1.0, 0.62, Math.min(1, 1.3 * bote(m1, 0.32)), ROJ, 0.42 * (1 + 0.4 * (1 - Math.min(1, bote(m1, 0.32)))));
     cam(ruta(orden([[0, [0.4, 0.55, 6.7, 0.1, 1.2, 0.6]], [m0, [0.15, 0.85, 6.2, 0.2, 1.35, 0.6]], [m0 + 0.9, orbita([0.9, 2.5, 11.2, 0.9, 1.45, 0], -0.32)],
-      [m1 + 0.4, orbita([1.1, 2.1, 9.9, 1.15, 1.1, 0], -0.22)], [D + 0.5, orbita([1.15, 2.0, 9.3, 1.2, 1.0, 0], -0.12)]]), s));
+      [m1 + 0.4, orbita([1.1, 2.0, 9.9, 1.15, 0.85, 0], -0.22)], [D + 0.5, orbita([1.15, 1.9, 9.3, 1.2, 0.75, 0], -0.12)]]), s));
   } else if (k === 2) {
     // ——— today: the drum rolls on to 7.11% (red); the 76 blocks fall back and the red house swells ×1.06 (at 7.11% it would be
     //     142 blocks); on «So can you…» the turquoise mannequin walks up to it and looks up ———
-    const m0 = mk(0, 2.9), giro = sale(tramo(s, 0.15, 0.75));
-    X.dial({ x: 0, z: 1.9, esc: 0.85, num: 1 + giro, turq: 1 - giro });
-    W.rotulo('tw', 'THIS WEEK', 0, 1.2, 1.9, Math.min(1, 1.3 * bote(0.7, 0.3)) * (1 - tramo(s, m0 - 0.3, m0)), ROJ, 0.24);
+    // The rate carries its date, never «this week» (it must still be true on the day it is published). Before «CAN YOU
+    // SHRINK IT?» comes in, the drum slides out to the left spinning, so the label never covers the figure.
+    const m0 = mk(0, 2.9), giro = sale(tramo(s, 0.15, 0.75)), va = tramo(s, m0 - 0.4, m0 + 0.12), vs = va * va;
+    if (va < 1) X.dial({ x: -3.4 * vs, y: 0.25 * Math.sin(PI * va), z: 1.9 + 0.4 * vs, esc: 0.85 * (1 - 0.3 * vs), ry: 0.5 * vs, num: 1 + giro, rueda: -7 * vs, turq: 1 - giro });
+    W.rotulo('tw', 'FREDDIE MAC · NOV 12, 2026', -3.4 * vs, 1.2, 1.9 + 0.4 * vs, Math.min(1, 1.3 * bote(0.7, 0.3)) * (1 - tramo(va, 0.15, 0.5)), ROJ, 0.2);
     blanca({ bloque: () => blancoB() });
     const hin = 1 + 0.06 * sale(tramo(s, 1.5, 2.1)) + 0.03 * Math.sin(PI * tramo(s, 1.5, 1.85));
     roja({ pulso: hin, bloque: (j) => {
@@ -557,7 +591,7 @@ const TRES = function (t, k, s, e, W) {
       if (s > m1 + 0.4) { X.halo({ x: RX, y: 1.4, z: 0.6, esc: 3.5, op: 0.3 * tramo(s, m1 + 0.6, m1 + 1.0) * (1 - tramo(s, m1 + 1.9, m1 + 2.3)), color: '#fca5a5' }); }
     }
     // the 85/15 bar on the floor: turquoise under the white house, red under the red one
-    const g = sale(tramo(s, m2, m2 + 0.7)), LT = 5.0, x0 = -2.5;
+    const g = sale(tramo(s, m2, m2 + 0.7)), LT = 4.0, x0 = -2.0;   // 4 m and centred: «15¢» stays inside the frame
     if (g > 0.01) {
       X.bloque({ x: x0 + LT * 0.15 * g / 2, y: 0.07, z: 1.55, w: LT * 0.15 * g, h: 0.14, d: 0.42, color: '#2dd4bf', brillo: 0.4 });
       X.bloque({ x: x0 + LT * 0.15 + 0.04 + LT * 0.85 * g / 2, y: 0.07, z: 1.55, w: LT * 0.85 * g, h: 0.14, d: 0.42, color: '#ef4444', brillo: 0.4 });
@@ -606,19 +640,20 @@ const TRES = function (t, k, s, e, W) {
       return rojoB({ dx: 2.2 * w, dy: 2.4 * Math.sin(PI * Math.min(1, w * 1.4)) - 5 * w * w, dz: 1.2 * w, rx: 5 * w, rz: -4 * w, op: 1 - tramo(w, 0.75, 1) });
     } });
     // the 30-year bar on the floor: appears after «saves», and on «four years» its last 4 years turn red, break off and fall
-    const ab = sale(tramo(s, m1 + 0.3, m1 + 0.9)), x0 = -2.6, LT = 5.2, Y1 = LT / 30, corta = sale(tramo(s, m2 + 0.05, m2 + 0.5)), cae = tramo(s, m2 + 0.35, m2 + 1.1);
+    // narrower (3.6 m) and centred so the «0» and «30» ticks stay in frame; «30 YRS» / «26 YRS» float above the ticks
+    const ab = sale(tramo(s, m1 + 0.3, m1 + 0.9)), x0 = -1.8, LT = 3.6, Y1 = LT / 30, corta = sale(tramo(s, m2 + 0.05, m2 + 0.5)), cae = tramo(s, m2 + 0.35, m2 + 1.1);
     if (ab > 0.01) {
       const tq = q(m2 + 0.4, 0.4);
       X.bloque({ x: x0 + 26 * Y1 * ab / 2, y: 0.09, z: 1.75, w: 26 * Y1 * ab, h: 0.18, d: 0.42, color: tq > 0.5 ? '#2dd4bf' : '#cbd5e1', brillo: 0.15 + 0.3 * tq });
       if (ab > 26 / 30) X.bloque({ x: x0 + 26 * Y1 + 0.03 + (ab * LT - 26 * Y1) / 2 + 0.5 * corta + 0.6 * cae, y: 0.09 + 0.2 * Math.sin(PI * Math.min(1, cae * 1.5)) - 0.5 * cae * cae, z: 1.75 + 0.5 * cae,
         w: ab * LT - 26 * Y1, h: 0.18, d: 0.42, color: corta > 0.3 ? '#ef4444' : '#cbd5e1', brillo: 0.15 + 0.35 * corta, rz: -0.9 * cae, op: 1 - tramo(cae, 0.7, 1) });
       for (let y = 0; y <= 30; y += 5) W.rotulo('yb' + y, String(y), x0 + y * Y1, 0.42, 1.98, ab * (y <= 26 ? 1 : 1 - corta), '#94a3b8', 0.2);
-      W.rotulo('b30', '30 YRS', 0, 0.62, 2.05, ab * (1 - q(m2, 0.3)), BLANCO, 0.32);
-      W.rotulo('b26', '26 YRS', x0 + 13 * Y1, 0.62, 2.05, tq, TQ, 0.32);
+      W.rotulo('b30', '30 YRS', 0, 0.98, 2.05, ab * (1 - q(m2, 0.3)), BLANCO, 0.32);
+      W.rotulo('b26', '26 YRS', x0 + 13 * Y1, 0.98, 2.05, tq, TQ, 0.32);
     }
     const sig = (x) => [hxA(x) + 0.05, 1.9 + 0.05 * x, HZ + 6.3 + 0.1 * x, hxA(x) + 0.3, 1.6, HZ - 0.15 * x / TA];   // camera on the walking mannequin
     cam(ruta(orden([[0, sig(0)], [TA * 0.5, sig(TA * 0.5)], [m0 - 0.3, sig(TA)], [m1 - 0.2, orbita([0.7, 2.3, 10.8, 0.7, 1.45, 0], 0.25)],
-      [m1 + 0.8, [2.0, 5.0, 9.4, 1.5, 1.25, 0]], [m2 + 0.2, [0.1, 1.3, 9.4, 0.1, 1.0, 1.75]], [D + 0.5, [-0.2, 1.15, 8.8, -0.1, 0.95, 1.75]]]), s));
+      [m1 + 0.8, [2.0, 5.0, 9.4, 1.5, 1.25, 0]], [m2 + 0.2, [0.15, 1.45, 10.6, 0.0, 1.0, 1.75]], [D + 0.5, [-0.1, 1.35, 10.2, 0.0, 0.95, 1.75]]]), s));
   } else {
     // ——— close: the statement card (2D) over the dimmed houses; then the 6.5% drum drops in front of the red house and the 21
     //     blocks fall back on (107 → 128): «the rate builds the second house»; on {pop} turquoise blocks go into the white house
@@ -636,8 +671,10 @@ const TRES = function (t, k, s, e, W) {
     if (s > m1 - 0.1) { const ud = tramo(s, m1 - 0.1, m1 + 0.3); X.dial({ x: RX - 0.25, y: 2.4 * (1 - ud * ud), z: 1.8, esc: Math.max(0.001, 0.8 * (1 - sale(tramo(s, m2 + 0.05, m2 + 0.4)))), num: 0, rueda: 0.3 * Math.sin(s * 9) * (1 - tramo(s, m1 + 0.2, m1 + 0.7)), turq: 0 }); }
     for (let i = 0; i < 5; i++) { const v = tramo(s, m2 - 0.35 + 0.05 * i, m2 - 0.05 + 0.05 * i); if (v > 0 && v < 1) { const p = mezcla([WX - 1.4 + 0.3 * i, 1.6, 2.2], [WX - 0.8 + 0.4 * i, 0.4, 0.4], suave(v)); X.bloque({ x: p[0], y: p[1] + 0.5 * Math.sin(PI * v), z: p[2], w: 0.22, h: 0.22, d: 0.22, color: '#2dd4bf', brillo: 0.5, ry: 4 * v }); } }
     if (s > m2 && s < m2 + 0.5) X.halo({ x: RX + 1.4, y: 1.4, z: 0.6, esc: 4, op: 0.5 * Math.sin(PI * tramo(s, m2, m2 + 0.5)), color: '#fca5a5' });
-    cam(ruta(orden([[0, orbita([0.5, 2.3, 12.4, 0.5, 1.6, 0], 0.35)], [m0 + 0.9, orbita([0.6, 2.2, 11.0, 0.6, 1.5, 0], 0.15)], [m1 + 0.2, orbita([0.8, 2.5, 11.6, 0.8, 1.45, 0], -0.05)],
-      [m2, orbita([0.7, 2.4, 11.3, 0.7, 1.5, 0], -0.22)], [D + 0.6, orbita([0.4, 2.8, 13.4, 0.4, 1.6, 0], -0.32)]]), s));
+    // a clearer push on the houses while the statement card is on screen (13.4 → 10.4 m), then the closing shots aimed further
+    // left and further back so the white house stays whole until the cut
+    cam(ruta(orden([[0, orbita([0.3, 2.5, 13.4, 0.3, 1.6, 0], 0.42)], [m0 + 0.9, orbita([0.35, 2.1, 10.4, 0.35, 1.45, 0], 0.12)], [m1 + 0.2, orbita([0.3, 2.5, 12.6, 0.3, 1.45, 0], -0.05)],
+      [m2, orbita([0.15, 2.4, 13.2, 0.15, 1.5, 0], -0.2)], [D + 0.6, orbita([0.25, 2.8, 14.4, 0.25, 1.6, 0], -0.3)]]), s));
   }
   W.multitud(t, { directo });
 };

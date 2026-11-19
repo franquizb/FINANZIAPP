@@ -16,7 +16,8 @@
 // porque los datos dicen que la gente se va en los primeros segundos. reel.inicio: cuándo empieza la voz.
 // reel.suelo: suelo común a 900 px de la escena (1190 en pantalla) que llena la parte de abajo.
 // reel.tres (función): coreografía 3D sobre el mundo de reels-voz/tres.js (maniquíes); reel.fijo: capa fija (HUD);
-// reel.sub = { max, largo }: tamaño de los golpes de subtítulo.
+// reel.sub = { max, largo, sinSuelta }: tamaño de los golpes de subtítulo; sinSuelta: true evita que la última palabra de una
+// frase quede sola en su golpe (se lleva la anterior: «shrink it.»).
 // reel.cola: segundos de plano tras la última frase (por defecto COLA). reel.corte2d = 'seco': la capa 2D de la escena
 // que sale desaparece en el mismo fotograma del corte (sin el fundido de FUNDIDO s encima de la escena siguiente).
 // T[lang].retencion: texto fijo arriba que deja una curiosidad pendiente (sube la
@@ -102,7 +103,12 @@ function golpes(p, tiempos, ini, finFrase, op = {}) {
     const largo = g.map(x => x.txt).join(' ').length, fin = /[.,!?:;…»”]$/.test(w.txt);
     // Una cifra no se separa de su «%» («4 %», «10 %»): el «%» nunca empieza golpe.
     const sigue = p.palabras[k + 1], pegado = !fin && sigue && /^%/.test(sigue.txt);
-    if (!pegado && (largo >= maxLargo || fin || g.length >= maxPal)) { out.push(g); g = []; }
+    if (!pegado && (largo >= maxLargo || fin || g.length >= maxPal)) {
+      // reel.sub.sinSuelta (opcional): la última palabra de la frase no se queda sola en su golpe; se lleva la anterior
+      // («extra payments shrink» | «it.» → «extra payments» | «shrink it.»). Las palabras y sus tiempos no cambian.
+      if (op.sinSuelta && !fin && g.length >= 2 && k === p.palabras.length - 2) { out.push(g.slice(0, -1)); g = g.slice(-1); }
+      else { out.push(g); g = []; }
+    }
   });
   if (g.length) out.push(g);
   return out.map((ws, i) => ({ ini: ws[0].ini, fin: i < out.length - 1 ? out[i + 1][0].ini : finFrase, palabras: ws }));

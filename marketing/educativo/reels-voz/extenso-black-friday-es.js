@@ -85,7 +85,6 @@ cuadra('pantalla: captura de ejemplo (149) más baja que el «antes» del 27 (19
 
 const TEXTO = `«Antes 199 €, ahora 99 €»… y hace una semana ya estuvo a 99. Esa rebaja es de cero. 🏷️
 
-Lo que no cabía en el vídeo:
 • En España, el precio anterior que enseña una rebaja tiene que ser el más bajo que esa tienda aplicó al mismo producto en los 30 días previos. Rige desde el 28 de mayo de 2022: este es el quinto Black Friday con esta regla.
 • Tiene excepciones. No se aplica a productos que se ponen a la venta por primera vez, ni a los alimentos que se rebajan porque están a punto de caducar. Y si la tienda no enseña ningún «antes», compáralo igual con lo que costaba.
 • Los 30 días se cuentan hacia atrás desde que empieza la rebaja. Si una oferta empezó el día 20 y sigue sin cortes, puede seguir enseñando el precio de antes del 20.
@@ -100,7 +99,7 @@ Guárdalo para el viernes 🔖 y mándaselo a quien está esperando al Black Fri
 
 Contenido educativo, no es asesoramiento financiero.
 
-Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y 65 (BOE, texto consolidado), con la redacción del art. 20.1 dada por el Real Decreto-ley 24/2021 (art. 85 y disposición final 10.ª c: en vigor el 28/05/2022), que transpone la Directiva (UE) 2019/2161; Real Decreto Legislativo 1/2007, art. 21.2; Ministerio de Derechos Sociales, Consumo y Agenda 2030 (preguntas frecuentes sobre Black Friday); Comunidad de Madrid, consumo (03/11/2026). Precios del vídeo: ejemplos. Consultado el 18/11/2026.
+Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y 65, con la redacción del art. 20.1 dada por el Real Decreto-ley 24/2021 (art. 85 y disposición final 10.ª c: en vigor el 28/05/2022); Real Decreto Legislativo 1/2007, art. 21.2; Ministerio de Derechos Sociales, Consumo y Agenda 2030; Comunidad de Madrid, consumo (03/11/2026). Precios del vídeo: ejemplos. Consultado el 18/11/2026.
 
 #blackfriday #consumo #finanzaspersonales #educacionfinanciera #dinero`;
 
@@ -225,10 +224,12 @@ const X3 = (() => {
   const pintaIns = (txt, bg, fg, fs) => lienzo(256, 256, (x) => { x.fillStyle = bg; x.beginPath(); x.arc(128, 128, 124, 0, 2 * PI); x.fill();
     x.strokeStyle = 'rgba(255,255,255,.9)'; x.lineWidth = 8; x.beginPath(); x.arc(128, 128, 108, 0, 2 * PI); x.stroke();
     x.fillStyle = fg; x.font = '900 ' + fs + 'px Inter, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 128, 134); }).tx;
-  const insG = new T.Group(); insG.position.set(0.8, 0.5, 0.04); cara.add(insG);
-  const insF = new T.Mesh(new T.CircleGeometry(0.23, 44), basico(pintaIns('−50 %', '#ef4444', '#ffffff', 64))); insF.position.z = 0.007; insG.add(insF);
-  const insB = new T.Mesh(new T.CircleGeometry(0.23, 44), basico(pintaIns('0 %', '#f5b94a', '#1a1205', 92))); insB.position.z = -0.007; insB.rotation.y = PI; insG.add(insB);
-  const insC = new T.Mesh(new T.CylinderGeometry(0.23, 0.23, 0.012, 44, 1, true), mat(0x7f1d1d)); insC.rotation.x = PI / 2; insG.add(insC);
+  // Dentro del ancho de la etiqueta (antes sobresalía por la derecha y salía cortada en los primeros planos del gancho).
+  const IX = 0.6, IY = 0.44, IR = 0.2;
+  const insG = new T.Group(); insG.position.set(IX, IY, 0.04); cara.add(insG);
+  const insF = new T.Mesh(new T.CircleGeometry(IR, 44), basico(pintaIns('−50 %', '#ef4444', '#ffffff', 64))); insF.position.z = 0.007; insG.add(insF);
+  const insB = new T.Mesh(new T.CircleGeometry(IR, 44), basico(pintaIns('0 %', '#f5b94a', '#1a1205', 92))); insB.position.z = -0.007; insB.rotation.y = PI; insG.add(insB);
+  const insC = new T.Mesh(new T.CylinderGeometry(IR, IR, 0.012, 44, 1, true), mat(0x7f1d1d)); insC.rotation.x = PI / 2; insG.add(insC);
   // o = { x, y, z, rx, ry, rz, esc, peg: { r199, a99, a149 } (opacidad), pegEsc: { … }, grietas (0..1), ins (ángulo), insOp, insEsc }
   function etiqueta(o) {
     etiG.visible = true; etiG.position.set(o.x, o.y, o.z); etiG.rotation.set(o.rx || 0, o.ry || 0, o.rz || 0); etiG.scale.setScalar(Math.max(0.001, o.esc == null ? 1 : o.esc));
@@ -395,13 +396,14 @@ const X3 = (() => {
 
   function apagar() { objs.forEach(g => { g.visible = false; }); [trozos, pegV, cols, halos].forEach(a => a.forEach(m => { m.visible = false; })); recM.visible = capM.visible = linM.visible = false; }
   return { etiqueta, ptEti, casasTrozos, trozo, pegVuela, sello, calendario, columna, escaner, corchete, barrera, movil, hojaRec, captura, linea, halo, apagar,
-    SX, SY, SW, SH, LC, TH };
+    SX, SY, SW, SH, LC, TH, IX, IY };
 })();
 W3.X = X3;
 
 // ——— el gancho (escena 0) y la cola del bucle. tau = tiempo de la escena 0 (negativo en la cola: la etiqueta viene de más arriba) ———
 // Etiqueta colgada en (PX, PY, PZ); calendario con la barra en (CX, CY, CZ); maniquí en (HX, HZ); fila de columnas en z = FZ.
-const G0 = { PX: 0.5, PY: 3.15, PZ: 0, CX: -1.05, CY: 2.95, CZ: -0.45, CE: 0.9, HX: 1.55, HZ: 1.25, TI: 0.7, TR: 1.5, TF: 2.0, FZ: -2.8 };
+// T20: la hoja del 20 NOV aterriza (rebobinado 26→21 a 0,045 s por hoja) y la cámara se queda frenando en ella hasta 0,54 s.
+const G0 = { PX: 0.5, PY: 3.15, PZ: 0, CX: -1.05, CY: 2.95, CZ: -0.45, CE: 0.9, HX: 1.55, HZ: 1.25, TI: 0.7, TR: 1.5, TF: 2.0, FZ: -2.8, T20: -0.02 + 7 * 0.045 };
 function etiGancho(tau) {
   const u = tramo(tau, -0.8, 0.5), e_ = 1 - (1 - u) * (1 - u), tt = tau + 0.8;
   const y = G0.PY + 1.4 * (1 - e_) - 0.07 * Math.sin(tramo(tau, 0.5, 0.95) * PI);
@@ -409,6 +411,8 @@ function etiGancho(tau) {
   const ry = 0.36 * (1 - suave(tramo(tau, -0.1, 0.65))) + 0.04 * Math.sin(1.1 * tau + 0.4);
   const ti = tau - G0.TI;
   if (ti > 0) { rx = -0.3 * Math.exp(-4.5 * ti) * Math.sin(10 * ti); rz += 0.1 * Math.exp(-3 * ti) * Math.sin(8 * ti); }
+  // Entre el golpe y la rotura la etiqueta tiembla cada vez más (el 199 está a punto de romperse).
+  if (tau > 0.95 && tau < G0.TR) rz += 0.016 * tramo(tau, 0.95, G0.TR) * Math.sin(tau * 61);
   return { x: G0.PX, y, z: G0.PZ, rx, ry, rz };
 }
 // Trozo i de la pegatina roja: sale de P0 (su sitio en la etiqueta) d s después de romperse; cae girando y se queda en el suelo.
@@ -426,10 +430,14 @@ function gancho(W, X, tau, m1, r0, Dv) {
   // —— etiqueta: cae balanceándose; el sello la golpea a TI; la pegatina 199 se raja y se rompe a TR; la insignia gira a TF ——
   const P0s = tau >= G0.TR ? casasGancho(X) : null;
   const st = etiGancho(tau);
-  const gr = tau < G0.TI ? 0 : 0.62 * sale(tramo(tau, G0.TI, G0.TI + 0.14)) + 0.38 * tramo(tau, 1.1, G0.TR);
+  const gr = tau < G0.TI ? 0 : 0.62 * sale(tramo(tau, G0.TI, G0.TI + 0.14)) + 0.38 * tramo(tau, 0.86, G0.TR);
+  // El 199 se hincha y tiembla cada vez más hasta reventar en TR.
+  const tiembla = tau > 0.9 && tau < G0.TR ? 1 + 0.13 * suave(tramo(tau, 0.9, G0.TR)) + 0.04 * tramo(tau, 0.95, G0.TR) * Math.sin(tau * 53) : 1;
+  // La insignia da vuelta y media (−50 % → 0 %) y rebota al quedarse en 0 %.
+  const giro = 3 * PI * sale(tramo(tau, G0.TF, G0.TF + 0.6)), insEsc = 1 + 0.22 * Math.sin(tramo(tau, G0.TF + 0.45, G0.TF + 0.8) * PI);
   const a99 = tau < G0.TR ? 0 : tau < tLand ? 0.5 : 1, pop = tau >= tLand ? 1 + 0.2 * Math.sin(tramo(tau, tLand, tLand + 0.3) * PI) : 1;
   const tt = tau + 0.8, wob = 0.5 * Math.exp(-0.7 * tt) * Math.sin(5.2 * tt);
-  X.etiqueta(Object.assign({}, st, { peg: { r199: tau < G0.TR ? 1 : 0, a99 }, pegEsc: { a99: pop }, grietas: tau < G0.TR ? gr : 0, ins: wob + PI * rebote(tramo(tau, G0.TF, G0.TF + 0.42)) }));
+  X.etiqueta(Object.assign({}, st, { peg: { r199: tau < G0.TR ? 1 : 0, a99 }, pegEsc: { a99: pop, r199: tiembla }, grietas: tau < G0.TR ? gr : 0, ins: wob + giro, insEsc }));
   if (P0s) for (let i = 0; i < 8; i++) X.trozo(i, trozoVuelo(i, P0s[i], tau - G0.TR));
   const slot = X.ptEti(X.SX - 0.04, X.SY, 0.07);
   // —— sello: entra en arco desde arriba a la derecha, golpea a TI, se aplasta, rebota y sale del plano ——
@@ -442,12 +450,13 @@ function gancho(W, X, tau, m1, r0, Dv) {
     X.sello({ x: p[0], y: p[1], z: p[2], ry: st.ry, rz, sz });
   }
   if (tau > G0.TI && tau < G0.TI + 0.45) { const u = tramo(tau, G0.TI, G0.TI + 0.45); X.halo(0, { x: slot.x, y: slot.y, z: slot.z + 0.05, esc: 0.4 + 2.6 * sale(u), op: 0.95 * (1 - u), color: 0xffc35a }); }
-  if (tau > G0.TF && tau < G0.TF + 0.5) { const u = tramo(tau, G0.TF, G0.TF + 0.5), b = X.ptEti(0.8, 0.5, 0.06); X.halo(1, { x: b.x, y: b.y, z: b.z, esc: 0.6 + 1.4 * sale(u), op: 0.8 * (1 - u), color: 0xffc35a }); }
-  // —— calendario: rebobina 27 → 20 (aterriza a 0,5 s), avanza otra vez hasta el 27 y vuelve a rebobinar hasta el 20 en «Pero» ——
+  if (tau > G0.TF + 0.4 && tau < G0.TF + 0.9) { const u = tramo(tau, G0.TF + 0.4, G0.TF + 0.9), b = X.ptEti(X.IX, X.IY, 0.06); X.halo(1, { x: b.x, y: b.y, z: b.z, esc: 0.6 + 1.4 * sale(u), op: 0.8 * (1 - u), color: 0xffc35a }); }
+  // —— calendario: rebobina 27 → 20 (aterriza a T20 ≈ 0,3 s y se queda con el halo ámbar), avanza otra vez hasta el 27 y vuelve a
+  //    rebobinar hasta el 20 en «Pero» ——
   const tB = mP - 7 * 0.07, tFF1 = Math.min(2.85, tB - 0.03), tFF0 = tFF1 - 7 * 0.055;
-  const c = tau < tFF0 ? rebobina(tau, 30, 23, -0.06, 0.08) : tau < tB ? avanza(tau, 23, 30, tFF0, 0.055) : rebobina(tau, 30, 23, tB, 0.07);
-  const enVeinte = (tau >= 0.5 && tau < tFF0) || tau >= mP;
-  const hl = enVeinte ? 0.75 * (0.75 + 0.25 * Math.sin(tau * 9)) * (tau >= mP ? tramo(tau, mP, mP + 0.12) : tramo(tau, 0.5, 0.62)) : 0;
+  const c = tau < tFF0 ? rebobina(tau, 30, 23, -0.02, 0.045) : tau < tB ? avanza(tau, 23, 30, tFF0, 0.055) : rebobina(tau, 30, 23, tB, 0.07);
+  const enVeinte = (tau >= G0.T20 && tau < tFF0) || tau >= mP;
+  const hl = enVeinte ? 0.9 * (0.78 + 0.22 * Math.sin(tau * 9)) * (tau >= mP ? tramo(tau, mP, mP + 0.12) : tramo(tau, G0.T20, G0.T20 + 0.08)) : 0;
   X.calendario({ x: G0.CX, y: G0.CY, z: G0.CZ, esc: G0.CE, ej: 1, abajo: c.abajo, hoja: c.hoja, a: c.a, halo: hl, sinPrecio: tau > tFly && c.abajo === 23 && c.hoja == null });
   // —— «ya estuvo a 99»: el 99 € de la hoja del 20 vuela a la línea ANTES de la etiqueta ——
   if (tau > tFly && tau < tLand) {
@@ -463,16 +472,20 @@ function gancho(W, X, tau, m1, r0, Dv) {
   if (tau > 2.3) for (let i = 0; i < 30; i++) { const tc = 2.35 + 0.012 * i, p = D.H1[i];
     X.columna(i, { x: xCol(i) * 1.15, z: G0.FZ, h: hCol(p) * sale(tramo(tau, tc, tc + 0.35)), color: p === 99 ? AMBH : GRISC, brillo: p === 99 ? 0.35 : 0.06 }); }
   // —— cámara ——
-  const K = [
+  // Dolly-in que frena en la hoja del 20 (KA), empuje lento mientras brilla el «99 €» (KH) y latigazo a la etiqueta para el sello (KB).
+  const C20 = [-0.5, 2.55, 2.45, -1.05, 2.25, -0.45], C20b = [-0.6, 2.5, 2.27, -1.05, 2.22, -0.45];
+  const KA = [
     [-0.8, [2.6, 4.9, 8.4, -0.15, 2.9, -0.3]],
     [0.0, [1.0, 3.3, 5.0, -0.02, 2.28, -0.2]],
-    [0.42, [-0.5, 2.55, 2.45, -1.05, 2.25, -0.45]],
-    [0.66, [0.4, 2.45, 2.9, 0.6, 2.05, 0]],
-    [0.98, [0.85, 2.38, 2.6, 0.72, 2.05, 0]],
-    [1.42, [1.4, 2.3, 2.45, 0.75, 2.05, 0]],
-    [1.78, [1.0, 2.35, 3.7, 0.6, 1.75, 0.3]],
-    [2.05, [1.65, 2.45, 3.65, 0.62, 1.95, 0]],
-    [2.42, [-0.5, 2.5, 3.75, 0.62, 1.95, 0]],
+    [G0.T20, C20]
+  ], KH = [[G0.T20, C20], [0.54, C20b]], K = [
+    [0.54, C20b],
+    [0.70, [0.55, 2.4, 3.75, 0.7, 2.17, 0]],
+    [1.10, [1.0, 2.38, 3.62, 0.72, 2.16, 0]],
+    [1.50, [1.55, 2.33, 3.38, 0.74, 2.12, 0]],
+    [1.85, [1.05, 2.25, 3.95, 0.66, 1.82, 0.2]],
+    [2.18, [1.72, 2.45, 3.75, 0.8, 2.15, 0]],
+    [2.50, [-0.1, 2.6, 4.0, 0.7, 2.05, 0]],
     [2.95, [-0.6, 4.2, 7.8, 0.6, 1.75, -0.8]],
     [mP - 0.32, [-0.5, 2.55, 2.35, -1.05, 2.25, -0.45]]
   ], K2 = [
@@ -481,10 +494,10 @@ function gancho(W, X, tau, m1, r0, Dv) {
     [tLand + 0.1, [0.6, 2.45, 3.5, 0.5, 1.95, 0]],
     [Math.max(Dv, tLand + 0.7), [0.95, 2.35, 3.3, 0.5, 1.95, 0]]
   ];
-  const C = rutas([K, K2], tau).slice();
+  const C = rutas([KA, KH, K, K2], tau).slice();
   const sh = tau > G0.TI && tau < 1.05 ? 0.07 * Math.exp(-(tau - G0.TI) * 10) : 0;
   C[0] += sh * Math.sin(tau * 83); C[1] += sh * Math.cos(tau * 71);
-  camR(W, C, 0.17 * (1 - suave(tramo(tau, -0.2, 0.42))));
+  camR(W, C, 0.17 * (1 - suave(tramo(tau, -0.2, G0.T20))));
 }
 const qq = (s, a, d) => sale(tramo(s, a, a + (d || 0.45)));
 const blanco = { color: '#f8fafc', cq: 0.4, brillo: 0.05 };
@@ -516,7 +529,7 @@ function esc1(W, X, s, Dv, mk, res) {
     X.barrera({ x: G0.PX, y: 2.2 + 2.8 * Math.pow(1 - u, 2) + 0.07 * Math.sin(v * PI) * (1 - v), z: 0.55, flash: s > mB ? Math.exp(-(s - mB) * 5) : 0 });
   }
   if (s > mB && s < mB + 0.45) { const u = tramo(s, mB, mB + 0.45); X.halo(0, { x: slot.x, y: slot.y, z: 0.62, esc: 0.5 + 2.6 * sale(u), op: 0.9 * (1 - u), color: 0x5eead4 }); }
-  const b = X.ptEti(0.8, 0.5, 0.05);
+  const b = X.ptEti(X.IX, X.IY, 0.05);
   const K = [[0, [b.x + 0.25, b.y + 0.05, b.z + 1.5, b.x - 0.1, b.y - 0.15, b.z]], [Math.max(0.9, mA - 0.4), [2.65, 2.4, 3.3, 0.85, 1.9, 0.5]],
     [mB, [2.15, 2.3, 4.0, 0.7, 1.95, 0.45]], [Math.max(Dv, mB + 0.5), [1.0, 2.4, 4.35, 0.6, 1.95, 0.35]]];
   camR(W, ruta(K, s));
@@ -528,7 +541,9 @@ function esc2(W, X, s, Dv, mk, res) {
   const m0 = mk(0, 1.5), m1 = mk(1, 3.5), m2 = mk(2, 5.9);
   // La hoja «28 MAY 2022» baja sobre el taco (la regla entra en vigor).
   const a = s < 0.45 ? 1 - sale(tramo(s, 0.05, 0.45)) : 0.1 * Math.sin(tramo(s, 0.45, 0.75) * PI) * (1 - tramo(s, 0.45, 0.75));
-  X.calendario({ x: G2.CX, y: G2.CY, z: G2.CZ, ry: 0.4, abajo: 30, hoja: -1, a, halo: 0.55 * qq(s, 0.42, 0.3), haloColor: 0x5eead4 });
+  // Se va (encoge girando) cuando la cámara pasa a las columnas, para que su «2022» no se lea junto al «28 OCT» de la fila.
+  const vaCal = suave(tramo(s, m0 - 0.05, m0 + 0.3));
+  if (vaCal < 0.99) X.calendario({ x: G2.CX, y: G2.CY + 0.4 * vaCal, z: G2.CZ, ry: 0.4 + 1.2 * vaCal, esc: Math.max(0.001, 1 - vaCal), abajo: 30, hoja: -1, a, halo: 0.55 * qq(s, 0.42, 0.3) * (1 - vaCal), haloColor: 0x5eead4 });
   // 30 columnas del ejemplo 1; el escáner las recorre en «el precio…» y las 3 más bajas (18–20 nov) se quedan en ámbar.
   const tS0 = m1, tS1 = m1 + 1.3, x0 = xCol(0) - 0.25, x1 = xCol(29) + 0.25, xs = lerp(x0, x1, tramo(s, tS0, tS1));
   for (let i = 0; i < 30; i++) {
@@ -537,7 +552,7 @@ function esc2(W, X, s, Dv, mk, res) {
     X.columna(i, { x, z: 0, h: hCol(p) * sale(tramo(s, tc, tc + 0.4)), color: GRISC, color2: amb > 0 ? AMBH : TURQH, cq: amb > 0 ? amb : 0.7 * pasa, brillo: 0.06 + 0.3 * amb + 0.45 * pasa });
   }
   if (s > tS0 - 0.05 && s < tS1 + 0.1) X.escaner({ x: xs, z: 0 });
-  const lab = qq(s, 0.9, 0.3) * (1 - tramo(s, m2 - 0.2, m2));
+  const lab = qq(s, m0 + 0.3, 0.3) * (1 - tramo(s, m2 - 0.2, m2));
   W.rotulo('o28', '28 OCT', xCol(0), 1.9, 0, lab, '#94a3b8', 0.2); W.rotulo('n26', '26 NOV', xCol(29), 1.9, 0, lab, '#94a3b8', 0.2);
   W.rotulo('ej', 'EJEMPLO', xCol(3), 2.3, 0, lab, '#94a3b8', 0.18);
   W.rotulo('n1820', '18–20 NOV', xCol(22), hCol(99) + 0.28, 0.1, qq(s, tS0 + 1.0, 0.25) * (1 - tramo(s, m2 - 0.2, m2)), '#f5b94a', 0.2);
@@ -552,7 +567,8 @@ function esc2(W, X, s, Dv, mk, res) {
   if (s > m2 - 0.7) {
     W.heroe({ x: hx, z: hz, gira: angulo(Math.atan2(G2.HX - 3.3, G2.HZ - 2.6), gH, suave(tramo(s, m2 - 0.35, m2))), amp: 1 - tramo(s, m2 - 0.25, m2 - 0.05), fase: s * 8 });
     brazos(W.H, suave(tramo(s, m2 - 0.3, m2)), 1);
-    X.movil({ x: PM[0], y: PM[1], z: PM[2], ry: gH, rx: -0.12, esc: suave(tramo(s, m2 - 0.3, m2)), pant: { tipo: s > m2 + 0.5 ? 'escaneo' : 'nada', u: tramo(s, m2 + 0.55, m2 + 1.35) } });
+    // La pantalla enseña la etiqueta en miniatura (se enciende mientras la de verdad encoge y entra) y las 30 barras.
+    X.movil({ x: PM[0], y: PM[1], z: PM[2], ry: gH, rx: -0.12, esc: suave(tramo(s, m2 - 0.3, m2)), pant: { tipo: 'escaneo', u: tramo(s, m2 + 0.55, m2 + 1.35), eti: 0.35 + 0.65 * tramo(s, m2 + 0.2, m2 + 0.5) } });
   }
   if (s < m2 + 0.5) {
     const C0 = [G2.PX, G2.PY - 0.95, G2.PZ], Q = [PM[0], PM[1] + 0.02, PM[2] + 0.03], c = mezcla(C0, Q, encoge);
@@ -564,7 +580,7 @@ function esc2(W, X, s, Dv, mk, res) {
     const p = mezcla(A, [slot.x, slot.y, slot.z], e_); p[1] += 0.5 * Math.sin(u * PI); X.pegVuela(0, 'a99', { x: p[0], y: p[1], z: p[2], esc: 0.4 + 0.6 * e_, ry: sway.ry * e_ }); }
   if (s > tL && s < m2) { const C0 = [G2.PX, G2.PY - 0.95, G2.PZ], d = s - tL, y = C0[1] + 0.13 + 0.8 * d - 4.9 * d * d;
     X.pegVuela(1, 'r199', { x: C0[0] + 0.3 + 0.6 * d, y: Math.max(0.02, y), z: C0[2] + 0.9 * d, rx: y > 0.02 ? -6 * d : -PI / 2, rz: 3 * d }); }
-  const K = [[0, [-2.6, 2.6, 3.9, -3.2, 2.28, 0.7]], [Math.max(0.9, m0 - 0.45), [-2.5, 2.55, 4.4, -3.1, 2.22, 0.7]], [m0 + 0.2, [-3.9, 1.75, 4.7, -0.9, 0.9, 0]], [m1 + 0.2, [-0.9, 1.6, 4.4, 1.3, 0.8, 0]],
+  const K = [[0, [-2.6, 2.6, 3.9, -3.2, 2.28, 0.7]], [Math.max(0.9, m0 - 0.45), [-2.5, 2.55, 4.4, -3.1, 2.22, 0.7]], [m0 + 0.3, [-3.6, 2.5, 5.7, -0.9, 0.95, 0]], [m1 + 0.2, [-1.3, 2.7, 6.5, 0.9, 0.9, 0]],
     [m1 + 1.45, [-1.1, 5.4, 8.6, 0.4, 2.0, -0.4]], [Math.max(m1 + 1.6, m2 - 0.05), [0.6, 3.6, 7.0, 1.4, 2.1, 0.2]], [Math.max(Dv, m2 + 0.8), [1.55, 1.8, 4.1, 1.9, 1.55, 2.3]]];
   camR(W, ruta(K, s));
 }
@@ -591,8 +607,8 @@ function esc3(W, X, s, Dv, mk, res) {
   W.casitas([{ x: G3.CX, z: G3.CZ, rot: 0.55, esc: 1.15, color: 0x2dd4bf, q: 0.3 + 0.7 * lit }]);
   W.rotulo('cons', 'CONSUMO', G3.CX + 0.45, 0.75, G3.CZ + 0.85, qq(s, m1 + 0.3, 0.3), '#5eead4', 0.3);
   if (lit > 0) X.halo(0, { x: G3.CX, y: 1.0, z: G3.CZ + 0.6, esc: 3.2, op: 0.5 * lit * (1 - 0.5 * tramo(s, m1 + 1.1, m1 + 1.6)), color: 0x5eead4 });
-  const K = [[0, [0.3, 2.75, 6.3, 0.85, 2.05, -3.4]], [m0 - 0.05, [0.35, 2.45, 4.5, 0.75, 2.0, -3.0]], [m0 + 0.15, [0.85, 1.85, 3.55, -0.55, 1.45, 1.2]]];
-  const K2 = [[m0 + 0.15, [0.85, 1.85, 3.55, -0.55, 1.45, 1.2]], [m1, [-0.98, 1.75, 3.7, -0.6, 1.5, 1.2]], [Math.max(Dv, m1 + 0.6), [-1.1, 2.5, 4.6, -3.25, 1.25, -1.4]]];
+  const K = [[0, [0.3, 2.75, 6.3, 0.85, 2.05, -3.4]], [m0 - 0.2, [0.35, 2.5, 4.7, 0.75, 2.0, -3.0]], [m0 + 0.25, [0.85, 1.85, 3.55, -0.55, 1.45, 1.2]]];
+  const K2 = [[m0 + 0.25, [0.85, 1.85, 3.55, -0.55, 1.45, 1.2]], [m1, [-0.98, 1.75, 3.7, -0.6, 1.5, 1.2]], [Math.max(Dv, m1 + 0.6), [-1.1, 2.5, 4.6, -3.25, 1.25, -1.4]]];
   camR(W, rutas([K, K2], s));
   // La gente camina hacia la puerta roja de la tienda (por la derecha del protagonista) y entra.
   return (i) => {
@@ -656,10 +672,13 @@ function esc5(W, X, s, Dv, mk, res) {
     X.corchete({ x0: xCol(0) - 0.08, x1: xCol(29) + 0.08, y: 2.0, z: 0, abre: sale(tramo(s, m2 + 0.15, m2 + 1.25)) });
     W.rotulo('c28', '28 OCT', xCol(0) + 0.25, 2.3, 0, qq(s, fin, 0.3), '#f5b94a', 0.24); W.rotulo('c26', '26 NOV', xCol(29) - 0.25, 2.3, 0, qq(s, fin + 0.1, 0.3), '#5eead4', 0.24);
   }
-  const K = [[0, [3.3, 1.65, 3.7, 1.9, 1.15, 0]], [m0, [-3.3, 1.6, 3.9, -1.9, 0.95, 0]], [m0 + 1.1, [-1.6, 2.6, 6.3, 0.35, 1.65, 0]], [m1 - 0.05, [-0.2, 4.4, 8.1, 0.7, 2.55, -0.4]],
+  const K = [[0, [2.4, 2.6, 6.5, 1.1, 1.1, 0]], [m0, [-1.9, 2.5, 6.4, -0.8, 1.0, 0]], [m0 + 1.1, [-1.6, 2.6, 6.6, 0.35, 1.65, 0]], [m1 - 0.25, [-0.2, 4.4, 8.1, 0.7, 2.55, -0.4]],
     [m1 + 0.2, [-1.6, 3.6, 4.4, -1.95, 3.3, 1.2]]];
-  const K2 = [[m1 + 0.2, [-1.6, 3.6, 4.4, -1.95, 3.3, 1.2]], [m2, [-1.8, 3.45, 3.85, -1.95, 3.3, 1.2]], [m2 + 1.4, [-0.4, 4.3, 10.2, -0.3, 2.0, 0.4]], [Math.max(Dv, m2 + 1.8), [-0.2, 4.35, 10.5, -0.25, 2.0, 0.4]]];
-  camR(W, rutas([K, K2], s));
+  // En el tic la cámara se aleja mientras rebobina y llega al plano general antes de que aterrice el 28 OCT; después, deriva lenta.
+  const PG = [-0.45, 4.25, 10.0, -0.3, 2.0, 0.4], PG2 = [-0.12, 4.36, 10.45, -0.24, 2.0, 0.4], tG = Math.min(m2 + 1.0, Dv - 1.0);
+  const K2 = [[m1 + 0.2, [-1.6, 3.6, 4.4, -1.95, 3.3, 1.2]], [m2, [-1.8, 3.45, 3.85, -1.95, 3.3, 1.2]], [tG, PG]];
+  const K3 = [[tG, PG], [Math.max(Dv, tG + 0.6), PG2]];
+  camR(W, rutas([K, K2, K3], s));
 }
 
 // ——— escena 6 · «Haz hoy captura del precio §y compáralo el 27. §El «antes» no lo eligen ellos: §{pop}es el más bajo de los 30 días anteriores» ———
@@ -668,18 +687,21 @@ function esc6(W, X, s, Dv, mk, res) {
   const m0 = mk(0, 1.4), m1 = mk(1, 3.0), m2 = mk(2, 4.8);
   const gT = Math.atan2(G6.PX - G6.HX, G6.PZ - G6.HZ);
   W.heroe({ x: G6.HX, z: G6.HZ, gira: gT, luz: qq(s, 0.05, 0.5) });
-  const qp = 1 - 0.45 * suave(tramo(s, 0.15, 0.7)); brazos(W.H, 1, qp);
+  // Levanta el móvil por encima de la cabeza (apunta a la etiqueta, que cuelga alta): así la cabeza no tapa la pantalla.
+  const qp = 1 - 0.75 * suave(tramo(s, 0.15, 0.7)); brazos(W.H, 1, qp);
   const mp = manos(G6.HX, G6.HZ, gT, qp, 1.06, 0), tFl = 0.9;
   X.movil({ x: mp[0], y: mp[1] + 0.06, z: mp[2], ry: gT + PI, rx: 0.08, pant: { tipo: s > tFl ? 'captura' : 'vivo' } });
   if (s > tFl && s < tFl + 0.5) { const u = tramo(s, tFl, tFl + 0.5); X.halo(2, { x: mp[0], y: mp[1] + 0.1, z: mp[2], esc: 0.6 + 2.6 * sale(u), op: (1 - u), color: 0xffffff }); }
   if (s > tFl + 0.05) { const u = tramo(s, tFl + 0.05, tFl + 0.6), e_ = sale(u), p = mezcla(mp, G6.CAP, e_); X.captura({ x: p[0], y: p[1], z: p[2], ry: 0.25 * e_, esc: 0.3 + 0.7 * e_ }); }
   // Calendario hasta el 27 y la etiqueta del 27 («antes 199»); línea ámbar de la captura al «antes».
   if (s > m0 - 0.3) { const c = avanza(s, 24, 30, m0, 0.07); X.calendario({ x: G6.CX, y: G6.CY, z: G6.CZ, esc: 0.72, ry: 0.3, ej: 2, abajo: c.abajo, hoja: c.hoja, a: c.a }); }
-  const td = m0 + 0.1, tt = s - td, tA = m2 + 1.45;
+  // tA: el 149 llega a la línea ANTES; queda más de 1 s a la vista antes del latigazo al bucle (Dv − 0,8).
+  const td = m0 + 0.1, tt = s - td, tA = Math.min(m2 + 0.95, Dv - 1.85);
   if (s > td) {
     const pop = s >= tA ? 1 + 0.22 * Math.sin(tramo(s, tA, tA + 0.3) * PI) : 1;
     X.etiqueta({ x: G6.PX, y: G6.PY + 1.9 * Math.pow(1 - sale(tramo(s, td, td + 0.5)), 2), z: G6.PZ, rz: 0.14 * Math.exp(-2 * tt) * Math.sin(7 * tt) + 0.02 * Math.sin(s * 1.3), ry: -0.2,
-      peg: { r199: s < m1 + 0.1 ? 1 : 0, a149: s >= tA ? 1 : 0 }, pegEsc: { a149: pop }, ins: 0.35 * Math.exp(-tt) * Math.sin(6 * tt), insOp: 1 - tramo(s, tA, tA + 0.3) });
+      // La insignia «−50 %» se va girando con el 199 («no lo eligen ellos»): con el 149 sería un −34 %.
+      peg: { r199: s < m1 + 0.1 ? 1 : 0, a149: s >= tA ? 1 : 0 }, pegEsc: { a149: pop }, ins: 0.35 * Math.exp(-tt) * Math.sin(6 * tt) + 4 * sale(tramo(s, m1 + 0.12, m1 + 0.42)), insOp: 1 - tramo(s, m1 + 0.12, m1 + 0.42) });
     const slot = X.ptEti(X.SX, X.SY, 0.05);
     if (s > m0 + 0.55 && s < m2) X.linea([G6.CAP[0] + 0.05, G6.CAP[1] - 0.02, G6.CAP[2] + 0.02], [slot.x - 0.3, slot.y, slot.z], sale(tramo(s, m0 + 0.55, m0 + 1.05)) * (1 - tramo(s, m2 - 0.3, m2)));
     // «no lo eligen ellos»: el 199 se despega hacia arriba y se deshace en el aire.
@@ -687,17 +709,20 @@ function esc6(W, X, s, Dv, mk, res) {
       for (let i = 0; i < 8; i++) { const c = i % 4, r = Math.floor(i / 4); X.trozo(i, { x: H[i].x + (c - 1.5) * 0.5 * d, y: H[i].y + 0.25 * Math.min(1, d * 6) + (0.7 + 0.2 * r) * d, z: H[i].z + 0.35 * d, rx: d * (2 + i), rz: d * (3 - i * 0.5), esc: 1 - 0.4 * d, op: 1 - tramo(d, 0.35, 1.1) }); } }
     // Las 30 columnas se juntan en una sola, la más baja (149 €), que sube hasta la línea ANTES.
     if (s > m2 - 0.15) {
-      const sube = suave(tramo(s, m2 + 1.0, tA)), yTop = slot.y;
-      for (let i = 0; i < 30; i++) { const p = D.H2[i], u = suave(tramo(s, m2 + 0.3 + 0.008 * i, m2 + 1.0)), h = lerp(hCol(p), hCol(149), u) * sale(tramo(s, m2 - 0.15, m2 + 0.2));
+      const tJ = tA - 0.35, sube = suave(tramo(s, tJ, tA)), yTop = slot.y;
+      for (let i = 0; i < 30; i++) { const p = D.H2[i], u = suave(tramo(s, m2 + 0.05 + 0.006 * i, tJ)), h = lerp(hCol(p), hCol(149), u) * sale(tramo(s, m2 - 0.15, m2 + 0.2));
         if (u < 0.999) X.columna(i, { x: lerp(xCol(i), G6.MX, u), z: lerp(G6.FZ, G6.MZ, u), h, color: p === 199 ? ROJOH : AMBH, color2: AMBH, cq: u, brillo: 0.3 }); }
-      if (s > m2 + 0.95) { X.columna(30, { x: G6.MX, z: G6.MZ, y: (yTop - hCol(149) + 0.12) * sube, h: hCol(149), w: 0.32, color: AMBH, brillo: 0.4 });
-        W.rotulo('m149', '149 €', G6.MX, (yTop - hCol(149) + 0.12) * sube + hCol(149) + 0.28, G6.MZ, qq(s, m2 + 1.0, 0.25), '#f5b94a', 0.26); }
+      if (s > tJ - 0.05) { X.columna(30, { x: G6.MX, z: G6.MZ, y: (yTop - hCol(149) + 0.12) * sube, h: hCol(149), w: 0.32, color: AMBH, brillo: 0.4 });
+        W.rotulo('m149', '149 €', G6.MX, (yTop - hCol(149) + 0.12) * sube + hCol(149) + 0.28, G6.MZ, qq(s, tJ, 0.25), '#f5b94a', 0.26); }
     }
   }
-  const K = [[0, [-2.75, 2.3, 3.3, -0.2, 1.95, 0.6]], [m0, [-2.3, 2.35, 3.75, -0.3, 2.15, 0.8]], [m0 + 0.25, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]]];
-  const K2 = [[m0 + 0.25, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]], [m1, [0.85, 2.9, 7.8, 0.15, 2.75, 0.2]],
-    [m2, [0.6, 3.4, 6.2, 0.6, 2.9, 0.0]], [m2 + 1.6, [-0.4, 3.85, 8.4, 0.5, 2.45, -0.4]], [Math.max(Dv - 0.8, m2 + 1.9), [-0.55, 3.95, 8.8, 0.45, 2.45, -0.4]]];
-  camR(W, rutas([K, K2], s));
+  // Por encima del hombro derecho y desde arriba: se ve la pantalla del móvil (antes la tapaba la cabeza). Paso al general más suave.
+  const K = [[0, [-1.75, 2.72, 2.45, -0.8, 2.02, 1.25]], [m0 - 0.1, [-1.55, 2.82, 2.25, -0.76, 2.06, 1.2]], [m0 + 0.4, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]]];
+  // Cierre: llega al plano general cuando el 149 entra en la línea ANTES y después deriva despacio hasta el bucle.
+  const PB = [-0.25, 3.75, 7.9, 0.52, 2.5, -0.3], PC = [-0.42, 3.84, 8.3, 0.5, 2.47, -0.36];
+  const K2 = [[m0 + 0.4, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]], [m1, [0.85, 2.9, 7.8, 0.15, 2.75, 0.2]], [m2, [0.6, 3.4, 6.2, 0.6, 2.9, 0.0]], [tA, PB]];
+  const K3 = [[tA, PB], [Math.max(Dv - 0.8, tA + 0.5), PC]];
+  camR(W, rutas([K, K2, K3], s));
 }
 `;
 
@@ -747,7 +772,7 @@ const TRES = function (t, k, s, e, W) {
   W.cam.up.set(0, 1, 0);
   let directo = null;
   if (k === 0) gancho(W, X, s, mk(1, 3.4), res[0] ? res[0].ini : mk(1, 3.4) + 1.3, Dv);
-  else if (ultima && s >= Dv - 0.8) gancho(W, X, s - Dv, 2.41, 3.98, 5.55);   // cola: el encuadre del fotograma 0 (bucle)
+  else if (ultima && s >= Dv - 0.8) gancho(W, X, s - Dv, 3.36, 4.2, 5.55);   // cola: el encuadre del fotograma 0 (bucle)
   else directo = [null, esc1, esc2, esc3, esc4, esc5, esc6][k](W, X, s, Dv, mk, res);
   W.multitud(t, { directo: directo || (() => ({ x: -60, z: -60, esc: 0 })) });
 };

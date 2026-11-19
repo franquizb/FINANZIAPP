@@ -243,7 +243,6 @@ Notas:
 ```
 «Antes 199 €, ahora 99 €»… y hace una semana ya estuvo a 99. Esa rebaja es de cero. 🏷️
 
-Lo que no cabía en el vídeo:
 • En España, el precio anterior que enseña una rebaja tiene que ser el más bajo que esa tienda aplicó al mismo producto en los 30 días previos. Rige desde el 28 de mayo de 2022: este es el quinto Black Friday con esta regla.
 • Tiene excepciones. No se aplica a productos que se ponen a la venta por primera vez, ni a los alimentos que se rebajan porque están a punto de caducar. Y si la tienda no enseña ningún «antes», compáralo igual con lo que costaba.
 • Los 30 días se cuentan hacia atrás desde que empieza la rebaja. Si una oferta empezó el día 20 y sigue sin cortes, puede seguir enseñando el precio de antes del 20.
@@ -258,7 +257,7 @@ Guárdalo para el viernes 🔖 y mándaselo a quien está esperando al Black Fri
 
 Contenido educativo, no es asesoramiento financiero.
 
-Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y 65 (BOE, texto consolidado), con la redacción del art. 20.1 dada por el Real Decreto-ley 24/2021 (art. 85 y disposición final 10.ª c: en vigor el 28/05/2022), que transpone la Directiva (UE) 2019/2161; Real Decreto Legislativo 1/2007, art. 21.2; Ministerio de Derechos Sociales, Consumo y Agenda 2030 (preguntas frecuentes sobre Black Friday); Comunidad de Madrid, consumo (03/11/2026). Precios del vídeo: ejemplos. Consultado el 18/11/2026.
+Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y 65, con la redacción del art. 20.1 dada por el Real Decreto-ley 24/2021 (art. 85 y disposición final 10.ª c: en vigor el 28/05/2022); Real Decreto Legislativo 1/2007, art. 21.2; Ministerio de Derechos Sociales, Consumo y Agenda 2030; Comunidad de Madrid, consumo (03/11/2026). Precios del vídeo: ejemplos. Consultado el 18/11/2026.
 
 #blackfriday #consumo #finanzaspersonales #educacionfinanciera #dinero
 ```
