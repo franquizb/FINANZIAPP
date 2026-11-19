@@ -438,6 +438,28 @@ El propietario pidió que cada clon fuera **el siguiente vídeo** de su cuenta, 
 - **Omisión en los 3 primeros segundos** (`reels_skip_rate`, API de Instagram, 17-11 a las 22:20 UTC): **57,7 %** en España y **62,9 %** en EE. UU. Son de las más altas de cada cuenta: los ganadores de España están en 24–30 % y el despegue de EE. UU. en 34,6 %. Ninguno tuvo guardados ni compartidos más allá de los 2 guardados de EE. UU., ni comentarios.
 - **Primera lectura:** a la mayoría la perdimos antes de que empezara el esqueleto. Los dos arrancan con la tarjeta-título «TIN vs TAE» / «HSA vs FSA», dicha y escrita, casi quieta (`quieto3` = 0,66 en `arranque.py`). La pausa y la respuesta al 80 % ni siquiera llegaron a probarse con la mayoría del público. Copiar el esqueleto del viral sin su arranque visual no basta, y en España sale peor que nuestro formato habitual. Las capturas de la gráfica de retención dirán dónde se va el resto.
 
+**48 h** (medido tarde, el 19-11 a las 08:35 UTC: unas 67 h en España y 63 h en EE. UU.; API de Instagram):
+
+| Reel | Horas | Vistas (24 h → ahora) | Alcance | Visto medio | Retención | Omisión 3 s | Guardados | Compartidos | Comentarios | Me gusta |
+|---|---|---|---|---|---|---|---|---|---|---|
+| es-tin-vs-tae | 67 | 118 → **120** | 113 | 8,7 s de 59 s | 15 % | 57,1 % | 0 | 0 | 0 | 0 |
+| en-hsa-vs-fsa | 63 | 161 → **163** | 146 | 13,3 s de 56,2 s | 24 % | 63,4 % | 2 | 0 | 0 | 1 |
+
+Medias de cada cuenta en esa misma descarga (todos los Reels):
+
+| Cuenta | Reels | Mediana de vistas | Media de vistas | Mediana de retención | Omisión 3 s de los que despegan |
+|---|---|---|---|---|---|
+| España | 24 | 140 | 421 | 30,5 % | 24–28 % (es-reto-03, es-reto-05 y es-iva-sobre-impuesto) |
+| EE. UU. | 21 | 131 | 175 | 26 % | 34,7 % (en-save-invest-one-plan) |
+
+- **Los dos se pararon en las primeras 24 h.** Entre las 24 h y ahora solo suman 2 vistas cada uno. Instagram no les dio una segunda tanda, y es lo normal en los Reels de estas cuentas que no despegan el primer día.
+- **España, por debajo de todo:** 120 vistas frente a una mediana de 140, y la peor retención de la cuenta (15 % frente al 30,5 %). Su omisión, el 57,1 %, es la quinta más alta de los 24 Reels de España; por encima solo quedan tres de los primeros días y es-fondo-emergencia (63,6 %).
+- **EE. UU., en la mediana:** 163 vistas frente a 131, un poco por encima, con 2 guardados. Su retención es la mediana de la cuenta (24 % frente al 26 %), pero su omisión, el 63,4 %, es la quinta más alta de los 21 Reels de EE. UU. (las cuatro de encima son de los primeros días, del 7 al 11 de noviembre).
+- **Omisión:** la de 3 s casi no cambia desde el 17-11 (57,7 → 57,1 % y 62,9 → 63,4 %). Se decide en la primera tanda y después no se mueve.
+- **Conclusión a las 48 h, la misma que a las 24 h y más firme:** el esqueleto del viral no se ha llegado a probar, porque 6 de cada 10 personas se fueron antes del segundo 3 por la tarjeta-título quieta. Para probar el esqueleto (la pausa y la respuesta al 80 %) hay que repetirlo con un arranque en movimiento y gancho visual (fotograma 0 en acción y un acontecimiento antes de 0,7 s), como es-loteria-navidad y en-debunk-psychology.
+- **Ventana limpia más larga de lo previsto:** desde los clones no ha salido nada más en ninguna de las dos cuentas. es-loteria-navidad no se publicó en Instagram el 18-11 (texto de 2.237 caracteres, el máximo es 2.200; Facebook sí lo publicó a las 14:01 UTC). Se ha recortado y vuelto a programar para el 19-11 a las 17:32 UTC, y `encolar-instagram.cjs` ya no deja encolar un texto de más de 2.150 caracteres.
+- **Capturas de retención:** siguen sin llegar. Se vuelven a pedir al propietario (gráfica de retención de los dos Reels en la app de Instagram, en Estadísticas del Reel).
+
 **Lo que esto enseña para todos los Reels** (43 Reels con omisión medida, 17-11):
 - La omisión de los 3 primeros segundos es la medida que más se parece al alcance. Spearman omisión ~ vistas: −0,88 en España y −0,61 en EE. UU. Los 5 de España que pasaron de 1.300 vistas tienen una omisión de 24–30 %; ninguno con más del 30,4 % pasó de 320.
 - Con arranque en movimiento (`quieto3` < 0,2) la omisión mediana es del 32 % (n=11); con arranque casi quieto (≥ 0,45), del 52 % (n=30). Hay excepciones que arrancan quietas pero con una cifra muy clara en pantalla: en-millas-79900 (22 %) y es-gasolina-1499 (30 %).

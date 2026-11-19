@@ -9,6 +9,10 @@ const op = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.ar
 if (!['es', 'en'].includes(cuenta) || !video || !textoArchivo || !cuando) { console.error('Uso: … es|en <video.mp4> <texto.txt> <fecha ISO> [--portada-ms N] [--ensayo]'); process.exit(1); }
 const hora = Date.parse(cuando);
 if (isNaN(hora) || hora < Date.now() - 60e3 || hora > Date.now() + 6.8 * 864e5) { console.error('La fecha tiene que estar entre ahora y dentro de 6 días y medio (la URL firmada dura 7 días como mucho).'); process.exit(1); }
+// Instagram rechaza textos de más de 2.200 caracteres (es-loteria-navidad no salió el 18-11 por 2.237). Se comprueba el texto
+// final (con las etiquetas ya variadas) y se deja margen, porque Instagram no cuenta exactamente igual que JavaScript.
+const texto = require('./etiquetas.cjs').variar(fs.readFileSync(textoArchivo, 'utf8').trim(), cuenta);
+if ([...texto].length > 2150) { console.error(`El texto tiene ${[...texto].length} caracteres: Instagram admite 2.200 como mucho (dejamos el tope en 2.150). Recórtalo antes de encolar.`); process.exit(1); }
 
 // URL firmada V4 de Cloud Storage (GET), igual que en publicar-instagram.cjs.
 function urlFirmada(sa, bucket, objeto, seg) {
@@ -44,7 +48,7 @@ const BUCKET = 'finanziapp-publicar', FS = 'https://firestore.googleapis.com/v1/
   let cola = { items: [] };
   try { const r = await c.request({ url: FS, headers: h }); cola = JSON.parse(r.data.fields.json.stringValue); } catch { /* primera vez */ }
   // Se guardan solo los últimos 50 movimientos.
-  cola.items = [...cola.items.slice(-49), { id, cuenta, plataforma: 'ig', slug, objeto, cuando: new Date(hora).toISOString(), texto: require('./etiquetas.cjs').variar(fs.readFileSync(textoArchivo, 'utf8').trim(), cuenta),
+  cola.items = [...cola.items.slice(-49), { id, cuenta, plataforma: 'ig', slug, objeto, cuando: new Date(hora).toISOString(), texto,
     url: urlFirmada(JSON.parse(fs.readFileSync(sa, 'utf8')), BUCKET, objeto, Math.min(604800, Math.round((hora - Date.now()) / 1000) + 3 * 3600)),
     thumb_ms: op('--portada-ms') ? +op('--portada-ms') : null, portada_url: portadaUrl, ensayo: process.argv.includes('--ensayo'), estado: 'pendiente', creado: new Date().toISOString(),
     sha1: crypto.createHash('sha1').update(fs.readFileSync(video)).digest('hex').slice(0, 12) }];
