@@ -264,6 +264,8 @@ Fuentes: Ley 7/1996 de Ordenación del Comercio Minorista, arts. 1, 20, 63, 64 y
 
 (El hashtag `#españa` y la variación de hashtags los pone `etiquetas.cjs` al programar.)
 
+(19/11/2026: recortado de 2.260 a 2.121 caracteres para que quepa en el tope de 2.150 de `encolar-instagram.cjs`, también con las etiquetas variadas. Se quitaron la línea «Lo que no cabía en el vídeo:» y, en las fuentes, «(BOE, texto consolidado)», «, que transpone la Directiva (UE) 2019/2161» y «(preguntas frecuentes sobre Black Friday)». Las fuentes completas siguen en la tabla de arriba.)
+
 ## Portada (portadas.json)
 
 ```json
