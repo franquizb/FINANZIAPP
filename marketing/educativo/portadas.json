@@ -337,7 +337,8 @@
     "color": "rojo",
     "serie": "money-explained",
     "etiqueta": "Car loans",
-    "fotograma_ms": 39300
+    "fotograma_ms": 41300,
+    "encuadre_y": 580
   },
   "es-black-friday-30-dias": {
     "titulo": "Rebaja del ~50 %~ 0 %",
@@ -353,8 +354,8 @@
     "destacado": "0,28",
     "color": "ambar",
     "serie": "hacemos-la-cuenta",
-    "fotograma_ms": 33600,
-    "encuadre_y": 640
+    "fotograma_ms": 33900,
+    "encuadre_y": 830
   },
   "en-mortgage-rate": {
     "titulo": "A $300,000 loan. $382,633 in interest.",

@@ -232,6 +232,15 @@
           "estado": "listo",
           "slug": "es-reto-07",
           "nota": "Programado en Instagram y Facebook · 32.17 s"
+        },
+        {
+          "fecha": "2026-11-20",
+          "hora": "13:54",
+          "tipo": "Reel",
+          "tema": "Pagas de media 1,73 € por un kilo de patatas. Al agricultor le pagaron 28 céntimos",
+          "estado": "listo",
+          "slug": "es-agricultor",
+          "nota": "Programado en Instagram y Facebook · 48.56 s"
         }
       ],
       "pendientes": [
@@ -447,6 +456,15 @@
           "estado": "listo",
           "slug": "en-reto-03",
           "nota": "Programado en Instagram y Facebook · 39.85 s"
+        },
+        {
+          "fecha": "2026-11-20",
+          "hora": "16:13",
+          "tipo": "Reel",
+          "tema": "That $35,000 car really costs $47,302",
+          "estado": "listo",
+          "slug": "en-car-84-months",
+          "nota": "Programado en Instagram y Facebook · 50.66 s"
         }
       ],
       "pendientes": [

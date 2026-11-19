@@ -60,6 +60,8 @@ SP=/tmp/claude-0/-home-user-finanziapp/ecbe874d-651f-5b1f-a876-9043b560763f/scra
   comprobar que ningún Reel usa tiempos más viejos que su audio: `node tomas-viejas.cjs "$PWD"` (debe decir 0).
 - En el guion: `*resaltado*` marca palabras en los subtítulos; `§` es un momento para la animación; `§{pop}`, `§{ding}`,
   `§{caja}` y `§{tic}` añaden además un efecto de sonido. La voz nunca lee nada de eso.
+- `{{subtítulo|voz}}`: la voz lee la segunda grafía y los subtítulos enseñan la primera (`{{COAG.|Coag.}}`, cuando una sigla
+  suena mal). Cambia la toma: pásala por `revisar-voz.cjs`.
 
 ## Lo que hay que saber del 3D
 

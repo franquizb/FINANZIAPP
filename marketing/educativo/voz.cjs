@@ -10,8 +10,9 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const SR = 44100;
 const CACHE = path.join(__dirname, 'cache-voz');
 // Texto que se lee: sin *resaltados* ni marcas § (ni su {sonido}); las [etiquetas] solo las entiende Gemini.
+// {{subtítulo|voz}}: la voz lee la segunda parte y los subtítulos enseñan la primera (p. ej. {{COAG|Coag}}).
 const limpiar = (txt, etiquetas = false) => {
-  const t = txt.replace(/§(\{\w*\})?/g, '').replace(/\*/g, '');
+  const t = txt.replace(/\{\{([^|{}]*)\|([^{}]*)\}\}/g, '$2').replace(/§(\{\w*\})?/g, '').replace(/\*/g, '');
   return (etiquetas ? t : t.replace(/\[[^\]]*\]\s*/g, '')).replace(/\s+/g, ' ').trim();
 };
 // Envuelve PCM de 16 bits sin cabecera en un WAV.

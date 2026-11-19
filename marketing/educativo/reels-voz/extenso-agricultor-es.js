@@ -138,7 +138,8 @@ Fuentes: COAG, Índice de Precios en Origen y Destino (IPOD), patata: enero, feb
 
 const GUION = [
   [0, 'Pagas de media 1,73 euros por un kilo de patatas. §Al agricultor §{pop}le pagaron *28 céntimos*.'],
-  [1, 'Es la media de octubre, según COAG. §El Ministerio da más: §*39 céntimos*.'],
+  // «Coag» solo en la toma (la sigla sonaba «Coaz» al oído de Whisper y de Gemini); los subtítulos siguen con «COAG».
+  [1, 'Es la media de octubre, según {{COAG.|Coag.}} §El Ministerio da más: §*39 céntimos*.'],
   [2, 'Con cualquiera de las dos, §de cada 4 euros en patatas, §{ding}*la patata no llega a 1*. §¿En qué se va *el resto*?'],
   [3, 'En el viaje: §la *clasifican*, la *lavan* y la *embolsan*, §la lleva un *camión*, §la tienda pone *local y personal* §y una parte *se estropea*.'],
   [4, 'Hacienda se lleva poco: §el IVA de la patata es del 4 %, §{caja}unos *7 céntimos*.'],

@@ -5,7 +5,8 @@
 //
 // El guion (reels-voz/<slug>.js) es una lista de frases [escena, texto]; las
 // palabras entre *asteriscos* salen resaltadas en los subtítulos, las
-// [etiquetas] dirigen la voz (no salen en pantalla) y cada § marca un momento
+// [etiquetas] dirigen la voz (no salen en pantalla), {{subtítulo|voz}} hace que la
+// voz lea otra grafía que la de los subtítulos ({{COAG|Coag}}) y cada § marca un momento
 // que la animación puede usar (e.seg[i].marcas, en segundos). Cada frase se
 // sintetiza aparte (voz.cjs), así que las escenas y los subtítulos van al ritmo
 // real de la voz. Cada escena puede tener una animación anim(s, e, el) que se
@@ -52,7 +53,8 @@ const F = { w: 1080, h: 1920, arriba: 210, abajo: 420, lado: 84, h1: 78, txt: 40
 
 // Palabras de una frase (sin [etiquetas]; *resaltadas*) y marcas § («§» o «§{sonido}») con la palabra a la que preceden.
 function partes(texto) {
-  const limpio = texto.replace(/\[[^\]]*\]\s*/g, '');
+  // {{subtítulo|voz}}: en pantalla, la primera parte (la voz lee la segunda: voz.cjs, limpiar).
+  const limpio = texto.replace(/\{\{([^|{}]*)\|([^{}]*)\}\}/g, '$1').replace(/\[[^\]]*\]\s*/g, '');
   const palabras = [], marcas = [];
   let resaltada = false;
   // Se separa por § para saber delante de qué palabra va cada marca.

@@ -51,6 +51,7 @@ Sin «si te pica» en ningún cierre (no le gusta al propietario): «Te lo cuent
 | 30 days to get your money in order | Day 2: charges that repeat, cancel one (`en-reto-02`) | 14 nov 2026, ~18:30 NY (programado) | What one hour of your work is really worth |
 | Money, explained | Gas stations barely make money on gas… or do they? (`en-curious-gas-stations`) | 15 nov 2026, ~18:00 NY (programado) | — |
 | Money, explained (extenso) | Saving and investing aren’t two goals, they’re one plan (`en-save-invest-one-plan`, 62 s) | 15 nov 2026, ~11:00 NY (programado) | — |
+| Money, explained (extenso) | That $35,000 car really costs $47,302: mira la casilla «Total of Payments» (`en-car-84-months`, 50,7 s; gancho visual: la etiqueta del coche se hincha mes a mes; guion en `guiones/2026-11-en-car-84-months.md`) | 20 nov 2026, 11:13 NY (programado; Facebook 11:34) | — |
 | 30 days to get your money in order | Chapter 3: these $150 sneakers don’t cost $150, they cost 6.5 hours (`en-reto-03`, 39,9 s; gancho visual: la etiqueta se vuelve reloj; guion en `guiones/2026-11-en-reto-03.md`) | 19 nov 2026, 11:19 NY (programado; Facebook 11:42) | — (sin anunciar el siguiente; el día va solo en el pie del texto) |
 
 ## «Hacemos la cuenta» (vídeos de contraste de noticias, España)
@@ -64,8 +65,10 @@ la cifra, no se juzga a la persona. No se promocionan como anuncio y no se publi
 | 2 | La rebaja de 20 céntimos que en realidad son 24: IVA sobre el impuesto de la gasolina (`es-iva-sobre-impuesto`, formato extenso, 55 s) | 15 nov 2026, ~18:00 Madrid (programado) | «¿Sabías que pagabas IVA sobre un impuesto?» |
 | 3 | Tu décimo de Navidad de 20 € vale 14 de media (`es-loteria-navidad`, extenso, 43 s, primer Reel con gancho visual: billete que entra en el bombo y sale un 14; guion en `guiones/2026-11-loteria-es.md`) | Facebook 18 nov 2026, 15:01 Madrid; Instagram falló ese día (texto de 2.237 caracteres) y se reprogramó para el 19 nov, 18:32 Madrid | «De media, la ilusión cuesta 7 euros por décimo. Y 86 de cada 100 veces, cuesta los 20» |
 
+| 4 | Pagas 1,73 € por un kilo de patatas; al agricultor le pagaron 28 céntimos (`es-agricultor`, extenso, 48,6 s; responde a la pregunta abierta en el #7; COAG y Ministerio; guion en `guiones/2026-11-es-agricultor.md`) | 20 nov 2026, 14:54 Madrid (programado; Facebook 15:01) | «De cada 4 euros en patatas, la patata no llega a 1» |
+
 ## Pendientes (preguntas abiertas)
 
-- ES: ¿Qué parte de lo que pagas en el súper le llega de verdad al agricultor? ← abierta en el #7.
+- ~~ES: ¿Qué parte de lo que pagas en el súper le llega de verdad al agricultor?~~ ← respondida en `es-agricultor` (20 nov).
 - EN: Why does “was $199, now $99” work even when you know it’s made up? (anchoring) ← abierta en el #6; para la semana del Black Friday (27 nov).
 - EN: Why your 401(k) match might be the best return you’ll ever get ← abierta en el #8.
