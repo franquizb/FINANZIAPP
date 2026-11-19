@@ -55,10 +55,6 @@ const { cuadra } = require('../reels/_comun');
 
 // ——— all the checks in the script (guiones/2026-11-en-mortgage-rate.md, «Cuentas a comprobar con cuadra()») ———
 const R0 = Math.round, R1 = x => Math.round(x * 10) / 10, R2 = x => Math.round(x * 100) / 100;
-// Freddie Mac's weekly rate (PMMS, 30-year fixed) for scene 2 (drum, «THIS WEEK» note, swell of the red house) and the post.
-// It is the ONLY place to change it: update tasa and fecha here and the expected values of the four «esta semana» checks below.
-const SEMANA = { tasa: 7.11, fecha: 'Nov 12, 2026' };
-SEMANA.txt = SEMANA.tasa.toFixed(2) + '%';
 // hipoteca a tipo fijo, 30 años, pago mensual (fórmula de anualidad, sin redondear la cuota)
 const P = 300000, N = 360;
 const cuota = (r, n = N, p = P) => { const i = r / 1200; return p * i / (1 - Math.pow(1 + i, -n)); };
@@ -86,9 +82,9 @@ cuadra('bloques intereses 3 %', R0(intereses(3) / B), 52);
 // Tipos de referencia (Freddie Mac PMMS, CSV histórico descargado el 18-11-2026)
 cuadra('media 2021 → «3%»', R1(2.958), 3.0);
 cuadra('media 2026 hasta el 12-nov → «6.5%»', R1(6.544), 6.5);
-cuadra('esta semana lejos del 3 %', SEMANA.tasa - 3 > 4, true);            // «nowhere near 3%» (PMMS de SEMANA.fecha)
-cuadra('esta semana: intereses', R0(intereses(SEMANA.tasa)), 426523);
-cuadra('esta semana: cuota', R2(cuota(SEMANA.tasa)), 2018.12);
+cuadra('esta semana lejos del 3 %', 7.11 - 3 > 4, true);                   // «nowhere near 3%» (7,11 % el 12-11-2026)
+cuadra('intereses al 7,11 %', R0(intereses(7.11)), 426523);
+cuadra('cuota al 7,11 %', R2(cuota(7.11)), 2018.12);
 // Cada punto (rótulo «Each +1 point ≈ +$200/month»)
 cuadra('+1 punto (6,5 → 7,5) cuota', R2(cuota(7.5) - cuota(6.5)), 201.44);
 cuadra('−1 punto (6,5 → 5,5) cuota', R2(cuota(6.5) - cuota(5.5)), 192.84);
@@ -136,9 +132,8 @@ cuadra('100 $ extra desde el año 11: ahorro', R0(intereses(6.5) - conExtraDesde
 cuadra('pantalla: «$1,896» (cuota sin céntimos)', Math.floor(cuota(6.5)), 1896);
 cuadra('pantalla: extracto «$1,896.20»', R2(cuota(6.5)).toFixed(2), '1896.20');
 cuadra('pantalla: escena 1, se van 128 − 52 bloques', 128 - R0(intereses(3) / B), 76);
-cuadra('pantalla: escena 2, bloques al tipo de esta semana', R0(intereses(SEMANA.tasa) / B), 142);
-const HIN_SEMANA = R2(Math.sqrt(intereses(SEMANA.tasa) / intereses(6.5)));     // the red house swells by √ of the interest ratio
-cuadra('pantalla: escena 2, la casa roja crece ×1,06 (√ del área)', HIN_SEMANA, 1.06);
+cuadra('pantalla: escena 2, 142 bloques al 7,11 %', R0(intereses(7.11) / B), 142);
+cuadra('pantalla: escena 2, la casa roja crece ×1,06 (√ del área)', R2(Math.sqrt(intereses(7.11) / intereses(6.5))), 1.06);
 cuadra('pantalla: escena 3, 85 fichas rojas + 15 turquesa', [R0(int1 / pagado1 * 100), 100 - R0(int1 / pagado1 * 100)].join('+'), '85+15');
 cuadra('pantalla: escena 4, bloques que aún se deben (gris)', R0(saldo(6.5, 120) / B), 85);
 cuadra('pantalla: escena 4, 15 + 85 = 100', 15 + 85, 100);
@@ -152,7 +147,7 @@ cuadra('escena 4: saldo año 10 (página)', SALDO_ANO[10], 254328);
 
 const TEXTO = `A $300,000 mortgage at 6.5% costs $382,633 in interest. At 3%, $155,332.
 
-Same loan, same 30 years. Each 1-point change in the rate moves this payment by about $200 a month, roughly $70,000 over the loan. Freddie Mac's weekly average for a 30-year fixed was ${SEMANA.txt} on ${SEMANA.fecha}.
+Same loan, same 30 years. Each 1-point change in the rate moves this payment by about $200 a month, roughly $70,000 over the loan. Freddie Mac's weekly average for a 30-year fixed was 7.11% on Nov 12, 2026.
 
 In year one, about 85% of the principal-and-interest payment goes to interest. That's why extra principal works best early: $100 more a month from the start saves about $61,000 in interest and ends the loan 4 years sooner, if you keep it to the end. Ask your servicer to apply it to principal.
 

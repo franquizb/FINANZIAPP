@@ -580,7 +580,7 @@ function esc2(W, X, s, Dv, mk, res) {
     const p = mezcla(A, [slot.x, slot.y, slot.z], e_); p[1] += 0.5 * Math.sin(u * PI); X.pegVuela(0, 'a99', { x: p[0], y: p[1], z: p[2], esc: 0.4 + 0.6 * e_, ry: sway.ry * e_ }); }
   if (s > tL && s < m2) { const C0 = [G2.PX, G2.PY - 0.95, G2.PZ], d = s - tL, y = C0[1] + 0.13 + 0.8 * d - 4.9 * d * d;
     X.pegVuela(1, 'r199', { x: C0[0] + 0.3 + 0.6 * d, y: Math.max(0.02, y), z: C0[2] + 0.9 * d, rx: y > 0.02 ? -6 * d : -PI / 2, rz: 3 * d }); }
-  const K = [[0, [-2.6, 2.6, 3.9, -3.2, 2.28, 0.7]], [Math.max(0.9, m0 - 0.45), [-2.5, 2.55, 4.4, -3.1, 2.22, 0.7]], [m0 + 0.3, [-3.6, 2.5, 5.7, -0.9, 0.95, 0]], [m1 + 0.2, [-1.3, 2.7, 6.5, 0.9, 0.9, 0]],
+  const K = [[0, [-2.6, 2.6, 3.9, -3.2, 2.28, 0.7]], [Math.max(0.9, m0 - 0.45), [-2.5, 2.55, 4.4, -3.1, 2.22, 0.7]], [m0 + 0.3, [-1.2, 2.5, 11.2, -0.2, 1.0, 0]], [m1 + 0.2, [0.6, 2.8, 11.8, 0.3, 1.0, 0]],
     [m1 + 1.45, [-1.1, 5.4, 8.6, 0.4, 2.0, -0.4]], [Math.max(m1 + 1.6, m2 - 0.05), [0.6, 3.6, 7.0, 1.4, 2.1, 0.2]], [Math.max(Dv, m2 + 0.8), [1.55, 1.8, 4.1, 1.9, 1.55, 2.3]]];
   camR(W, ruta(K, s));
 }
@@ -636,7 +636,7 @@ function esc4(W, X, s, Dv, mk, res) {
   const td = m0 - 0.2, tt = s - td;
   if (s > td) X.etiqueta({ x: G4.PX, y: G4.PY + 1.9 * Math.pow(1 - sale(tramo(s, td, td + 0.5)), 2), z: G4.PZ, rz: 0.15 * Math.exp(-2 * tt) * Math.sin(7 * tt), ry: -0.15, peg: { r199: 1 }, ins: 0.4 * Math.exp(-tt) * Math.sin(6 * tt) });
   if (s > m0 - 0.25) W.heroe({ x: G4.HX, z: G4.HZ, gira: Math.atan2(G4.PX - G4.HX, G4.PZ - G4.HZ), brazos: 0.32 * qq(s, m0 + 0.45, 0.3) });
-  const K = [[0, [-3.7, 1.55, 4.0, -1.0, 0.9, 0]], [m0 - 0.1, [-0.1, 1.55, 4.3, 1.7, 1.1, -0.1]], [m0 + 0.4, [-1.4, 2.5, 6.4, 1.0, 2.3, -0.5]], [Math.max(Dv, m0 + 0.8), [1.7, 2.75, 6.5, 0.95, 2.35, -0.5]]];
+  const K = [[0, [-3.4, 2.1, 6.2, -0.9, 0.9, 0]], [m0 - 0.1, [-0.1, 1.55, 4.3, 1.7, 1.1, -0.1]], [m0 + 0.4, [-1.4, 2.5, 6.4, 1.0, 2.3, -0.5]], [Math.max(Dv, m0 + 0.8), [1.7, 2.75, 6.5, 0.95, 2.35, -0.5]]];
   camR(W, ruta(K, s));
 }
 
@@ -672,10 +672,10 @@ function esc5(W, X, s, Dv, mk, res) {
     X.corchete({ x0: xCol(0) - 0.08, x1: xCol(29) + 0.08, y: 2.0, z: 0, abre: sale(tramo(s, m2 + 0.15, m2 + 1.25)) });
     W.rotulo('c28', '28 OCT', xCol(0) + 0.25, 2.3, 0, qq(s, fin, 0.3), '#f5b94a', 0.24); W.rotulo('c26', '26 NOV', xCol(29) - 0.25, 2.3, 0, qq(s, fin + 0.1, 0.3), '#5eead4', 0.24);
   }
-  const K = [[0, [2.4, 2.6, 6.5, 1.1, 1.1, 0]], [m0, [-1.9, 2.5, 6.4, -0.8, 1.0, 0]], [m0 + 1.1, [-1.6, 2.6, 6.6, 0.35, 1.65, 0]], [m1 - 0.25, [-0.2, 4.4, 8.1, 0.7, 2.55, -0.4]],
+  const K = [[0, [1.4, 2.7, 11.0, 0.6, 1.1, 0]], [m0, [-1.0, 2.6, 11.0, -0.3, 1.05, 0]], [m0 + 1.1, [-1.6, 2.6, 6.6, 0.35, 1.65, 0]], [m1 - 0.25, [-0.2, 4.4, 8.1, 0.7, 2.55, -0.4]],
     [m1 + 0.2, [-1.6, 3.6, 4.4, -1.95, 3.3, 1.2]]];
   // En el tic la cámara se aleja mientras rebobina y llega al plano general antes de que aterrice el 28 OCT; después, deriva lenta.
-  const PG = [-0.45, 4.25, 10.0, -0.3, 2.0, 0.4], PG2 = [-0.12, 4.36, 10.45, -0.24, 2.0, 0.4], tG = Math.min(m2 + 1.0, Dv - 1.0);
+  const PG = [-0.62, 4.5, 11.0, -0.45, 2.05, 0.4], PG2 = [-0.32, 4.6, 11.4, -0.4, 2.05, 0.4], tG = Math.min(m2 + 1.0, Dv - 1.0);
   const K2 = [[m1 + 0.2, [-1.6, 3.6, 4.4, -1.95, 3.3, 1.2]], [m2, [-1.8, 3.45, 3.85, -1.95, 3.3, 1.2]], [tG, PG]];
   const K3 = [[tG, PG], [Math.max(Dv, tG + 0.6), PG2]];
   camR(W, rutas([K, K2, K3], s));
@@ -719,7 +719,7 @@ function esc6(W, X, s, Dv, mk, res) {
   // Por encima del hombro derecho y desde arriba: se ve la pantalla del móvil (antes la tapaba la cabeza). Paso al general más suave.
   const K = [[0, [-1.75, 2.72, 2.45, -0.8, 2.02, 1.25]], [m0 - 0.1, [-1.55, 2.82, 2.25, -0.76, 2.06, 1.2]], [m0 + 0.4, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]]];
   // Cierre: llega al plano general cuando el 149 entra en la línea ANTES y después deriva despacio hasta el bucle.
-  const PB = [-0.25, 3.75, 7.9, 0.52, 2.5, -0.3], PC = [-0.42, 3.84, 8.3, 0.5, 2.47, -0.36];
+  const PB = [0.0, 3.9, 8.5, 0.66, 2.5, -0.3], PC = [-0.15, 3.98, 8.9, 0.64, 2.47, -0.36];
   const K2 = [[m0 + 0.4, [-0.7, 2.85, 7.9, 0.05, 2.7, 0.2]], [m1, [0.85, 2.9, 7.8, 0.15, 2.75, 0.2]], [m2, [0.6, 3.4, 6.2, 0.6, 2.9, 0.0]], [tA, PB]];
   const K3 = [[tA, PB], [Math.max(Dv - 0.8, tA + 0.5), PC]];
   camR(W, rutas([K, K2, K3], s));
