@@ -353,14 +353,15 @@ const ESC7 = [
   // 5 · Tarjeta final de la serie: lo que se lleva el espectador (sin «Mañana» ni «Síguenos»). La frase va en dos líneas (no llega a
   // los botones de Instagram) y la parte mala, en rojo (lo que se escapa). Es la animación de finSerie más el fundido de la tarjeta en
   // los últimos 0,55 s, para que la cola enseñe las etiquetas del arranque y el bucle encadene.
-  { html: finSerie({ dia: 7, total: TOTAL, serie: SERIE, etiquetaManana: 'HOY · DÍA 7', manana: 'Antes de comprar: precio ÷ usos reales',
-      sigue: '<span class="mala7">Lo barato que no usas</span><br>es lo más caro' }).html,
+  { html: (t, lang) => finSerie({ dia: 7, total: TOTAL, serie: SERIE, etiquetaManana: 'HOY · DÍA 7', manana: 'Antes de comprar: precio ÷ usos reales',
+      sigue: '<span class="mala7">Lo barato que no usas</span><br>es lo más caro' }).html(t, lang) + '<div class="rt7" data-t="translateX(-50%)">PRECIO ÷ USOS</div>',
     anim: function (s, e, el) {
       const m = e.seg[0].marcas[0] != null ? e.seg[0].marcas[0] : 1.2, D = e.fin - e.ini;
       const n = el.querySelector('.num'); n.style.transform = 'scale(' + (0.8 + 0.2 * rebote(tramo(s, 0, 0.4))) + ')';
       const ma = el.querySelector('.manana'), p = sale(tramo(s, m - 0.1, m + 0.4)); ma.style.opacity = p; ma.style.transform = 'translateY(' + (1 - p) * 40 + 'px)';
       el.querySelector('.sigue').style.opacity = tramo(s, m + 0.9, m + 1.4);
       el.querySelector('.fin').style.opacity = 1 - tramo(s, D - 0.55, D - 0.15);
+      const r = el.querySelector('.rt7'); r.style.opacity = tramo(s, D - 0.4, D - 0.2); r.style.transform = 'translateX(-50%)';   // el rótulo del fotograma 0
     } }
 ];
 
@@ -389,15 +390,17 @@ const TRES7 = function (t, k, s, e, W) {
     const [hC, hZ] = altos7(15 / nC, 120 / uZ), cq = sale(tramo(uZ, 40, 52));
     // En la parte A las etiquetas cuelgan más bajas (3,35 m) para que la de la camiseta llene el plano con la fila debajo;
     // mientras la cámara cruza al lado de las zapatillas, suben a su altura (4,2 m).
-    const sw = (a, f) => a * Math.sin(f * s), Y1 = 3.35 + 0.85 * suave7(tramo(s, m1 - 0.35, m1 + 0.45));
+    const sw = (a, f) => a * Math.sin(f * s), Y1 = 3.35 + 0.85 * suave7(tramo(s, m1 - 0.2, m1 + 0.6));
     X.etiqueta(0, { x: XC, y: Y1, rz: sw(0.03, 2.1), alto: hC, estilo: 'blanco', estilo2: 'rojo', cq, titulo: 'CAMISETA', precio: '15 €', porUso: num7(15 / nC), unidad: '€ POR USO', usos: 'USOS ' + nC,
       pop: 1 + 0.12 * Math.sin(Math.min(1, ((s - 0.05) % paso) / 0.15) * PI7) * (s < para ? 1 : 0) });
-    X.etiqueta(1, { x: XZ, y: Y1, rz: sw(0.025, 1.7), alto: hZ, estilo: 'blanco', estilo2: 'turq', cq, titulo: 'ZAPATILLAS', precio: '120 €', porUso: num7(120 / nZ), unidad: '€ POR USO', usos: 'USOS ' + nZ });
+    // La de las zapatillas no está en la parte A (ni su sombra): aparece cuando la cámara empieza a cruzar hacia ella.
+    X.etiqueta(1, { x: XZ, y: Y1, rz: sw(0.025, 1.7), alto: hZ, estilo: 'blanco', estilo2: 'turq', cq, titulo: 'ZAPATILLAS', precio: '120 €', porUso: num7(120 / nZ), unidad: '€ POR USO', usos: 'USOS ' + nZ,
+      op: tramo(s, m1 - 0.6, m1 - 0.25) });
     X.barra(0, { x: 0, y: Y1 - 1.6, z: 0.06, sx: 3.2, sy: 0.05, sz: 0.05, op: tramo(uZ, 38, 40) * (1 - tramo(uZ, 46, 70)) });
     directo = (i, a) => {
       if (i < 5) {   // la fila de la camiseta, de derecha a izquierda
         const tt = Math.min(s, para), x = XC - V * (tt - pasa(i)), pasado = sale(tramo(s, pasa(i) - 0.04, pasa(i) + 0.12));
-        return { x, z: 1.3, rot: -PI7 / 2, amp: s < para ? 1 : Math.max(0, 1 - (s - para) * 4), fase: tt * 13, color: 0xef4444, cq: 0.9 * pasado, brillo: 0.25, esc: Math.min(1, Math.max(0, (x + 4.2) / 0.8)) };
+        return { x, z: 1.0, rot: -PI7 / 2, amp: s < para ? 1 : Math.max(0, 1 - (s - para) * 4), fase: tt * 13, color: 0xef4444, cq: 0.9 * pasado, brillo: 0.25, esc: Math.min(1, Math.max(0, (x + 4.2) / 0.8)) };
       }
       if (i < 17) {  // la fila continua de las zapatillas, de izquierda a derecha (en bucle)
         const L = 4.8, j = i - 5, u = (((s - m1 + 1.2) * 2.6 + j * L / 12) % L + L) % L, x = XZ - 2.2 + u;
@@ -405,10 +408,10 @@ const TRES7 = function (t, k, s, e, W) {
       }
       return fuera;
     };
-    // Parte A: la cámara pegada al lado de la camiseta (la etiqueta de las zapatillas, con su 24,00, queda fuera de cuadro hasta el
-    // cruce) con travelling a la izquierda siguiendo la fila. En «Las zapatillas» cruza al otro lado y se abre para que quepan las
+    // Parte A: picado pegado al lado de la camiseta (la etiqueta de las zapatillas, con su 24,00, queda fuera de cuadro hasta el
+    // cruce; la fila entera se ve debajo de la tarjeta) con travelling a la izquierda siguiendo la fila. En «Las zapatillas» cruza al otro lado y se abre para que quepan las
     // dos etiquetas enteras (desde ahí sus alturas se comparan); después, subida.
-    const A = ruta7([[0, [-0.9, 2.95, 5.0, -0.85, 2.62, 0.3]], [1.1, [-1.3, 2.8, 4.25, -1.05, 2.6, 0.3]], [m1 - 0.4, [-1.55, 2.75, 4.0, -1.2, 2.6, 0.3]],
+    const A = ruta7([[0, [-0.85, 6.1, 4.1, -0.75, 2.65, 0.3]], [1.1, [-1.25, 5.9, 3.7, -1.0, 2.62, 0.3]], [m1 - 0.4, [-1.55, 5.7, 3.6, -1.2, 2.6, 0.3]],
       [m1 + 0.5, [1.0, 3.05, 7.3, 0.15, 2.8, 0]], [m2, [1.2, 3.4, 7.8, 0.0, 2.8, 0]], [D + 0.2, [0.5, 3.8, 8.5, -0.2, 2.75, 0]]], s);
     cam(A);
   } else if (k === 2) {

@@ -275,8 +275,9 @@ const ESC_R3 = [
       titulares(el, s, -1, 0.77);
       // crossings of the door: tc(i) = 0.95 + 0.48 i + 0.35 + LS / 2.4 (same numbers as the 3D function)
       const LS = Math.hypot(2.9, -3.2) - 0.75, tc = (i) => 0.95 + 0.48 * i + 0.35 + LS / 2.4;
-      let n = 0; for (let i = 0; i < 7; i++) if (s >= tc(i)) n = i < 6 ? i + 1 : 6.5;
-      const c = el.querySelector('.cont0'), p = rebote(tramo(s, tc(0) - 0.12, tc(0) + 0.2));
+      // it comes in on the first crossing, already at 1 (it never shows a 0)
+      let n = 1; for (let i = 0; i < 7; i++) if (s >= tc(i)) n = i < 6 ? i + 1 : 6.5;
+      const c = el.querySelector('.cont0'), p = rebote(tramo(s, tc(0) - 0.03, tc(0) + 0.27));
       c.style.opacity = Math.min(1, p * 1.5);
       const golpe = Math.max(...[0, 1, 2, 3, 4, 5, 6].map(i => Math.exp(-Math.pow((s - tc(i) - 0.06) / 0.09, 2))));
       c.style.transform = 'translateX(-50%) scale(' + (0.75 + 0.25 * p + 0.1 * golpe) + ')';
@@ -315,7 +316,7 @@ const ESC_R3 = [
   // 4 · The hero lights up: $30.80/h is struck out and $23.15/h rises (2D chips pinned over his head from the 3D). Then the two bars
   //     and the amber −25 % stamp; a quarter of the block (10 mannequins) dims for a moment.
   { html: () => `<div class="tj turq" data-t="translateX(-50%)" data-m="-1" data-hasta="1" style="top:486px"><small>YOUR REAL HOUR</small>
-        <span class="l">${P3.neto} ÷ ${P3.semanaReal} = <span class="t">${P3.real}</span></span></div>
+        <span class="l">${P3.neto} ÷ ${P3.semanaReal} ≈ <span class="t">${P3.real}</span></span></div>
       <div class="chip3 c1">${P3.recibo}/h<i class="tacha"></i></div><div class="chip3 turq c2">${P3.real}/h</div>
       <div class="barras3" data-t="" data-m="1"><div class="f"><span class="et">ON PAPER</span><div class="b g">${P3.recibo}</div></div>
         <div class="f"><span class="et t">REAL</span><div class="b t">${P3.real}</div></div><div class="sello3">−${P3.menos}%</div></div>
@@ -462,7 +463,8 @@ const TRES_R3 = function (t, k, s, e, W) {
       X.hueco({ x: CX, z: HZC, w: 0.9, d: HD, op: q(e.ini + 0.4, 0.4) });
       W.rotulo('q', '?', CX, 1.2, HZC, q(m0 - 0.1, 0.35), cAmb, 0.5);
       W.heroe({ x: HB[0], z: HB[1], gira: 0, luz: 0 });
-      cam(ruta([[e.ini, [-2.6, 2.6, 8.4, 0.0, 1.1, -1.2]], [e.ini + 2.2, [-0.6, 7.8, 9.4, 0.3, 0.2, -1.6]], [e.fin + 0.6, [1.6, 10.2, 7.8, 0.5, 0.0, -1.7]]], t));
+      // framed a little to the left and further back, so the «?» slot stays inside 80 % of the width (Instagram's buttons)
+      cam(ruta([[e.ini, [-2.6, 2.6, 8.4, 0.0, 1.1, -1.2]], [e.ini + 2.2, [-0.22, 8.71, 10.72, 0.9, 0.2, -1.6]], [e.fin + 0.6, [1.99, 11.22, 8.75, 1.0, 0.0, -1.7]]], t));
     } else if (k === 2) {
       const m1 = mk(1, 3.5);
       // the five front-row hours that «$150 at $30.80/h» would cost (amber, «5 HRS?»)
@@ -477,7 +479,7 @@ const TRES_R3 = function (t, k, s, e, W) {
       if (ve > 0) X.etiqueta({ x: CX - 0.45 + 2.5 * (1 - ve), y: 2.2, z: Z0 + 0.9, ry: Math.PI - 0.2 + 3 * (1 - ve), esc: 0.78, horas: V.H - (V.H - V.H5) * sale(tramo(t, m1 + 0.3, m1 + 0.9)), preg: t > m1 + 0.3, cordel: false });
       // push in on the hero; on «So why not…» a sideways sweep to the amber hours and the clock
       if (t < m1) cam(ruta([[e.ini, [1.8, 2.9, 9.6, HB[0], 1.5, HB[1] - 0.8]], [m1 + 0.4, [1.0, 2.25, 7.2, HB[0], 1.65, HB[1] - 0.6]]], t));
-      else cam(ruta([[m1, [0.2, 3.9, 10.4, 0.8, 1.15, 0.5]], [e.fin + 0.6, [1.5, 4.5, 11.0, 0.85, 1.1, 0.4]]], t));
+      else cam(ruta([[m1, [-0.6, 4.23, 11.59, 1.25, 1.15, 0.5]], [e.fin + 0.6, [0.86, 4.84, 12.06, 1.3, 1.1, 0.4]]], t));   // slot and clock inside 80 % of the width
     } else if (k === 3) {
       const m0 = mk(0, 0.1), m1 = mk(1, 2.2), m2 = mk(2, 3.4), tA = m2 + 0.45;
       // the four commute hours: single file along the path, then forward into the slot; they arrive together at tA
@@ -490,13 +492,15 @@ const TRES_R3 = function (t, k, s, e, W) {
         else { x = P1[0]; z = P1[1] + (d - L1); rot = 0; }
         return { x, z, rot, amp: 1, fase: t * 10 + j * 1.3, color: AMB, cq: 0.95, brillo: 0.32 };
       };
-      directo = (i) => i < 40 ? quieto(i) : ambar(i - 40);
+      // the four walk in during the tracking shot (from m1): before it, the wider crane would catch them by the door
+      directo = (i) => i < 40 ? quieto(i) : t < m1 ? fuera : ambar(i - 40);
       X.hueco({ x: CX, z: HZC, w: 0.9, d: HD, op: 1 - 0.6 * q(tA, 0.4) });
       W.rotulo('q', '?', CX, 1.2, HZC, 1 - q(m2 - 0.3, 0.3), cAmb, 0.5);
       X.camino({ x0: P0[0], z0: P0[1], x1: P1[0], z1: P1[1], q: sale(tramo(t, m1 - 0.05, m1 + 0.6)) });
-      W.rotulo('com', V.commute, CX - 0.55, 2.45, HZC, q(m2 + 0.1, 0.3), cAmb, 0.36);
+      // lower and a little later (on «four»), once the camera has opened up: it no longer touches the 2D «27.4 min» card
+      W.rotulo('com', V.commute, CX - 0.55, 2.15, HZC, q(m2 + 0.5, 0.3), cAmb, 0.36);
       W.heroe({ x: HB[0], z: HB[1], gira: 0, luz: 0 });
-      if (t < m1) cam(ruta([[e.ini, [2.4, 4.4, 9.8, -0.1, 0.6, -0.7]], [m1 + 0.5, [1.2, 9.4, 7.4, 0.1, 0.0, -0.9]]], t));
+      if (t < m1) cam(ruta([[e.ini, [0.8, 4.86, 11.06, 0.8, 0.6, -0.7]], [m1 + 0.5, [0.8, 9.87, 7.82, 0.9, 0.0, -0.9]]], t));   // frontal crane: «?» inside the frame
       else {
         // tracking the amber hours on the path, then opening out to show the 44
         cam(ruta([[m1, [CX + 4.4, 2.7, 0.2, CX + 0.6, 1.0, -3.4]], [m2 + 0.35, [CX + 3.4, 4.3, 6.8, CX - 0.7, 0.9, -1.0]], [e.fin + 0.6, [CX + 1.4, 6.2, 10.6, 0.3, 0.7, -1.3]]], t));
@@ -540,14 +544,20 @@ const TRES_R3 = function (t, k, s, e, W) {
   } else {
     const m1 = mk(1, 3.0), m2 = mk(2, 4.0);
     if (t < m1) {
-      // today's action: the hero with his real hour; the turquoise hours keep circling
-      const HX = 0, HZ = 0.6, RC = 1.7;
+      // today's action. A new view after scene 5's orbit: straight down on the hero inside the ring of turquoise hours (it reads
+      // like a clock face); on «your real hour» the big $23.15/h pops with a turquoise ring flash, the hero hops and the camera
+      // swoops down to a low three-quarter view that keeps pushing in until «Those sneakers?».
+      const HX = 0, HZ = 0.6, RC = 1.7, R = e.seg.flatMap(g => g.res), tr = e.ini + (R[0] ? R[0].ini : 1.15);
       directo = (i, a) => { if (i >= 6) return acera(i, a); const ang = -0.4 + i * Math.PI / 3 + 0.9 * (t - e.ini + 2.5);
         return { x: HX + RC * Math.sin(ang), z: HZ + RC * Math.cos(ang), rot: ang + Math.PI / 2, amp: 1, fase: t * 8 + i, color: 0x0f9488, cq: 0.95, brillo: 0.22, esc: 1.12 }; };
-      X.aro({ x: HX, z: HZ, r: RC * 1.2, op: 0.4 });
-      W.heroe({ x: HX, z: HZ, gira: 0, luz: 1 }); X.suaviza(0.3, 0.35);
-      W.rotulo('real', V.real, HX, 2.3, HZ, Math.min(1, 1.4 * bote(e.ini + 0.2, 0.3)), cTq, 0.36);
-      cam(orbita(mezcla([0.0, 4.4, 8.6, 0, 1.75, 0.5], [0.0, 5.4, 9.4, 0, 1.6, 0.5], sale(tramo(t, e.ini, m1))), -0.3 + 0.45 * tramo(t, e.ini, m1)));
+      X.aro({ x: HX, z: HZ, r: RC * (1.2 + 0.25 * bote(tr, 0.4)), op: 0.4 + 0.25 * Math.exp(-Math.max(0, t - tr) * 2.5) * (t > tr ? 1 : 0) });
+      X.destello(HX, 2.0, HZ, tramo(t, tr, tr + 0.55), 1.0, 4.2, 0x2dd4bf);   // high enough not to cut through the floor
+      W.heroe({ x: HX, z: HZ, gira: 0, luz: 1, y: 0.1 * Math.max(0, Math.sin((t - tr) * 9)) * (t > tr && t < tr + 0.7 ? 1 : 0) }); X.suaviza(0.3, 0.35);
+      const pr = bote(tr - 0.05, 0.32);
+      W.rotulo('real', V.real, HX, 2.4, HZ, Math.min(1, 1.6 * pr), cTq, 0.5 * (0.55 + 0.45 * pr));
+      // the low view stays high enough that the circling hours pass below the hero's head and the label stays under the 2D cards
+      cam(orbita(ruta([[e.ini, [0, 12.0, HZ + 2.4, 0, 0, HZ - 0.5]], [tr, [0, 11.2, HZ + 2.7, 0, 0.2, HZ - 0.3]], [tr + 1.1, [0, 6.1, HZ + 8.6, 0, 1.9, HZ]],
+        [m1 + 0.3, [0, 5.4, HZ + 7.6, 0, 2.0, HZ]]], t), 0.55 - 0.85 * tramo(t, e.ini, m1)));
     } else {
       // «Those sneakers?»: the frame-0 framing again; it lands just before «Six and a half» and flips on it.
       const tl = Math.min(m1 + 0.55, m2 - 0.1), d0 = tl - 0.5;   // d0: shift so the same camera path as the hook can be used
