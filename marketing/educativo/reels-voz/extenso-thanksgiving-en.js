@@ -400,7 +400,7 @@ const TRES = function (t, k, s, e, W) {
     }
     const H0 = [-3.0, 2.4], H1 = [-1.4, 1.6], u = tramo(s, 0.0, 1.5), hx = lerp(H0[0], H1[0], sale(u)), hz = lerp(H0[1], H1[1], sale(u));
     W.heroe({ x: hx, z: hz, gira: angulo(Math.atan2(H1[0] - H0[0], H1[1] - H0[1]), PI + 0.4, suave(tramo(s, m0 + 0.3, m0 + 0.9))), amp: u < 1 ? 1 : 0, fase: s * 8.5, luz: 0.8 });
-    cam(ruta(orden([[0, [1.6, 1.4, 4.4, 0.6, 1.0, 0]], [m0 - 0.3, [0.6, 1.9, 5.2, -0.2, 1.0, 0.2]], [m0 + 0.6, [1.4, 1.7, 5.4, -0.6, 1.1, 0.4]], [D + 0.5, [1.9, 1.6, 5.0, -0.6, 1.15, 0.4]]]), s));
+    cam(ruta(orden([[0, [1.6, 1.4, 4.4, 0.6, 1.0, 0]], [m0 - 0.3, [0.2, 1.9, 5.4, -0.6, 1.0, 0.3]], [m0 + 0.6, [0.6, 1.7, 5.7, -1.0, 1.1, 0.6]], [D + 0.5, [1.0, 1.6, 5.4, -1.0, 1.15, 0.6]]]), s));
   } else if (k === 3) {
     // ——— the ads: the price sign behind the table rolls from $1.48 to $1.11 (turquoise); the turkey turns turquoise ———
     const m0 = mk(0, 2.1), m1 = mk(1, 4.4);
@@ -411,7 +411,6 @@ const TRES = function (t, k, s, e, W) {
     W.cartel({ x: 0, z: -1.6, esc: 0.62, titulo: 'FROZEN TURKEY · AD AVG', precio: pre, frac: '/lb', fracEsc: 0.8, fracColor: '#94a3b8', color: gira < 0.5 ? '#ffffff' : '#5eead4', op: 1 - Math.sin(PI * gira) * 0.85 });
     if (gira > 0 && gira < 1) X.halo({ x: 0, y: 2.1, z: -1.4, esc: 3.4, op: 0.5 * Math.sin(PI * gira), color: TQ });
     W.rotulo('usda', 'USDA · WEEK OF NOV 16', 0, 2.95, -1.5, q(0.3, 0.3), TQ, 0.17);
-    if (s > m1 - 0.1) W.rotulo('ant', 'AFBF, NO DEALS: $1.48', 1.3, TY + 0.85, 0.3, q(m1 - 0.1, 0.3), ROJ, 0.17);
     cam(ruta(orden([[0, orbita([0, 0.95, 4.3, 0, 1.4, -0.6], 0.35)], [m0, orbita([0, 1.15, 4.6, 0, 1.55, -0.8], 0.12)], [m0 + 1.2, orbita([0, 1.4, 4.9, 0, 1.5, -0.7], -0.08)],
       [D + 0.5, orbita([0, 1.5, 5.2, 0, 1.4, -0.5], -0.25)]]), s));
   } else if (k === 4) {
