@@ -55,10 +55,10 @@ cuadra('16 lb a 1,15 (<16 lb)', R2(16 * 1.15), 18.4);
 // ——— what is on screen besides the script's checks ———
 // Hook: the order the dishes land in and the counter (cents). Two dishes are already on the table on frame 0.
 const ORDEN = ['milk', 'pieMix', 'sweetPotatoes', 'veggie', 'turkey', 'rolls', 'crusts', 'peas', 'cranberries', 'cream', 'stuffing', 'misc'];
-const ATERRIZA = [-0.8, -0.55, -0.3, 0.2, 0.62, 0.88, 1.08, 1.28, 1.48, 1.68, 1.88, 2.08];
+const ATERRIZA = [0.08, 0.2, 0.32, 0.42, 0.62, 0.8, 0.96, 1.12, 1.28, 1.44, 1.6, 1.78];
 cuadra('pantalla: orden con los 12 platos', ORDEN.slice().sort().join(), Object.keys(P26).sort().join());
-cuadra('pantalla: contador en el fotograma 0 «$12.49»', P26.milk + P26.pieMix + P26.sweetPotatoes, 1249);
-cuadra('pantalla: contador a 0,5 s «$13.80»', P26.milk + P26.pieMix + P26.sweetPotatoes + P26.veggie, 1380);
+cuadra('pantalla: 4 platos ya cayendo en el fotograma 0 (caída de 0,45 s)', ATERRIZA.filter(t => t > 0 && t - 0.45 < 0).length, 4);
+cuadra('pantalla: el contador llega al total con el último plato (1,78 s)', ATERRIZA[ATERRIZA.length - 1], 1.78);
 cuadra('pantalla: contador final', ORDEN.reduce((a, k) => a + P26[k], 0), 5863);
 cuadra('pantalla: barra 40 % (fracción del pavo)', R2(2368 / 5863), 0.4);
 cuadra('pantalla: barra de la subida, parte roja', R2(218 / 345), 0.63);
@@ -135,6 +135,12 @@ const ruta = (K, x) => {
   return P0.map((v, c) => (2 * u3 - 3 * u2 + 1) * v + (u3 - 2 * u2 + u) * dt * V0[c] + (-2 * u3 + 3 * u2) * P1[c] + (u3 - u2) * dt * V1[c]);
 };
 const orbita = (C, ang) => { const dx = C[0] - C[3], dz = C[2] - C[5], c = Math.cos(ang), s_ = Math.sin(ang); return [C[3] + dx * c + dz * s_, C[1], C[5] - dx * s_ + dz * c, C[3], C[4], C[5]]; };
+// v2 (supervisor, 24-nov): several shots per scene with hard cuts. plano(s, [[t0, (u, s) => [px, py, pz, lx, ly, lz]]…]) picks the
+// shot that starts last before s (u = time inside the shot); every shot keeps moving (orbit or dolly), none stands still.
+const plano = (s, P) => { let j = 0; while (j + 1 < P.length && s >= P[j + 1][0]) j++; return P[j][1](s - P[j][0], s); };
+const orb = (cx, cz, r, h, a0, va, ly, u) => [cx + r * Math.sin(a0 + va * u), h, cz + r * Math.cos(a0 + va * u), cx, ly, cz];
+const dol = (A, B, dur, u) => A.map((v, j) => v + (B[j] - v) * u / dur);
+const cen = (cx, cz, r, h, a0, va, u) => [cx + r * Math.sin(a0 + va * u), h, cz + r * Math.cos(a0 + va * u), cx, 0.78, cz];
 const orden = (K) => { for (let j = 1; j < K.length; j++) if (K[j][0] <= K[j - 1][0] + 0.05) K[j][0] = K[j - 1][0] + 0.05; return K; };
 
 // The 12 survey items: where each sits on the table, its price (cents) and when it lands in the hook (same as cuadra()).
@@ -148,9 +154,11 @@ const PLATOS = {
 };
 const ORDEN = ${JSON.stringify(ORDEN)}, ATERRIZA = ${JSON.stringify(ATERRIZA)};
 const TAV = ATERRIZA[ORDEN.indexOf('turkey')];
-const CAE = 0.3;
+const CAE = 0.45;
 // Total on the counter at instant s of the hook (cents of the dishes already landed).
-const totalG = (s) => ORDEN.reduce((a, k, i) => a + (s >= ATERRIZA[i] ? PLATOS[k].c : 0), 0);
+// v2: the counter runs continuously: each dish adds its price while it falls (never stops between dishes).
+const totalG = (s) => Math.round(ORDEN.reduce((a, k, i) => a + PLATOS[k].c * Math.min(1, Math.max(0, (s - ATERRIZA[i] + CAE) / CAE)), 0));
+const TFIN = ATERRIZA[ATERRIZA.length - 1];
 const precio = (c) => '$' + (c / 100).toFixed(2);
 
 const X3 = (() => {
@@ -267,8 +275,8 @@ W3.X = X3;
 function caida(i, s) {
   const T0 = ATERRIZA[i];
   if (s < T0 - CAE) return null;
-  if (s < T0) { const u = (s - T0 + CAE) / CAE; return { dy: 3.2 * (1 - u * u), rx: 0.7 * (1 - u) * (i % 2 ? 1 : -1), rz: 0.5 * (1 - u), cae: true }; }
-  const d = s - T0, rebota = 0.06 * Math.exp(-d * 14) * Math.abs(Math.sin(d * 26));
+  if (s < T0) { const u = (s - T0 + CAE) / CAE; return { dy: 1.7 * (1 - u * u), rx: 0.7 * (1 - u) * (i % 2 ? 1 : -1), rz: 0.5 * (1 - u), cae: true }; }
+  const d = s - T0, rebota = 0.12 * Math.exp(-d * 10) * Math.abs(Math.sin(d * 26));
   const salto = s > TAV && i !== 4 && T0 < TAV ? 0.16 * Math.exp(-(s - TAV) * 9) * Math.abs(Math.sin((s - TAV) * 18)) : 0;
   return { dy: rebota + salto, rx: 0, rz: salto * 0.6 * (i % 2 ? 1 : -1) };
 }
@@ -281,14 +289,15 @@ const ESCENAS = [
   // 0 · Hook: dishes rain onto the table with their price tags, the counter runs; the turkey lands at 0.62 s and squashes the
   //     receipt: «TURKEY: $23.68». At 2.08 s the last dish lands ($58.63); on {pop} the turkey glows red: 40% of the bill.
   { html: () => `<div class="chip izq"><small>DINNER FOR 10</small><b>2026</b></div>
-      <div class="chip der roja"><small>TOTAL</small><b class="c">$12.49</b></div>
+      <div class="chip der roja"><small>TOTAL</small><b class="c">$0.00</b></div>
       ${rt('roja', 'TURKEY: <span class="r">$23.68</span>')}${rt('', '<span class="r">$58.63</span> · $5.86 A PERSON')}${rt('roja p', 'TURKEY = <span class="r">40%</span> OF THE BILL')}
       ${nota('AFBF Thanksgiving survey, Nov 18, 2026<br>classic menu for 10 · national average')}`,
     anim: function (s, e, el) {
       const M = e.seg[0].marcas, m0 = Math.max(M[0] != null ? M[0] : 3.6, 2.9), r = el.querySelectorAll('.rt'), ch = el.querySelectorAll('.chip');
       ch[1].querySelector('.c').textContent = precio(totalG(s));
-      const salto = ORDEN.reduce((a, k, i) => Math.max(a, s >= ATERRIZA[i] ? Math.exp(-(s - ATERRIZA[i]) * (i === 4 ? 6 : 12)) * (i === 4 ? 1 : 0.4) : 0), 0);
-      ch[1].style.transform = 'scale(' + (1 + 0.16 * salto) + ')'; ch[1].style.transformOrigin = '100% 0';
+      let salto = ORDEN.reduce((a, k, i) => Math.max(a, s >= ATERRIZA[i] ? Math.exp(-(s - ATERRIZA[i]) * (i === 4 ? 6 : 12)) * (i === 4 ? 1 : 0.4) : 0), 0);
+      const fin_ = s >= TFIN ? Math.exp(-(s - TFIN) * 5) : 0; salto = Math.max(salto, fin_);
+      ch[1].style.transform = 'scale(' + (1 + 0.16 * salto + 0.22 * fin_ * Math.abs(Math.cos((s - TFIN) * 14))) + ')'; ch[1].style.transformOrigin = '100% 0';
       ch[1].style.boxShadow = '0 0 ' + Math.round(60 * salto) + 'px rgba(248,113,113,' + (0.9 * salto).toFixed(2) + ')';
       ver(r[0], s, TAV + 0.06, 2.3); ver(r[1], s, 2.45, m0 - 0.05); ver(r[2], s, m0 + 0.25);
       el.querySelector('.nota').style.opacity = 1;
@@ -350,7 +359,7 @@ const TRES = function (t, k, s, e, W) {
     const rojo = q(m0, 0.35), hin = 1 + 0.08 * Math.sin(PI * tramo(s, m0, m0 + 0.35));
     if (s > tv - 0.42) X.pavo({ dy: cae ? 5.2 * (1 - ut * ut) : 0, rx: cae ? 0.5 * (1 - ut) : 0, ry: -0.35, esc: hin, aplasta, color: ROJOH, q: rojo });
     X.ticket({ x: 0.08, z: 0.05, ry: -0.2, aplasta: suave(tramo(s, tv - 0.05, tv + 0.12)) });
-    if (s > tv) W.rotulo('pT', '$23.68', 0, TY + 0.62 + 0.25 * (1 - Math.min(1, bote(tv, 0.3))), 0.15, Math.min(1, 1.5 * bote(tv, 0.3)), ROJ, 0.3 * (1 + 0.6 * (1 - Math.min(1, bote(tv, 0.3)))));
+    if (s > tv) W.rotulo('pT', '$23.68', 0, TY + 0.62 + 0.25 * (1 - Math.min(1, bote(tv, 0.3))), 0.15, Math.min(1, 1.5 * bote(tv, 0.3)) * (1 - q(m0 - 0.05, 0.2)), ROJ, 0.3 * (1 + 0.6 * (1 - Math.min(1, bote(tv, 0.3)))));
     if (s > tv && s < tv + 0.4) X.halo({ x: 0, y: TY + 0.3, z: 0.2, esc: 4.5, op: 0.7 * Math.sin(PI * tramo(s, tv, tv + 0.4)), color: '#fed7aa' });
     // on {pop}: the side dishes dim and a 40/60 bar lights up along the front edge of the table
     X.atenuar(0.85 * q(m0, 0.4));
@@ -362,9 +371,13 @@ const TRES = function (t, k, s, e, W) {
     if (s > 2.4) X.halo({ x: 0, y: TY + 0.4, z: 0, esc: 3.5, op: 0.35 * Math.sin(PI * tramo(s, 2.4, 2.8)), color: '#fecaca' });
     // camera: low travelling right → left rising, a shake on the landing, three-quarter orbit, crane up over the full table, push
     // on the turkey on {pop}. Never still.
-    const C = ruta(orden([[0, [4.0, 3.3, 5.2, 0.1, 0.8, 0]], [0.6, [2.9, 3.5, 5.4, 0.0, 0.8, 0]], [1.2, orbita([0, 3.6, 5.9, 0, 1.05, 0], -0.38)],
-      [1.9, orbita([0, 4.2, 5.8, 0, 1.0, 0], -0.18)], [2.6, [0.5, 4.5, 5.7, 0, 1.0, 0.1]], [m0, orbita([0, 3.1, 5.4, 0, 1.1, 0.1], 0.2)],
-      [m0 + 0.9, orbita([0, 2.3, 4.4, 0, 1.15, 0.2], 0.32)], [D + 0.6, orbita([0, 2.2, 4.1, 0, 1.15, 0.2], 0.45)]]), s);
+    const C = plano(s, [
+      [0, (u) => dol([4.0, 3.0, 5.8, 0, 1.0, 0], [2.8, 2.9, 4.6, 0, 0.95, 0], 1.1, u)],             // fast dolly in while the dishes rain
+      [1.1, (u) => orb(0, 0, 4.9 - 0.3 * u, 3.1 - 0.2 * u, -0.85, 0.55, 0.8, u)],                     // orbit and push toward the turkey
+      [2.6, (u) => cen(0, 0.05, 1.3, 6.4 - 0.3 * u, 1.45, 0.3, u)],                                   // overhead, turning: the whole table
+      [m0, (u) => orb(0, 0.1, 2.3 - 0.25 * u, 1.55, 0.6, -0.5, TY + 0.3, u)],                         // close-up of the red turkey
+      [m0 + 1.5, (u) => dol([-3.7, 1.5, 4.3, 0, 0.9, 0.3], [-2.3, 1.7, 4.6, 0.3, 0.9, 0.3], 1.6, u)]  // front wide: the 40/60 bar
+    ]);
     const sh = 0.07 * golpe;
     cam([C[0] + sh * Math.sin(s * 83), C[1] + sh * Math.cos(s * 71), C[2], C[3], C[4], C[5]]);
   } else if (k === 1) {
@@ -379,13 +392,16 @@ const TRES = function (t, k, s, e, W) {
       X.bloque({ x: xr, y: BY + 0.3 * (1 - ent), z: BZ, w: L * fr * ent, h: 0.24, d: 0.24, color: parte > 0.3 ? '#ef4444' : '#e2e8f0', brillo: 0.15 + 0.35 * parte, op: ent });
       X.bloque({ x: xg, y: BY + 0.3 * (1 - ent) - 0.1 * parte, z: BZ, w: L * (1 - fr) * ent, h: 0.24, d: 0.24, color: parte > 0.3 ? '#64748b' : '#e2e8f0', brillo: 0.1, op: ent * (1 - 0.6 * q(m1, 0.4)) });
       W.rotulo('j345', '+$3.45', 0, BY + 0.36, BZ, ent * (1 - parte), BLANCO, 0.26);
-      W.rotulo('j218', '+$2.18', xr, BY + 0.36, BZ, parte, ROJ, 0.24);
+      W.rotulo('j218', '+$2.18', xr, BY + 0.36, BZ, parte * (1 - q(m1 - 0.05, 0.2)), ROJ, 0.24);
       W.rotulo('j127', '+$1.27', xg, BY + 0.3, BZ, parte * (1 - q(m1, 0.4)), '#94a3b8', 0.2);
       // the red piece drops into the turkey on {ding}
     }
     if (s > m1 - 0.05 && s < m1 + 0.4) X.halo({ x: 0, y: TY + 0.35, z: 0.1, esc: 3.6, op: 0.55 * Math.sin(PI * tramo(s, m1 - 0.05, m1 + 0.4)), color: '#fecaca' });
-    cam(ruta(orden([[0, orbita([0, 1.9, 5.4, 0, 1.35, 0], -0.5)], [m0, orbita([0, 2.2, 5.2, 0, 1.45, 0], -0.25)], [m1, orbita([0, 1.9, 4.4, 0, 1.2, 0], 0.0)],
-      [D + 0.5, orbita([0, 1.8, 4.0, 0, 1.1, 0], 0.25)]]), s));
+    cam(plano(s, [
+      [0, (u) => orb(0, 0, 4.6, 1.9, -0.95, 0.35, 1.3, u)],
+      [m0, (u) => dol([1.5, 2.3, 3.0, 0, 1.45, -0.9], [0.4, 2.0, 2.3, 0, 1.45, -0.9], 1.6, u)],
+      [m1, (u) => orb(0, 0, 2.4 - 0.2 * u, 1.5, 0.55, -0.5, TY + 0.3, u)]
+    ]));
   } else if (k === 2) {
     // ——— the question: the receipt stands up with its stamp; flyers rain; the mannequin walks to the table ———
     const m0 = mk(0, 2.3);
@@ -398,9 +414,12 @@ const TRES = function (t, k, s, e, W) {
       const enMesa = Math.abs(x0) < 2.3 && Math.abs(z0) < 1.0;
       X.folleto(i, { x: x0 + 0.3 * Math.sin(a + s * 3) * (1 - u), y: enMesa ? Math.max(y, TY + 0.25) : Math.max(y, 0.02), z: z0, rx: u < 1 ? 1.2 + 0.8 * Math.sin(s * 5 + a) : -PI / 2 + 0.25, ry: a, rz: 0.4 * Math.sin(s * 4 + a) * (1 - u) });
     }
-    const H0 = [-3.0, 2.4], H1 = [-1.4, 1.6], u = tramo(s, 0.0, 1.5), hx = lerp(H0[0], H1[0], sale(u)), hz = lerp(H0[1], H1[1], sale(u));
+    const H0 = [-2.7, 2.3], H1 = [-1.3, 1.5], u = tramo(s, m0 - 0.7, m0 + 1.0), hx = lerp(H0[0], H1[0], sale(u)), hz = lerp(H0[1], H1[1], sale(u));
     W.heroe({ x: hx, z: hz, gira: angulo(Math.atan2(H1[0] - H0[0], H1[1] - H0[1]), PI + 0.4, suave(tramo(s, m0 + 0.3, m0 + 0.9))), amp: u < 1 ? 1 : 0, fase: s * 8.5, luz: 0.8 });
-    cam(ruta(orden([[0, [1.6, 1.4, 4.4, 0.6, 1.0, 0]], [m0 - 0.3, [0.2, 1.9, 5.4, -0.6, 1.0, 0.3]], [m0 + 0.6, [0.6, 1.7, 5.7, -1.0, 1.1, 0.6]], [D + 0.5, [1.0, 1.6, 5.4, -1.0, 1.15, 0.6]]]), s));
+    cam(plano(s, [
+      [0, (u) => dol([2.0, 1.35, 2.3, 0.55, 1.0, 0.15], [1.3, 1.25, 1.6, 0.55, 1.0, 0.15], 2.5, u)],      // close on the receipt
+      [m0, (u) => dol([1.9, 1.5, 6.6, -1.0, 0.95, 0.9], [1.1, 1.5, 5.9, -1.1, 0.95, 0.9], 2.0, u)]        // the mannequin walks in, whole body
+    ]));
   } else if (k === 3) {
     // ——— the ads: the price sign behind the table rolls from $1.48 to $1.11 (turquoise); the turkey turns turquoise ———
     const m0 = mk(0, 2.1), m1 = mk(1, 4.4);
@@ -411,8 +430,11 @@ const TRES = function (t, k, s, e, W) {
     W.cartel({ x: 0, z: -1.6, esc: 0.62, titulo: 'FROZEN TURKEY · AD AVG', precio: pre, frac: '/lb', fracEsc: 0.8, fracColor: '#94a3b8', color: gira < 0.5 ? '#ffffff' : '#5eead4', op: 1 - Math.sin(PI * gira) * 0.85 });
     if (gira > 0 && gira < 1) X.halo({ x: 0, y: 2.1, z: -1.4, esc: 3.4, op: 0.5 * Math.sin(PI * gira), color: TQ });
     W.rotulo('usda', 'USDA · WEEK OF NOV 16', 0, 2.95, -1.5, q(0.3, 0.3), TQ, 0.17);
-    cam(ruta(orden([[0, orbita([0, 0.95, 4.3, 0, 1.4, -0.6], 0.35)], [m0, orbita([0, 1.15, 4.6, 0, 1.55, -0.8], 0.12)], [m0 + 1.2, orbita([0, 1.4, 4.9, 0, 1.5, -0.7], -0.08)],
-      [D + 0.5, orbita([0, 1.5, 5.2, 0, 1.4, -0.5], -0.25)]]), s));
+    cam(plano(s, [
+      [0, (u) => dol([1.7, 1.0, 2.6, 0, 1.8, -1.6], [0.9, 1.1, 2.2, 0, 1.8, -1.6], 2.45, u)],     // low, under the sign
+      [m0, (u) => orb(0, -0.3, 4.4, 1.5, 0.4, -0.25, 1.5, u)],                                          // wide: sign and turkey
+      [m1, (u) => cen(0, 0, 1.2, 5.6 - 0.2 * u, 1.0, 0.5, u)]                                           // overhead on the turquoise turkey
+    ]));
   } else if (k === 4) {
     // ——— the catch: the cheapest bird on a plinth beside the table, a glowing chain to a cart that fills up first ———
     const m0 = mk(0, 0.8), m1 = mk(1, 2.3);
@@ -431,16 +453,24 @@ const TRES = function (t, k, s, e, W) {
     for (let i = 0; i < 8; i++) { const t0 = m1 - 0.05 + 0.16 * i, u = tramo(s, t0, t0 + 0.3); if (u <= 0 || u >= 1) continue; X.bloque({ x: CX + ((i % 3) - 1) * 0.25, y: 0.5 + 2.5 * (1 - u * u), z: CZ + ((i % 2) - 0.5) * 0.25, w: 0.2, h: 0.24, d: 0.18, color: ['#94a3b8', '#f5b94a', '#e2e8f0', '#7cc36a'][i % 4], brillo: 0.25, ry: i }); }
     W.rotulo('mas', '+$20–50', CX, 1.35, CZ, Math.min(1, 1.4 * bote(m1 + 0.05, 0.3)), AMB, 0.3);
     if (s > m1 && s < m1 + 0.4) X.halo({ x: CX, y: 0.7, z: CZ, esc: 3.4, op: 0.55 * Math.sin(PI * tramo(s, m1, m1 + 0.4)), color: '#fde68a' });
-    cam(ruta(orden([[0, [-1.2, 2.3, 10.4, 0.1, 0.95, 2.2]], [m0 + 0.4, [-0.4, 2.6, 10.6, 0.1, 0.9, 2.2]], [m1, [0.5, 3.0, 10.5, 0.15, 0.85, 2.2]], [D + 0.5, [1.1, 3.3, 10.1, 0.2, 0.8, 2.2]]]), s));
+    cam(plano(s, [
+      [0, (u) => orb(-1.25, 2.2, 2.7, 1.6, -0.75, 0.45, 0.95, u)],                                    // the cheapest bird on its plinth
+      [m1 - 0.15, (u) => dol([3.3, 2.7, 6.6, 0.7, 0.75, 2.4], [2.5, 2.4, 5.8, 0.7, 0.75, 2.4], 3.0, u)] // the cart filling up, close
+    ]));
   } else {
     // ——— close: the mannequin at the table; the turkey's sum goes from $23.68 (red) to $17.76 (turquoise) on {pop}. Hard cut. ———
-    const m1 = mk(1, 4.2);
+    const m0 = mk(0, 3.3), m1 = mk(1, 4.2);
     servida(); X.atenuar(0.5);
     const tq = q(m1, 0.35), hin = 1 + 0.08 * Math.sin(PI * tramo(s, m1, m1 + 0.35));
     X.pavo({ ry: -0.3 + 0.2 * s / D, color: tq > 0.01 ? TURQH : ROJOH, q: tq > 0.01 ? tq : 0.35, esc: hin * (1 - 0.06 * tq) });
-    W.rotulo('l16', '16 LB', 0, TY + 0.85, 0.15, q(0.3, 0.3), BLANCO, 0.2);
+    W.rotulo('l16', '16 LB', 0, TY + 0.66, 0.15, q(0.3, 0.3), BLANCO, 0.2);
     if (s > m1 && s < m1 + 0.45) X.halo({ x: 0, y: TY + 0.4, z: 0.2, esc: 4, op: 0.6 * Math.sin(PI * tramo(s, m1, m1 + 0.45)), color: TQ });
-    cam(ruta(orden([[0, orbita([-0.6, 2.0, 5.8, -0.6, 1.05, 0.2], -0.35)], [m1 - 0.6, orbita([-0.4, 1.8, 5.0, -0.4, 1.05, 0.2], -0.1)], [D + 0.6, orbita([-0.2, 1.7, 4.4, -0.2, 1.05, 0.2], 0.1)]]), s));
+    cam(plano(s, [
+      [0, (u) => orb(0, 0, 4.8, 2.4, -0.8, 0.4, 0.95, u)],                                            // wide orbit of the table
+      [1.8, (u) => cen(0, 0.05, 1.3, 6.3 - 0.25 * u, -1.75, 0.3, u)],                                    // overhead
+      [m0, (u) => orb(0, 0.1, 2.6 - 0.2 * u, 1.6, -0.45, 0.35, TY + 0.35, u)],                         // close-up: «At $1.11»
+      [m1 + 1.6, (u) => dol([-2.1, 1.4, 3.7, 0, 1.0, 0.2], [-1.3, 1.6, 3.2, 0, 1.0, 0.2], 3.2, u)]     // last angle, to the cut
+    ]));
   }
   W.multitud(t, { directo });
 };
