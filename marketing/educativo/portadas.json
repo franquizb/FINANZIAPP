@@ -373,5 +373,14 @@
     "serie": "hacemos-la-cuenta",
     "fotograma_ms": 3300,
     "encuadre_y": 700
+  },
+  "en-thanksgiving-dinner": {
+    "titulo": "Dinner for 10: $58.63. The turkey: $23.68",
+    "destacado": "$23.68",
+    "color": "rojo",
+    "serie": "money-explained",
+    "etiqueta": "Thanksgiving",
+    "fotograma_ms": 5000,
+    "encuadre_y": 600
   }
 }

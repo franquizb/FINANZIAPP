@@ -30,7 +30,7 @@ La encuesta de la AFBF de 2026 **sí está publicada** (18-nov-2026). El giro re
 
 | Tiempo | Qué se ve | Cámara | Rótulo / sonido |
 |---|---|---|---|
-| **0,0 s** (fotograma 0, en plena acción) | Mesa larga (tablero oscuro, mantel claro) con 2 platos ya servidos (leche, pie mix) y sus etiquetas pequeñas; un tercer plato (boniatos) **en el aire cayendo**. Un ticket de papel de pie en el centro de la mesa. Chip «DINNER FOR 10» (izq.) y contador rojo «TOTAL $8.29» (der.). | Travelling lateral bajo de derecha a izquierda, subiendo. | Primera frase ya en subtítulos. |
+| **0,0 s** (fotograma 0, en plena acción) | Mesa larga (tablero oscuro, mantel claro) con 3 platos ya servidos (leche, pie mix, boniatos) y sus etiquetas pequeñas; el veggie tray cae a 0,2 s. Un ticket de papel de pie en el centro de la mesa. Chip «DINNER FOR 10» (izq.) y contador rojo «TOTAL $12.49» (der.). | Travelling lateral bajo de derecha a izquierda, subiendo. | Primera frase ya en subtítulos. |
 | **0,5 s** | Han caído boniatos y veggie tray (contador $13.80); **una sombra crece en el centro**: el pavo se ve entrando por arriba. | Sigue el travelling y empieza a subir. | — |
 | **0,6–0,7 s** (el acontecimiento) | **El pavo aterriza en el centro sobre el ticket y lo aplasta** (el ticket se dobla y se hunde); todos los platos dan un salto, la mesa tiembla, destello. Etiqueta 3D grande roja «$23.68». El contador salta +23,68 y destella. Rótulo 2D: **«TURKEY: $23.68»**. | Sacudida corta. | pop (frase) · golpe |
 | **1,0 s** | Siguen cayendo platos (rolls, crusts, peas) con sus etiquetas; contador ~$45. | Órbita a tres cuartos. | — |
@@ -190,3 +190,11 @@ Educational only, not financial advice.
 - «the average frozen turkey was $1.11 a pound»: es la media ponderada de anuncios (fila «Whole Turkey > 16 Lbs · Conventional · Frozen», 33.348 tiendas); la frase va tras «In USDA's latest count of grocery ads» y la nota en pantalla dice «weighted avg ad price». La fila «< 16 Lbs» da 1,15 $ (18,40 $ por 16 lb): el sentido no cambia; se usa la de > 16 lb, la de más tiendas.
 - «most of the cheapest birds require spending $20 to $50 more»: literal del USDA («Most of the cheapest whole frozen turkeys on offer this week were offered as loss leaders with an additional purchase of 20.00-50.00 required»).
 - Sin marcas de supermercados, sin política (la nota de la AFBF habla de la farm bill y de reforma laboral: no se usa nada de eso), sin promesas, sin anunciar el siguiente vídeo.
+
+## Producción (24-nov-2026)
+
+- Reel: `out-reels/en-thanksgiving-dinner/en/reel.mp4` · 38,8 s · −14,7 LUFS (pico −1,4 dBFS) · 2,65 palabras/s (ritmo.py) · arranque.py mov3 = 6,87, quieto3 = 0,00.
+- Voz: VOZ_NARRADOR (Iapetus), 6 tomas, todas aceptadas a la primera por revisar-voz.cjs. Con tempo 1,12 / pausas 0,3 salía a 2,53 palabras/s; se dejó en 1,17 / 0,26 (los valores por defecto del narrador) con las mismas tomas.
+- Alineación: alinear.py dio tiempos rotos en las frases 0 y 2 (Whisper solo oyó 6 palabras con el guion como prompt). Se rehicieron a mano con Whisper sin prompt (palabra a palabra, monótonos) en `cache-voz/8171df98121b5eb0-p26-t117.wav.palabras.json` y `34e101b684e0ac3e-p26-t117.wav.palabras.json`; tomas-viejas = 0.
+- Cambios de pantalla frente a la tabla de escenas: sin sello 3D en el ticket (el «NO COUPONS, NO DEALS» va solo en el rótulo 2D); el maniquí no sale en el cierre; la barra de la subida va detrás del pavo.
+- Portada: entrada en portadas.json (fotograma 5,0 s: pavo rojo con «$23.68» y «TURKEY = 40% OF THE BILL»).
