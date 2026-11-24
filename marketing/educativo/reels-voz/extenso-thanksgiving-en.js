@@ -449,8 +449,9 @@ const pildoras = {
   'en-thanksgiving-dinner': pildora3d({
     slug: 'en-thanksgiving-dinner', cuenta: 'en',
     T: { en: { titulo: 'Thanksgiving dinner for 10 averages $58.63. The turkey alone is $23.68', guion: GUION } },
-    // Narrator voice of reto-en.js / extenso-en.js (never VOZ_SECA), slower, as in en-mortgage-rate (2.6–3.2 words/s).
-    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.12, pausaMax: 0.3 } },
+    // Narrator voice of reto-en.js / extenso-en.js (never VOZ_SECA). Tempo 1.12 / pauses 0.3 measured 2.53 words/s (ritmo.py), under
+    // the 2.6–3.2 target; 1.17 / 0.26 (the VOZ_NARRADOR defaults) re-time the same reviewed takes.
+    voz: { ...VOZ_NARRADOR, en: { ...VOZ_NARRADOR.en, tempo: 1.17, pausaMax: 0.26 } },
     sub: { max: 4, largo: 20, sinSuelta: true },
     fijo: () => `<div class="hud i fmt">MONEY, EXPLAINED</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT,
