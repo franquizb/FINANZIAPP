@@ -125,7 +125,7 @@ Fuentes: Real Decreto Legislativo 8/2015 (Ley General de la Seguridad Social), a
 ## Portada (portadas.json)
 
 ```json
-"es-paga-extra": { "titulo": "Paga extra: +152 € y no es un regalo", "destacado": "+152 €", "color": "turq", "serie": "hacemos-la-cuenta", "fotograma_ms": 2900, "encuadre_y": 700 }
+"es-paga-extra": { "titulo": "Paga extra: +152 € y no es un regalo", "destacado": "+152 €", "color": "turq", "serie": "hacemos-la-cuenta", "fotograma_ms": 3300, "encuadre_y": 700 }
 ```
 
 ## Para los comentarios

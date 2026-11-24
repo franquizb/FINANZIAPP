@@ -250,6 +250,15 @@
           "estado": "listo",
           "slug": "es-black-friday-30-dias",
           "nota": "Programado en Instagram y Facebook · 38.68 s"
+        },
+        {
+          "fecha": "2026-11-25",
+          "hora": "09:53",
+          "tipo": "Reel",
+          "tema": "Tu paga extra: mismo bruto que tu nómina… y 152 € más",
+          "estado": "listo",
+          "slug": "es-paga-extra",
+          "nota": "Programado en Instagram y Facebook · 39.39 s"
         }
       ],
       "pendientes": [

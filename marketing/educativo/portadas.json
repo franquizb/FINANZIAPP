@@ -365,5 +365,13 @@
     "etiqueta": "Mortgages",
     "fotograma_ms": 3900,
     "encuadre_y": 480
+  },
+  "es-paga-extra": {
+    "titulo": "Paga extra: +152 € y no es un regalo",
+    "destacado": "+152 €",
+    "color": "turq",
+    "serie": "hacemos-la-cuenta",
+    "fotograma_ms": 3300,
+    "encuadre_y": 700
   }
 }
