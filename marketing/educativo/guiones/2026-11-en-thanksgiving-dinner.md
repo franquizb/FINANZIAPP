@@ -198,3 +198,9 @@ Educational only, not financial advice.
 - Alineación: alinear.py dio tiempos rotos en las frases 0 y 2 (Whisper solo oyó 6 palabras con el guion como prompt). Se rehicieron a mano con Whisper sin prompt (palabra a palabra, monótonos) en `cache-voz/8171df98121b5eb0-p26-t117.wav.palabras.json` y `34e101b684e0ac3e-p26-t117.wav.palabras.json`; tomas-viejas = 0.
 - Cambios de pantalla frente a la tabla de escenas: sin sello 3D en el ticket (el «NO COUPONS, NO DEALS» va solo en el rótulo 2D); el maniquí no sale en el cierre; la barra de la subida va detrás del pavo.
 - Portada: entrada en portadas.json (fotograma 5,0 s: pavo rojo con «$23.68» y «TURKEY = 40% OF THE BILL»).
+
+## v2 (24-nov-2026, revisión del supervisor: más movimiento; mismo guion, mismas tomas y tiempos)
+
+- Gancho: desde el fotograma 0 caen 4 platos a la vez (aterrizan a 0,08–0,42 s, caída de 0,45 s, con rebote) y la cámara entra en dolly rápido; el TOTAL sube de forma continua (cada plato suma su precio mientras cae) hasta $58.63 a 1,78 s, con un golpe de escala al llegar.
+- Varios planos por escena con corte seco (helper `plano`): general en órbita, cenital girando, primer plano del pavo, plano bajo bajo el cartel, carrito de cerca. El maniquí de la escena 2 entra entero.
+- Medidas: 38,8 s · −14,7 LUFS (pico −1,4 dBFS) · 2,65 palabras/s · mov3 11,97 · quieto3 0,00 · cortes/10 s 4,9 (antes 1,5) · mov total 13,14 (antes 6,23). Portada regenerada (fotograma 5,0 s: primer plano del pavo rojo). v1 guardada en el scratchpad (lote-1124/en-thanksgiving-dinner/v1/).
