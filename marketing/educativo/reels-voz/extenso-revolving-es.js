@@ -165,9 +165,9 @@ const orden = (K) => { for (let j = 1; j < K.length; j++) if (K[j][0] <= K[j - 1
 // Planos con corte seco: P = [[t0, K0], [t1, K1], …]; en [ti, ti+1) la cámara sigue la ruta Ki (con su propio tiempo absoluto).
 // Plano y deriva sobre la cámara de cada escena (para que nunca esté quieta y cambie de plano cada L s): en cada tramo de L s,
 // giro alrededor del punto al que mira y distancia distintos (corte seco al cambiar de tramo) más una deriva continua.
-const GIROS = [0, 0.5, -0.45, 0.38, -0.55, 0.42, -0.35], DIST = [1, 0.84, 1.1, 0.9, 1.04, 0.86, 1.08];
+const GIROS = [0, 0.85, -0.8, 0.7, -0.9, 0.75, -0.65], DIST = [1, 0.76, 1.14, 0.82, 1.1, 0.78, 1.12];
 function deriva(C, s, L) {
-  const j = Math.floor(s / L), u = s - j * L, g = GIROS[j % GIROS.length] + (j % 2 ? -1 : 1) * 0.11 * u, d = DIST[j % DIST.length] * (1 - 0.035 * u);
+  const j = Math.floor(s / L), u = s - j * L, g = GIROS[j % GIROS.length] + (j % 2 ? -1 : 1) * 0.2 * u, d = DIST[j % DIST.length] * (1 - 0.06 * u);
   const O = orbita(C, g); return [O[3] + (O[0] - O[3]) * d, O[4] + (O[1] - O[4]) * d, O[5] + (O[2] - O[5]) * d, O[3], O[4], O[5]];
 }
 const planos = (P, x) => { let j = 0; while (j + 1 < P.length && x >= P[j + 1][0]) j++; return ruta(orden(P[j][1]), x); };
@@ -319,7 +319,7 @@ const ESCENAS = [
     anim: function (s, e, el) { const M = e.seg[0].marcas, m1 = M[1] != null ? M[1] : 2.2, m2 = M[2] != null ? M[2] : 3.6, m3 = M[3] != null ? M[3] : 4.6, c = el.querySelector('.ext');
       const ent = sale(tramo(s, 0.05, 0.6)), dr = tramo(s, 0.3, e.fin - e.ini);
       c.style.opacity = Math.min(1, ent * 1.4);
-      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 5 - 8 * dr) + 'deg) rotateZ(' + (2 - 3 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr)) + ')';
+      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 5 - 8 * dr + 7 * Math.sin(s * 1.7)) + 'deg) rotateZ(' + (2 - 3 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr)) + ')';
       c.querySelector('table').style.display = 'none';
       const b1 = c.querySelector('.b1'), b2 = c.querySelector('.b2');
       cajaEstilo(b1, rebote(tramo(s, m2 - 0.05, m2 + 0.3)) * (1 - 0.5 * tramo(s, m3, m3 + 0.3)), Math.round(100 * sale(tramo(s, m2 - 0.05, m2 + 0.6))));
@@ -334,7 +334,7 @@ const ESCENAS = [
       const va = suave(tramo(s, m3 - 0.45, m3 + 0.05)), dr = tramo(s, 0, m3);
       c.style.opacity = 1 - tramo(s, m3 - 0.15, m3 + 0.05);
       c.style.top = '470px';
-      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) perspective(1400px) rotateY(' + (-6 + 9 * dr) + 'deg) rotateZ(' + (-1.2 + 2 * dr - 8 * va) + 'deg) scale(' + (1.0 + 0.05 * dr) + ')';
+      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) perspective(1400px) rotateY(' + (-6 + 9 * dr + 7 * Math.sin(s * 1.7)) + 'deg) rotateZ(' + (-1.2 + 2 * dr - 8 * va) + 'deg) scale(' + (1.0 + 0.05 * dr) + ')';
       c.querySelectorAll('.f, .b1').forEach(x => { x.style.display = 'none'; });
       c.querySelector('.b2').style.opacity = 0.45;
       const q1 = rebote(tramo(s, 0.05, 0.4)) * (1 - 0.6 * tramo(s, m1, m1 + 0.3)), q2 = rebote(tramo(s, m1, m1 + 0.35));
@@ -361,7 +361,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   const mk = (j, def) => (M[j] != null ? M[j] : def);
   const q = (a, d) => sale(tramo(s, a, a + (d || 0.45)));
   const bote = (a, d) => rebote(tramo(s, a, a + (d || 0.35)));
-  const LP = k === 0 ? 0 : k === 1 ? 2.3 : 3.2;
+  const LP = k === 0 ? 0 : k === 1 ? 2.0 : 3.0;
   const cam = (C) => { if (LP) C = deriva(C, s, LP); W.camara(C[0], C[1], C[2], C[3], C[4], C[5]); };
   const ROJ = '#f87171', TQ = '#5eead4', AMB = '#f5b94a', BLANCO = '#e2e8f0';
   const blanca = (o) => X.torre('blanca', Object.assign({ x: WX, z: 0 }, o));
@@ -395,7 +395,8 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     const C = planos([
       [0, [[0, [1.9, 1.0, 11.2, 0.0, 2.35, 0]], [0.62, [0.9, 1.6, 11.5, -0.1, 2.35, 0]], [C1 + 0.4, [-0.2, 2.3, 11.8, 0.0, 2.35, 0]]]],
       [C1, [[C1, orbita([-0.3, 3.6, 12.4, -0.3, 2.4, 0], -0.95)], [C2 + 0.3, orbita([-0.1, 2.6, 10.6, -0.1, 2.3, 0], -0.05)]]],
-      [C2, [[C2, [RX + 1.6, 0.7, 9.4, RX - 0.2, 2.6, 0]], [TS + 0.5, [RX + 0.9, 1.0, 8.6, RX - 0.1, 2.4, 0]], [m2, orbita([0.4, 2.3, 13.4, 0.3, 2.5, 0], 0.18)], [D + 0.6, orbita([0.1, 2.6, 14.6, 0.1, 2.5, 0], -0.12)]]]
+      [C2, [[C2, [RX + 1.6, 0.7, 9.4, RX - 0.2, 2.6, 0]], [TS + 0.5, [RX + 0.9, 1.0, 8.6, RX - 0.1, 2.4, 0]], [m2 + 0.6, [RX + 0.5, 1.4, 9.4, RX - 0.1, 2.3, 0]]]],
+      [m2, [[m2, orbita([0.0, 3.4, 11.6, 0.0, 2.3, 0], -0.75)], [D + 0.6, orbita([0.1, 2.4, 13.6, 0.1, 2.4, 0], 0.15)]]]
     ], s);
     const sh = s > TC ? 0.06 * Math.exp(-(s - TC) * 11) : 0, sh2 = s > TS ? 0.05 * Math.exp(-(s - TS) * 12) : 0;
     cam([C[0] + (sh + sh2) * Math.sin(s * 83), C[1] + (sh + sh2) * Math.cos(s * 71), C[2], C[3], C[4], C[5]]);
