@@ -167,7 +167,7 @@ const orden = (K) => { for (let j = 1; j < K.length; j++) if (K[j][0] <= K[j - 1
 // giro alrededor del punto al que mira y distancia distintos (corte seco al cambiar de tramo) más una deriva continua.
 const GIROS = [0, 0.85, -0.8, 0.7, -0.9, 0.75, -0.65], DIST = [1, 0.86, 1.16, 0.9, 1.12, 0.86, 1.14];
 function deriva(C, s, L) {
-  const j = Math.floor(s / L), u = s - j * L, g = GIROS[j % GIROS.length] + (j % 2 ? -1 : 1) * 0.3 * u, d = DIST[j % DIST.length] * (1 - 0.08 * u);
+  const j = Math.floor(s / L), u = s - j * L, g = GIROS[j % GIROS.length] + (j % 2 ? -1 : 1) * 0.4 * u, d = DIST[j % DIST.length] * (1 - 0.09 * u);
   const O = orbita(C, g); return [O[3] + (O[0] - O[3]) * d, O[4] + (O[1] - O[4]) * d, O[5] + (O[2] - O[5]) * d, O[3], O[4], O[5]];
 }
 const planos = (P, x) => { let j = 0; while (j + 1 < P.length && x >= P[j + 1][0]) j++; return ruta(orden(P[j][1]), x); };
@@ -361,7 +361,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   const mk = (j, def) => (M[j] != null ? M[j] : def);
   const q = (a, d) => sale(tramo(s, a, a + (d || 0.45)));
   const bote = (a, d) => rebote(tramo(s, a, a + (d || 0.35)));
-  const LP = k === 0 ? 0 : k === 1 ? 1.9 : 2.7;
+  const LP = k === 0 ? 0 : k === 1 ? 1.7 : 2.3;
   const cam = (C) => { if (LP) C = deriva(C, s, LP); W.camara(C[0], C[1], C[2], C[3], C[4], C[5]); };
   const ROJ = '#f87171', TQ = '#5eead4', AMB = '#f5b94a', BLANCO = '#e2e8f0';
   const blanca = (o) => X.torre('blanca', Object.assign({ x: WX, z: 0 }, o));

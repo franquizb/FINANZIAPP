@@ -184,3 +184,11 @@ Contenido educativo, no es asesoramiento financiero.
 - **«A fin de mes o aplazado»**: neutral; no se afirma que fin de mes sea siempre gratis.
 - Sin bancos ni marcas («Black Friday» es el nombre del día de rebajas, no una marca), sin política, sin «si te pica», sin anunciar
   otro vídeo. España: «en España» en la frase 1 y en el texto, euros.
+
+## Producción (26-nov-2026)
+
+- Voz VOZ_NARRADOR (Charon, peninsular), con tempo 1,25 y pausas ≤ 0,2 s (a 1,2/0,26 salía a 3,17 palabras/s). Tomas
+  revisadas con revisar-voz: la frase 4 («¿Y cómo sabes…») y la 5 («Y si tu cuota…») se repitieron por seseo. Texto de la voz sin
+  cambios respecto al guion.
+- Cámara: tres planos con corte seco en el gancho (≈1,35 s, ≈3,1 s y en «y 742») y, desde la escena 1, `deriva()`: cambio
+  de plano cada 1,7 s (escena 1) / 2,3 s (resto) con giro y distancia distintos y deriva continua.
