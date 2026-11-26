@@ -382,5 +382,14 @@
     "etiqueta": "Thanksgiving",
     "fotograma_ms": 5000,
     "encuadre_y": 600
+  },
+  "en-black-friday-was-price": {
+    "titulo": "Was $199, now $99. Real discount: 0%",
+    "destacado": "0%",
+    "color": "ambar",
+    "serie": "money-explained",
+    "etiqueta": "Black Friday",
+    "fotograma_ms": 5000,
+    "encuadre_y": 600
   }
 }
