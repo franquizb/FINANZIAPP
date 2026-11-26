@@ -296,10 +296,10 @@ const ESCENAS = [
   // 3 · The law: a generic statement card comes in (it never stands still); on {caja} the amber box wipes over the warning.
   { html: () => `${EXTRACTO('e3')}${rt('amb p', 'CREDIT CARD ACT OF <span class="a">2009</span><small>12 CFR 1026.7(b)(12)</small>')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.3, m1 = M[1] != null ? M[1] : 2.4, m2 = M[2] != null ? M[2] : 3.4, c = el.querySelector('.ext');
-      const zz = s >= m1 ? 1.24 : 1, zy = s >= m1 ? 40 : 0;   // hard punch-in on the warning (a cut)
+      const zz = s >= m1 ? 1.24 : s >= m0 ? 1.1 : 1, zy = s >= m1 ? 40 : s >= m0 ? 20 : 0;   // hard punch-ins on the warning (cuts)
       const ent = sale(tramo(s, 0.05, 0.6)), dr = tramo(s, 0.3, e.fin - e.ini);
       c.style.opacity = Math.min(1, ent * 1.4);
-      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 5 - 8 * dr) + 'deg) rotateZ(' + (2 - 3 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
+      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 9 - 18 * dr) + 'deg) rotateZ(' + (2.5 - 5 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
       c.querySelectorAll('tr.r1, tr.r2, table').forEach(x => { x.style.opacity = 0.35; });
       const mp = c.querySelector('.mpw'), a = rebote(tramo(s, m2 - 0.05, m2 + 0.3)), wp = Math.round(100 * sale(tramo(s, m2 - 0.05, m2 + 0.6)));
       mp.style.borderColor = 'rgba(245,185,74,' + Math.min(1, a).toFixed(2) + ')';
@@ -315,7 +315,7 @@ const ESCENAS = [
       c.style.opacity = 1 - tramo(s, m2 - 0.15, m2 + 0.05);
       c.style.top = '490px';
       const zz = s < m0 ? 1.15 : s < m1 ? 1 : 1.15, zy = s < m0 ? 40 : s < m1 ? 0 : 40;   // hard punch-ins (cuts): close, whole card, close (top stays under the subtitles)
-      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-6 + 9 * dr) + 'deg) rotateZ(' + (-1.2 + 2 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
+      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-10 + 20 * dr) + 'deg) rotateZ(' + (-2 + 4 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
       c.querySelector('.mpw').style.borderColor = 'rgba(245,185,74,.8)';
       const q1 = rebote(tramo(s, 0.1, 0.45)) * (1 - 0.6 * tramo(s, m0, m0 + 0.3)), q2 = rebote(tramo(s, m0, m0 + 0.35));
       filaEstilo(c.querySelector('tr.r1'), Math.min(1, q1), '220,38,38'); filaEstilo(c.querySelector('tr.r2'), Math.min(1, q2), '13,148,136');
@@ -348,7 +348,9 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   const fantB = (c, op) => ({ color: c, brillo: 0.6, op: op == null ? 0.13 : op });
   const LB = X.LB;
   // shots: [[start, camA, camB]…]; each shot moves linearly from A to B over its span (never still), hard cut between shots
-  const plano = (P) => { let j = 0; while (j < P.length - 1 && s >= P[j + 1][0]) j++; const b = j < P.length - 1 ? P[j + 1][0] : D + 0.6; return mezcla(P[j][1], P[j][2], tramo(s, P[j][0], b)); };
+  //        plus a sweep round the point it looks at (giro rad over the shot, alternating direction) for constant parallax
+  const plano = (P, giro) => { let j = 0; while (j < P.length - 1 && s >= P[j + 1][0]) j++; const b = j < P.length - 1 ? P[j + 1][0] : D + 0.6, u = tramo(s, P[j][0], b);
+    const g = P[j][3] != null ? P[j][3] : (giro == null ? 0.5 : giro) * (j % 2 ? -1 : 1); return orbita(mezcla(P[j][1], P[j][2], u), g * (u - 0.5)); };
 
   if (k === 0) {
     // ——— the hook ———
@@ -412,9 +414,9 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
       const p = mezcla(mp, dest, suave(v)); p[1] += 0.9 * Math.sin(PI * v);
       X.bloque({ x: p[0], y: p[1], z: p[2], w: 0.2, h: 0.2, d: 0.2, color: '#2dd4bf', brillo: 0.5, rx: 4 * v, ry: 3 * v, op: 1 - tramo(v, 0.8, 1) });
     }
-    W.rotulo('t3000b', '$3,000', WX, 2.52 + 0.45, 0.4, 1, BLANCO, 0.42);
+    W.rotulo('t3000b', '$3,000', WX, 2.52 + 0.45, 0.4, s >= 1.0 && s < m1 + 0.1 ? 0 : 1, BLANCO, 0.42);
     cam(plano([[0, orbita([0.0, 1.7, 12.6, 0.0, 1.45, 0.8], 0.35), orbita([0.0, 2.0, 12.0, 0.0, 1.45, 0.8], 0.2)],
-      [1.0, [0.6, 2.4, 5.6, WX, 1.4, 0], [0.3, 2.5, 5.9, WX, 1.4, 0]],
+      [1.0, [1.0, 2.2, 7.6, WX + 0.4, 1.3, 0], [0.5, 2.3, 7.9, WX + 0.4, 1.3, 0]],
       [m1 + 0.1, orbita([WX + 0.5, 2.0, 10.0, WX + 0.3, 1.3, 0], -0.05), orbita([WX + 0.5, 1.9, 9.6, WX + 0.3, 1.3, 0], -0.24)],
       [3.2, [4.5, 4.0, 10.5, 0.0, 1.4, 0], [3.8, 4.3, 11.0, 0.0, 1.4, 0]]]));
   } else if (k === 3) {
