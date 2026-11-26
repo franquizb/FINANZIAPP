@@ -26,6 +26,7 @@
 //   Rótulo «Ejemplo» en pantalla desde el fotograma 0 y en el texto; la tarjeta de la escena 3 es genérica (sin banco ni marca).
 const { pildora3d } = require('./tres');
 const { cuadra } = require('../reels/_comun');
+const { VOZ_NARRADOR } = require('./_comun');
 
 // ——— cuentas (guiones/2026-11-es-revolving-cuota.md, «Cuentas») ———
 const TIPO = 18.27, I = Math.pow(1 + TIPO / 100, 1 / 12) - 1, B = 1000, CUOTA = 20, BLOQUE = 50;
@@ -162,6 +163,13 @@ const ruta = (K, x) => {
 const orbita = (C, ang) => { const dx = C[0] - C[3], dz = C[2] - C[5], c = Math.cos(ang), s_ = Math.sin(ang); return [C[3] + dx * c + dz * s_, C[1], C[5] - dx * s_ + dz * c, C[3], C[4], C[5]]; };
 const orden = (K) => { for (let j = 1; j < K.length; j++) if (K[j][0] <= K[j - 1][0] + 0.05) K[j][0] = K[j - 1][0] + 0.05; return K; };
 // Planos con corte seco: P = [[t0, K0], [t1, K1], …]; en [ti, ti+1) la cámara sigue la ruta Ki (con su propio tiempo absoluto).
+// Plano y deriva sobre la cámara de cada escena (para que nunca esté quieta y cambie de plano cada L s): en cada tramo de L s,
+// giro alrededor del punto al que mira y distancia distintos (corte seco al cambiar de tramo) más una deriva continua.
+const GIROS = [0, 0.5, -0.45, 0.38, -0.55, 0.42, -0.35], DIST = [1, 0.84, 1.1, 0.9, 1.04, 0.86, 1.08];
+function deriva(C, s, L) {
+  const j = Math.floor(s / L), u = s - j * L, g = GIROS[j % GIROS.length] + (j % 2 ? -1 : 1) * 0.11 * u, d = DIST[j % DIST.length] * (1 - 0.035 * u);
+  const O = orbita(C, g); return [O[3] + (O[0] - O[3]) * d, O[4] + (O[1] - O[4]) * d, O[5] + (O[2] - O[5]) * d, O[3], O[4], O[5]];
+}
 const planos = (P, x) => { let j = 0; while (j + 1 < P.length && x >= P[j + 1][0]) j++; return ruta(orden(P[j][1]), x); };
 // La tarjeta del ejemplo en un mes (fraccionario) m: interpolada entre meses enteros (mismas cifras que cuadra()).
 const EN = (m) => { m = Math.max(0, Math.min(NM, m)); const a = Math.floor(m), b = Math.min(NM, a + 1), u = m - a; return HIST[a].map((v, j) => v + (HIST[b][j] - v) * u); };
@@ -353,7 +361,8 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   const mk = (j, def) => (M[j] != null ? M[j] : def);
   const q = (a, d) => sale(tramo(s, a, a + (d || 0.45)));
   const bote = (a, d) => rebote(tramo(s, a, a + (d || 0.35)));
-  const cam = (C) => W.camara(C[0], C[1], C[2], C[3], C[4], C[5]);
+  const LP = k === 0 ? 0 : k === 1 ? 2.3 : 3.2;
+  const cam = (C) => { if (LP) C = deriva(C, s, LP); W.camara(C[0], C[1], C[2], C[3], C[4], C[5]); };
   const ROJ = '#f87171', TQ = '#5eead4', AMB = '#f5b94a', BLANCO = '#e2e8f0';
   const blanca = (o) => X.torre('blanca', Object.assign({ x: WX, z: 0 }, o));
   const roja = (o) => X.torre('roja', Object.assign({ x: RX, z: 0 }, o));
@@ -385,7 +394,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     const C1 = Math.min(1.35, TS - 0.9), C2 = TS - 0.12;
     const C = planos([
       [0, [[0, [1.9, 1.0, 11.2, 0.0, 2.35, 0]], [0.62, [0.9, 1.6, 11.5, -0.1, 2.35, 0]], [C1 + 0.4, [-0.2, 2.3, 11.8, 0.0, 2.35, 0]]]],
-      [C1, [[C1, orbita([-0.3, 3.6, 11.8, -0.3, 2.4, 0], -0.62)], [C2 + 0.3, orbita([-0.1, 3.0, 12.6, -0.1, 2.5, 0], -0.3)]]],
+      [C1, [[C1, orbita([-0.3, 3.6, 12.4, -0.3, 2.4, 0], -0.95)], [C2 + 0.3, orbita([-0.1, 2.6, 10.6, -0.1, 2.3, 0], -0.05)]]],
       [C2, [[C2, [RX + 1.6, 0.7, 9.4, RX - 0.2, 2.6, 0]], [TS + 0.5, [RX + 0.9, 1.0, 8.6, RX - 0.1, 2.4, 0]], [m2, orbita([0.4, 2.3, 13.4, 0.3, 2.5, 0], 0.18)], [D + 0.6, orbita([0.1, 2.6, 14.6, 0.1, 2.5, 0], -0.12)]]]
     ], s);
     const sh = s > TC ? 0.06 * Math.exp(-(s - TC) * 11) : 0, sh2 = s > TS ? 0.05 * Math.exp(-(s - TS) * 12) : 0;
@@ -486,7 +495,9 @@ const pildoras = {
   'es-revolving-cuota': pildora3d({
     slug: 'es-revolving-cuota', cuenta: 'es',
     T: { es: { titulo: '1.000 € de Black Friday en la tarjeta, pagando 20 al mes: más de 7 años y 742 € de intereses', guion: GUION } },
-    // Voz de narrador de la serie (VOZ_NARRADOR, la de es-iva-sobre-impuesto; nunca VOZ_SECA): la que pone pildora3d por defecto.
+    // Voz de narrador de la serie (VOZ_NARRADOR, la de es-iva-sobre-impuesto; nunca VOZ_SECA), un punto más rápida: a 1,2 y
+    // pausas de 0,26 s salía a 3,17 palabras/s (objetivo 3,2–3,6). Mismas tomas: el tempo y las pausas se aplican en local.
+    voz: { ...VOZ_NARRADOR, es: { ...VOZ_NARRADOR.es, tempo: 1.25, pausaMax: 0.2 } },
     fijo: () => `<div class="hud i fmt">HACEMOS LA CUENTA</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT,
     escenas: ESCENAS, tres: TRES,
