@@ -295,10 +295,11 @@ const ESCENAS = [
       ver(el.querySelector('.chip'), s, 0.05); ver(r[0], s, T36 - 0.1, m1 + 0.05); ver(r[1], s, m1 + 0.1); ver(el.querySelector('.nota'), s, 0.2); } },
   // 3 · The law: a generic statement card comes in (it never stands still); on {caja} the amber box wipes over the warning.
   { html: () => `${EXTRACTO('e3')}${rt('amb p', 'CREDIT CARD ACT OF <span class="a">2009</span><small>12 CFR 1026.7(b)(12)</small>')}`,
-    anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.3, m2 = M[2] != null ? M[2] : 3.4, c = el.querySelector('.ext');
+    anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.3, m1 = M[1] != null ? M[1] : 2.4, m2 = M[2] != null ? M[2] : 3.4, c = el.querySelector('.ext');
+      const zz = s >= m1 ? 1.24 : 1, zy = s >= m1 ? 40 : 0;   // hard punch-in on the warning (a cut)
       const ent = sale(tramo(s, 0.05, 0.6)), dr = tramo(s, 0.3, e.fin - e.ini);
       c.style.opacity = Math.min(1, ent * 1.4);
-      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 5 - 8 * dr) + 'deg) rotateZ(' + (2 - 3 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr)) + ')';
+      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 5 - 8 * dr) + 'deg) rotateZ(' + (2 - 3 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
       c.querySelectorAll('tr.r1, tr.r2, table').forEach(x => { x.style.opacity = 0.35; });
       const mp = c.querySelector('.mpw'), a = rebote(tramo(s, m2 - 0.05, m2 + 0.3)), wp = Math.round(100 * sale(tramo(s, m2 - 0.05, m2 + 0.6)));
       mp.style.borderColor = 'rgba(245,185,74,' + Math.min(1, a).toFixed(2) + ')';
@@ -313,7 +314,8 @@ const ESCENAS = [
       const va = suave(tramo(s, m2 - 0.45, m2 + 0.05)), dr = tramo(s, 0, m2);
       c.style.opacity = 1 - tramo(s, m2 - 0.15, m2 + 0.05);
       c.style.top = '490px';
-      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) perspective(1400px) rotateY(' + (-6 + 9 * dr) + 'deg) rotateZ(' + (-1.2 + 2 * dr - 8 * va) + 'deg) scale(' + (1.06 + 0.06 * dr) + ')';
+      const zz = s < m0 ? 1.15 : s < m1 ? 1 : 1.15, zy = s < m0 ? 40 : s < m1 ? 0 : 40;   // hard punch-ins (cuts): close, whole card, close (top stays under the subtitles)
+      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-6 + 9 * dr) + 'deg) rotateZ(' + (-1.2 + 2 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
       c.querySelector('.mpw').style.borderColor = 'rgba(245,185,74,.8)';
       const q1 = rebote(tramo(s, 0.1, 0.45)) * (1 - 0.6 * tramo(s, m0, m0 + 0.3)), q2 = rebote(tramo(s, m0, m0 + 0.35));
       filaEstilo(c.querySelector('tr.r1'), Math.min(1, q1), '220,38,38'); filaEstilo(c.querySelector('tr.r2'), Math.min(1, q2), '13,148,136');
@@ -345,6 +347,8 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   const blancoB = (extra) => Object.assign({ color: BLANCOH, brillo: 0.06 }, extra);
   const fantB = (c, op) => ({ color: c, brillo: 0.6, op: op == null ? 0.13 : op });
   const LB = X.LB;
+  // shots: [[start, camA, camB]…]; each shot moves linearly from A to B over its span (never still), hard cut between shots
+  const plano = (P) => { let j = 0; while (j < P.length - 1 && s >= P[j + 1][0]) j++; const b = j < P.length - 1 ? P[j + 1][0] : D + 0.6; return mezcla(P[j][1], P[j][2], tramo(s, P[j][0], b)); };
 
   if (k === 0) {
     // ——— the hook ———
@@ -353,22 +357,24 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     const hincha = 1 + 0.07 * Math.sin(PI * tramo(s, TC, TC + 0.32)) + 0.05 * Math.sin(PI * tramo(s, TS, TS + 0.4));
     blanca({ inclina: 0.05 * Math.sin(PI * tramo(s, TC + 0.02, TC + 0.42)), bloque: (j) => j < deb ? blancoB() : fantB(BLANCOH, 0.12) });
     roja({ pulso: hincha, bloque: (j) => bloqueG(j, s, TS) });
-    W.rotulo('t3000', '$3,000', WX, 2.52 + 0.45, 0.4, 1, BLANCO, 0.5);
+    W.rotulo('t3000', '$3,000', WX, 2.52 + 0.45, 0.4, (s >= 0.62 && s < 1.6) || (s >= TS && s < m2) ? 0 : 1, BLANCO, 0.5);   // hidden in the two close shots on the red tower
     // stamp «15 YEARS» on the red tower when the counter stops
     const st = bote(TS, 0.32);
     if (s > TS - 0.05) {
-      W.rotulo('s15', '15 YEARS', RX, 1.9, 0.95, Math.min(1, st * 1.3), ROJ, 0.5 * (1 + 0.5 * (1 - Math.min(1, st))));
-      if (s < TS + 0.3) X.halo({ x: RX, y: 1.9, z: 1.0, esc: 4.5, op: 0.55 * Math.sin(PI * tramo(s, TS, TS + 0.3)), color: '#fca5a5' });
+      W.rotulo('s15', '15 YEARS', RX, 2.4, 0.95, Math.min(1, st * 1.3), ROJ, 0.5 * (1 + 0.5 * (1 - Math.min(1, st))));
+      if (s < TS + 0.3) X.halo({ x: RX, y: 2.4, z: 1.0, esc: 4.5, op: 0.55 * Math.sin(PI * tramo(s, TS, TS + 0.3)), color: '#fca5a5' });
     }
     if (s > TC && s < TC + 0.35) X.halo({ x: RX, y: 2.6, z: 0.5, esc: 3.6, op: 0.6 * Math.sin(PI * tramo(s, TC, TC + 0.35)), color: '#fecaca' });
     // the line of $3,000: a thin white strip at the white tower's height, across both towers, lit at the crossing
     const lin = 0.35 + 0.65 * Math.exp(-Math.max(0, s - TC) * 3) * (s > TC ? 1 : 0);
     X.bloque({ x: 0, y: 6 * LB + 0.03, z: 0.35, w: 5.6, h: 0.03, d: 0.03, color: '#e2e8f0', brillo: 0.8, op: 0.35 + 0.6 * lin });
     // camera: low travelling right → left with crane up, orbit to three quarters, crane, push on the stamp, pull back. Never still.
-    const C = ruta(orden([[0, [2.6, 1.5, 13.4, 0.2, 2.7, 0]], [0.62, [1.3, 2.1, 13.9, 0.1, 2.7, 0]],
-      [1.3, orbita([0.3, 2.8, 14.2, 0.3, 2.7, 0], 0.28)], [2.0, orbita([0.4, 3.8, 14.4, 0.4, 2.8, 0], 0.4)],
-      [TS, orbita([0.7, 3.1, 13.2, 0.7, 2.8, 0], 0.16)], [TS + 0.7, orbita([0.4, 2.9, 14.0, 0.4, 2.7, 0], -0.05)],
-      [m2, orbita([0.2, 2.7, 14.6, 0.2, 2.6, 0], -0.2)], [D + 0.6, orbita([0.1, 2.5, 15.0, 0.1, 2.5, 0], -0.34)]]), s);
+    const C = plano([[0, [2.6, 1.5, 13.4, 0.2, 2.7, 0], [1.4, 2.0, 13.8, 0.1, 2.7, 0]],
+      [0.62, [-1.2, 2.4, 10.6, RX - 0.3, 3.3, 0], [-0.2, 2.8, 10.2, RX - 0.3, 3.3, 0]],
+      [1.6, [5.5, 6.5, 10.5, 0.2, 2.6, 0], [4.0, 6.8, 11.5, 0.0, 2.5, 0]],
+      [TS, [RX + 1.6, 3.3, 10.6, RX - 0.2, 3.4, 0.3], [RX + 0.8, 3.2, 10.0, RX - 0.2, 3.4, 0.3]],
+      [m2, [-4.5, 1.0, 12.5, 0.3, 2.7, 0], [-3.2, 1.3, 13.2, 0.3, 2.7, 0]],
+      [m2 + 1.7, [0.5, 4.5, 15.0, 0.2, 2.5, 0], [2.5, 4.0, 14.5, 0.2, 2.5, 0]]]);
     const sh = s > TC ? 0.06 * Math.exp(-(s - TC) * 11) : 0, sh2 = s > TS ? 0.05 * Math.exp(-(s - TS) * 12) : 0;
     cam([C[0] + (sh + sh2) * Math.sin(s * 83), C[1] + (sh + sh2) * Math.cos(s * 71), C[2], C[3], C[4], C[5]]);
   } else if (k === 1) {
@@ -386,8 +392,9 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     W.rotulo('mm1', 'MONTH 1', X0 + 0.2, 0.12, 0.75, q(0.3, 0.3), '#94a3b8', 0.2);
     W.rotulo('mm180', 'MONTH 180', X0 + 89 * PASO - 0.6, 0.12, 0.75, q(1.0, 0.3), '#94a3b8', 0.2);
     // camera: from the first bars (low, close) along the staircase to the flat end, then up and back to see the whole slope
-    cam(ruta(orden([[0, [X0 - 1.0, 1.6, 7.8, X0 + 1.8, 1.1, 0]], [m0, [X0 + 0.2, 1.9, 8.8, X0 + 2.6, 0.95, 0]],
-      [m1, [1.4, 2.3, 9.6, 0.2, 0.9, 0]], [D + 0.5, orbita([0.0, 2.7, 10.4, 0.0, 0.9, 0], -0.24)]]), s));
+    cam(plano([[0, [X0 - 1.0, 1.6, 7.8, X0 + 1.8, 1.1, 0], [X0 + 0.4, 1.8, 8.4, X0 + 2.4, 1.0, 0]],
+      [m0, [0.3, 1.4, 9.6, 0.0, 0.9, 0], [-0.6, 1.7, 9.8, 0.0, 0.9, 0]],
+      [m1, [4.6, 2.0, 5.6, 0.5, 0.8, 0], [4.0, 2.6, 7.0, 0.3, 0.8, 0]]]));
   } else if (k === 2) {
     // ——— three years: the white tower whole again, 36 payments go in (12 turquoise cubes from the mannequin), it keeps 21 of its
     //     30 blocks; the red tower climbs to 17 ———
@@ -406,14 +413,19 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
       X.bloque({ x: p[0], y: p[1], z: p[2], w: 0.2, h: 0.2, d: 0.2, color: '#2dd4bf', brillo: 0.5, rx: 4 * v, ry: 3 * v, op: 1 - tramo(v, 0.8, 1) });
     }
     W.rotulo('t3000b', '$3,000', WX, 2.52 + 0.45, 0.4, 1, BLANCO, 0.42);
-    cam(ruta(orden([[0, orbita([0.0, 1.7, 12.6, 0.0, 1.45, 0.8], 0.35)], [T36, orbita([0.0, 2.4, 12.8, 0.0, 1.45, 0.5], 0.1)],
-      [m1 + 0.3, orbita([WX + 0.5, 2.0, 10.0, WX + 0.3, 1.3, 0], -0.12)], [D + 0.5, orbita([WX + 0.4, 1.9, 9.4, WX + 0.2, 1.25, 0], -0.24)]]), s));
+    cam(plano([[0, orbita([0.0, 1.7, 12.6, 0.0, 1.45, 0.8], 0.35), orbita([0.0, 2.0, 12.0, 0.0, 1.45, 0.8], 0.2)],
+      [1.0, [0.6, 2.4, 5.6, WX, 1.4, 0], [0.3, 2.5, 5.9, WX, 1.4, 0]],
+      [m1 + 0.1, orbita([WX + 0.5, 2.0, 10.0, WX + 0.3, 1.3, 0], -0.05), orbita([WX + 0.5, 1.9, 9.6, WX + 0.3, 1.3, 0], -0.24)],
+      [3.2, [4.5, 4.0, 10.5, 0.0, 1.4, 0], [3.8, 4.3, 11.0, 0.0, 1.4, 0]]]));
   } else if (k === 3) {
     // ——— the law: dimmed towers (white outline + red 45) behind the statement card, slow push and turn ———
     X.apagon(0.55);
     blanca({ bloque: () => fantB(BLANCOH, 0.12) });
     roja({ bloque: (j) => rojoB({ brillo: 0.32 + 0.15 * Math.sin(s * 3 + j * 0.3) }) });
-    cam(ruta(orden([[0, orbita([0.2, 2.2, 12.6, 0.2, 2.0, 0], 0.4)], [D + 0.5, orbita([0.2, 2.6, 10.6, 0.2, 2.1, 0], 0.05)]]), s));
+    const m0 = mk(0, 1.9), m1 = mk(1, 3.4);
+    cam(plano([[0, orbita([0.2, 2.2, 12.6, 0.2, 2.0, 0], 0.4), orbita([0.2, 2.4, 11.6, 0.2, 2.0, 0], 0.25)],
+      [m0, [-4.0, 4.5, 9.5, 0.4, 2.0, 0], [-3.0, 4.8, 10.2, 0.4, 2.0, 0]],
+      [m1, orbita([RX, 1.2, 8.0, RX, 2.2, 0], -0.5), orbita([RX, 1.4, 8.6, RX, 2.2, 0], -0.25)]]));
   } else if (k === 4) {
     // ——— the table, then the red tower loses 34 blocks (45 → 11) on «$1,145»: they fly off and fade ———
     const m2 = mk(2, 4.8);
@@ -428,8 +440,11 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
       return rojoB({ dx: 2.2 * Math.cos(a) * w + 1.0 * w, dy: 2.4 * Math.sin(PI * Math.min(1, w * 1.3)) - 3 * w * w, dz: 2.0 * Math.abs(Math.sin(a)) * w, rx: 5 * w, rz: 4 * w, op: 1 - tramo(w, 0.7, 1) });
     } });
     if (s > m2 + 0.1 && s < m2 + 0.6) X.halo({ x: RX, y: 2.6, z: 0.6, esc: 4, op: 0.5 * Math.sin(PI * tramo(s, m2 + 0.1, m2 + 0.6)), color: '#99f6e4' });
-    cam(ruta(orden([[0, orbita([0.3, 2.6, 11.0, 0.3, 2.2, 0], -0.3)], [m2 - 0.3, orbita([0.3, 2.4, 11.8, 0.3, 2.1, 0], -0.08)],
-      [m2 + 0.6, orbita([0.6, 2.2, 11.0, 0.6, 1.9, 0], 0.16)], [D + 0.5, orbita([0.6, 2.0, 10.2, 0.6, 1.7, 0], 0.3)]]), s));
+    cam(plano([[0, orbita([0.3, 2.6, 11.0, 0.3, 2.2, 0], -0.3), orbita([0.3, 2.5, 11.4, 0.3, 2.1, 0], -0.18)],
+      [mk(0, 2.2), [4.5, 4.5, 9.5, 0.3, 1.8, 0], [3.6, 4.8, 10.2, 0.3, 1.8, 0]],
+      [mk(1, 4.3), orbita([0.0, 1.3, 10.5, 0.0, 2.0, 0], 0.4), orbita([0.0, 1.5, 11.0, 0.0, 2.0, 0], 0.25)],
+      [m2, [RX - 3.2, 2.4, 10.8, RX, 2.0, 0], [RX - 2.4, 2.6, 11.2, RX, 2.0, 0]],
+      [m2 + 1.6, orbita([0.6, 2.2, 11.0, 0.6, 1.9, 0], 0.16), orbita([0.6, 2.0, 10.2, 0.6, 1.7, 0], 0.34)]]));
   } else {
     // ——— today: the mannequin walks to the red tower (11 blocks, 34 in outline); on {pop} the 34 come back turquoise and build the
     //     savings stack where the white tower was; the mannequin turns to it and raises its arms ———
@@ -449,8 +464,11 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     brazos(W.H, q(m4 - 0.1, 0.35), 0);
     if (s > m3 && s < m3 + 0.5) X.halo({ x: WX, y: 1.2, z: 0.6, esc: 4, op: 0.5 * Math.sin(PI * tramo(s, m3, m3 + 0.5)), color: TQ });
     if (s > m3 + 0.6) W.rotulo('sav', 'SAVINGS', WX, 7 * LB + 0.45, 0.4, q(m3 + 0.7, 0.3), TQ, 0.42);
-    cam(ruta(orden([[0, [4.6, 1.4, 10.0, 1.4, 1.4, 1.2]], [m2, orbita([0.5, 1.7, 10.6, 0.5, 1.6, 0.6], 0.25)],
-      [m3 + 0.2, orbita([-0.2, 2.3, 12.0, -0.2, 1.8, 0.4], 0.05)], [D + 0.6, orbita([-0.4, 2.7, 12.8, -0.4, 1.8, 0.4], -0.22)]]), s));
+    cam(plano([[0, [4.6, 1.4, 10.0, 1.4, 1.4, 1.2], [3.6, 1.5, 10.3, 1.0, 1.4, 1.0]],
+      [mk(1, 2.8), [1.4, 1.1, 8.6, 0.3, 1.25, 1.5], [0.6, 1.2, 9.0, 0.2, 1.25, 1.5]],
+      [m2, [-4.5, 4.2, 9.5, 0.3, 1.4, 0.5], [-3.6, 4.4, 10.0, 0.3, 1.4, 0.5]],
+      [m3, orbita([-0.2, 2.3, 12.0, -0.2, 1.8, 0.4], 0.12), orbita([-0.2, 2.4, 12.2, -0.2, 1.8, 0.4], -0.05)],
+      [m4 + 0.2, orbita([-0.4, 2.7, 12.8, -0.4, 1.8, 0.4], -0.1), orbita([-0.4, 2.8, 13.2, -0.4, 1.8, 0.4], -0.32)]]));
   }
   W.multitud(t, { directo: () => ({ x: -60, z: -60, esc: 0 }) });
 `);
