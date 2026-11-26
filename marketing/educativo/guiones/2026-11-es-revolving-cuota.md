@@ -159,8 +159,8 @@ Contenido educativo, no es asesoramiento financiero.
 
 ## Portada
 
-- titulo: «1.000 € en la tarjeta: ~7 años~ pagando» → mejor: **«1.000 € a 20 al mes: 7 años»** · destacado: «7 años» · color:
-  rojo · serie hacemos-la-cuenta · fotograma: el sello «7 AÑOS» (≈2,9 s).
+- titulo: **«1.000 € a 20 al mes: 7 años pagando»** · destacado: «7 años» · color: rojo · serie hacemos-la-cuenta ·
+  fotograma: el sello «7 AÑOS» (≈3,7 s) · encuadre_y 600.
 
 ## Verificación (26-nov-2026, revisión escéptica)
 

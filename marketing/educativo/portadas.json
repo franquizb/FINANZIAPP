@@ -409,5 +409,13 @@
     "etiqueta": "Credit cards",
     "fotograma_ms": 3600,
     "encuadre_y": 600
+  },
+  "es-revolving-cuota": {
+    "titulo": "1.000 € a 20 al mes: 7 años pagando",
+    "destacado": "7 años",
+    "color": "rojo",
+    "serie": "hacemos-la-cuenta",
+    "fotograma_ms": 3700,
+    "encuadre_y": 600
   }
 }
