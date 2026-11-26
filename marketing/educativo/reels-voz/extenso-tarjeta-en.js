@@ -299,7 +299,7 @@ const ESCENAS = [
       const pu = s > 0.6 && Math.floor(s / 1.4) % 2 ? 1.07 : 1, zz = (s >= m1 ? 1.2 : s >= m0 ? 1.08 : 1) * pu, zy = (s >= m1 ? 40 : s >= m0 ? 20 : 0) + (pu > 1 ? 18 : 0);   // hard punch-ins (cuts) every ~1.4 s and on the marks
       const ent = sale(tramo(s, 0.05, 0.6)), dr = tramo(s, 0.3, e.fin - e.ini);
       c.style.opacity = Math.min(1, ent * 1.4);
-      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 9 - 18 * dr) + 'deg) rotateZ(' + (2.5 - 5 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
+      c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent) + 2.5 * Math.sin(s * 1.7)) + '%) translateY(' + (zy + 14 * Math.sin(s * 1.3)) + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 9 - 18 * dr) + 'deg) rotateZ(' + (2.5 - 5 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
       c.querySelectorAll('tr.r1, tr.r2, table').forEach(x => { x.style.opacity = 0.35; });
       const mp = c.querySelector('.mpw'), a = rebote(tramo(s, m2 - 0.05, m2 + 0.3)), wp = Math.round(100 * sale(tramo(s, m2 - 0.05, m2 + 0.6)));
       mp.style.borderColor = 'rgba(245,185,74,' + Math.min(1, a).toFixed(2) + ')';
@@ -315,7 +315,7 @@ const ESCENAS = [
       c.style.opacity = 1 - tramo(s, m2 - 0.15, m2 + 0.05);
       c.style.top = '490px';
       const pu = Math.floor(s / 1.4) % 2 ? 1.04 : 1, zz = (s < m0 ? 1.08 : s < m1 ? 1 : 1.08) * pu, zy = (s < m0 ? 36 : s < m1 ? 0 : 36) + (pu > 1 ? 14 : 0);   // hard punch-ins (cuts): close, whole card, close (top stays under the subtitles)
-      c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-10 + 20 * dr) + 'deg) rotateZ(' + (-2 + 4 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
+      c.style.transform = 'translateX(' + (-50 - 130 * va + 2.5 * Math.sin(s * 1.7)) + '%) translateY(' + (zy + 14 * Math.sin(s * 1.3)) + 'px) perspective(1400px) rotateY(' + (-10 + 20 * dr) + 'deg) rotateZ(' + (-2 + 4 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
       c.querySelector('.mpw').style.borderColor = 'rgba(245,185,74,.8)';
       const q1 = rebote(tramo(s, 0.1, 0.45)) * (1 - 0.6 * tramo(s, m0, m0 + 0.3)), q2 = rebote(tramo(s, m0, m0 + 0.35));
       filaEstilo(c.querySelector('tr.r1'), Math.min(1, q1), '220,38,38'); filaEstilo(c.querySelector('tr.r2'), Math.min(1, q2), '13,148,136');
@@ -375,8 +375,8 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
       [0.62, [-1.2, 2.4, 10.6, RX - 0.3, 3.3, 0], [-0.2, 2.8, 10.2, RX - 0.3, 3.3, 0]],
       [1.6, [5.5, 6.5, 10.5, 0.2, 2.6, 0], [4.0, 6.8, 11.5, 0.0, 2.5, 0]],
       [TS, [RX + 1.6, 3.3, 10.6, RX - 0.2, 3.4, 0.3], [RX + 0.8, 3.2, 10.0, RX - 0.2, 3.4, 0.3]],
-      [m2, [-4.5, 1.0, 12.5, 0.3, 2.7, 0], [-3.2, 1.3, 13.2, 0.3, 2.7, 0]],
-      [m2 + 1.7, [0.5, 4.5, 15.0, 0.2, 2.5, 0], [2.5, 4.0, 14.5, 0.2, 2.5, 0]]]);
+      [m2, [-4.5, 1.0, 12.5, 0.3, 2.7, 0], [-3.2, 1.3, 13.2, 0.3, 2.7, 0], -1.3],
+      [m2 + 1.7, [0.5, 4.5, 15.0, 0.2, 2.5, 0], [2.5, 4.0, 14.5, 0.2, 2.5, 0], 1.3]]);
     const sh = s > TC ? 0.06 * Math.exp(-(s - TC) * 11) : 0, sh2 = s > TS ? 0.05 * Math.exp(-(s - TS) * 12) : 0;
     cam([C[0] + (sh + sh2) * Math.sin(s * 83), C[1] + (sh + sh2) * Math.cos(s * 71), C[2], C[3], C[4], C[5]]);
   } else if (k === 1) {
@@ -394,7 +394,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     W.rotulo('mm1', 'MONTH 1', X0 + 0.2, 0.12, 0.75, q(0.3, 0.3), '#94a3b8', 0.2);
     W.rotulo('mm180', 'MONTH 180', X0 + 89 * PASO - 0.6, 0.12, 0.75, q(1.0, 0.3), '#94a3b8', 0.2);
     // camera: from the first bars (low, close) along the staircase to the flat end, then up and back to see the whole slope
-    cam(plano([[0, [X0 - 1.0, 1.6, 7.8, X0 + 1.8, 1.1, 0], [X0 + 0.4, 1.8, 8.4, X0 + 2.4, 1.0, 0]],
+    cam(plano([[0, [X0 - 1.6, 1.6, 8.2, X0 + 1.2, 1.1, 0], [X0 - 0.2, 1.8, 8.6, X0 + 2.0, 1.0, 0], 0.3],
       [m0, [0.3, 1.4, 9.6, 0.0, 0.9, 0], [-0.6, 1.7, 9.8, 0.0, 0.9, 0]],
       [m1, [4.6, 2.0, 5.6, 0.5, 0.8, 0], [4.0, 2.6, 7.0, 0.3, 0.8, 0]]], 0.5));
   } else if (k === 2) {
