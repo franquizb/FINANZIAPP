@@ -180,7 +180,7 @@ function bloqueG(j, s, TS) {
   const T0 = TLG(TS)[j]; if (T0 > 50) return null;
   if (s >= T0) { const d = s - T0; return { color: ROJOH, brillo: 0.32, dy: T0 < 0 ? 0 : 0.14 * Math.exp(-d * 15) * Math.sin(d * 32) }; }
   if (s < T0 - CAIDA) return null;
-  const u = (s - T0 + CAIDA) / CAIDA; return { color: ROJOH, brillo: 0.4, dy: 3.0 * (1 - u * u), rz: 0.8 * (1 - u) * (j % 2 ? 1 : -1), rx: 0.5 * (1 - u) };
+  const u = (s - T0 + CAIDA) / CAIDA; return { color: ROJOH, brillo: 0.4, dy: 2.0 * (1 - u * u), rz: 0.8 * (1 - u) * (j % 2 ? 1 : -1), rx: 0.5 * (1 - u) };
 }
 
 // resalta una fila de la tabla: 0..1 borde y tinte
@@ -281,7 +281,7 @@ const ESCENAS = [
   //     segunda torre; la torre blanca de 1.000 € pierde bloques muy despacio (los pagados quedan en contorno). Mes 42 (0,62 s):
   //     los intereses pasan de 500 € («INTERESES > 500 €»). Mes 88 (en «más de 7 años»): el contador se para en 742 €.
   { html: () => `<div class="cont"><small>INTERESES PAGADOS · MES <span class="y">6</span></small><b class="c">83 €</b><i>cuota <em>20 €/mes</em> · aún debes <span class="o">963 €</span></i></div>
-      ${rt('roja', 'INTERESES <span class="r">&gt;</span> 500 €')}${rt('roja p', '<span class="r">7 AÑOS Y 4 MESES</span> PARA PAGAR 1.000 €<small>1.741,60 € EN TOTAL</small>')}
+      ${rt('roja', 'INTERESES <span class="r">&gt;</span> 500 €')}${rt('roja', '<span class="r">7 AÑOS Y 4 MESES</span><small>PARA PAGAR 1.000 € · 1.741,60 € EN TOTAL</small>')}
       ${nota(EJ)}`,
     anim: new Function('s', 'e', 'el', `
       const TS = ${TSDE}, M = e.seg[0].marcas, m2 = Math.max(M[2] != null ? M[2] : TS + 0.8, TS + 0.4), r = el.querySelectorAll('.rt');
@@ -336,7 +336,7 @@ const ESCENAS = [
   // 5 · Hoy: mini tarjeta «¿A FIN DE MES O APLAZADO? · CUOTA»; luego los 13 bloques rojos que ya no pagarías vuelven turquesa y
   //     forman una pila junto al maniquí. Corte seco sobre «UNA CUOTA PEQUEÑA LA ALARGA».
   { html: () => `<div class="mini" data-t="translateX(-50%)"><b>Tu tarjeta, en tu banca</b><div class="fila"><span>Modalidad</span><span><i>¿fin de mes o aplazado?</i></span></div><div class="fila"><span>Cuota</span><span><i>¿cuánto?</i></span></div></div>
-      ${rt('roja', 'UNA CUOTA PEQUEÑA <span class="r">LA ALARGA</span>')}
+      ${rt('roja', 'UNA CUOTA PEQUEÑA<br><span class="r">LA ALARGA</span>', 1250)}
       ${nota('Ejemplo · con 91,16 €/mes en vez de 20 €: 648 € menos de intereses')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m1 = M[1] != null ? M[1] : 1.5, m2 = M[2] != null ? M[2] : 2.6, m3 = M[3] != null ? M[3] : 3.6, m4 = M[4] != null ? M[4] : 5.3, mi = el.querySelector('.mini');
       const ent = rebote(tramo(s, 0, 0.4)), sal = suave(tramo(s, m3 - 0.1, m3 + 0.35)), fl = el.querySelectorAll('.fila');
@@ -384,7 +384,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     // contrapicado que empuja hacia el sello y retrocede. Nunca quieta.
     const C1 = Math.min(1.35, TS - 0.9), C2 = TS - 0.12;
     const C = planos([
-      [0, [[0, [2.7, 1.3, 13.0, 0.2, 2.6, 0]], [0.62, [1.3, 1.9, 13.5, 0.1, 2.6, 0]], [C1 + 0.4, [0.2, 2.5, 13.9, 0.1, 2.6, 0]]]],
+      [0, [[0, [1.9, 1.0, 11.2, 0.0, 2.35, 0]], [0.62, [0.9, 1.6, 11.5, -0.1, 2.35, 0]], [C1 + 0.4, [-0.2, 2.3, 11.8, 0.0, 2.35, 0]]]],
       [C1, [[C1, orbita([-0.3, 3.6, 11.8, -0.3, 2.4, 0], -0.62)], [C2 + 0.3, orbita([-0.1, 3.0, 12.6, -0.1, 2.5, 0], -0.3)]]],
       [C2, [[C2, [RX + 1.6, 0.7, 9.4, RX - 0.2, 2.6, 0]], [TS + 0.5, [RX + 0.9, 1.0, 8.6, RX - 0.1, 2.4, 0]], [m2, orbita([0.4, 2.3, 13.4, 0.3, 2.5, 0], 0.18)], [D + 0.6, orbita([0.1, 2.6, 14.6, 0.1, 2.5, 0], -0.12)]]]
     ], s);
@@ -407,7 +407,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     // dos planos: travelling a lo largo de la fila (de la cuota 88 a la 1) → (corte en «de tus primeros 20 euros») primer plano bajo
     // de la cuota 1, que se abre en grúa a la vista general
     cam(planos([
-      [0, [[0, [3.6, 1.2, 6.4, 1.2, 1.1, 0]], [m1 + 0.3, orbita([-0.6, 1.9, 8.6, -1.0, 1.0, 0], 0.3)]]],
+      [0, [[0, [3.9, 1.4, 8.4, 1.0, 1.1, 0]], [m1 + 0.3, orbita([-0.6, 2.0, 10.0, -1.0, 1.0, 0], 0.3)]]],
       [m1, [[m1, [X0 - 1.8, 0.9, 6.2, X0 + 1.0, 1.25, 0]], [m2 + 0.4, [X0 - 1.0, 1.4, 7.2, X0 + 1.4, 1.2, 0]], [D + 0.5, orbita([-0.6, 2.8, 10.4, -0.6, 1.1, 0], -0.22)]]]
     ], s));
   } else if (k === 2) {

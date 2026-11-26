@@ -296,7 +296,7 @@ const ESCENAS = [
   // 3 · The law: a generic statement card comes in (it never stands still); on {caja} the amber box wipes over the warning.
   { html: () => `${EXTRACTO('e3')}${rt('amb p', 'CREDIT CARD ACT OF <span class="a">2009</span><small>12 CFR 1026.7(b)(12)</small>')}`,
     anim: function (s, e, el) { const M = e.seg[0].marcas, m0 = M[0] != null ? M[0] : 1.3, m1 = M[1] != null ? M[1] : 2.4, m2 = M[2] != null ? M[2] : 3.4, c = el.querySelector('.ext');
-      const zz = s >= m1 ? 1.24 : s >= m0 ? 1.1 : 1, zy = s >= m1 ? 40 : s >= m0 ? 20 : 0;   // hard punch-ins on the warning (cuts)
+      const pu = s > 0.6 && Math.floor(s / 1.4) % 2 ? 1.07 : 1, zz = (s >= m1 ? 1.2 : s >= m0 ? 1.08 : 1) * pu, zy = (s >= m1 ? 40 : s >= m0 ? 20 : 0) + (pu > 1 ? 18 : 0);   // hard punch-ins (cuts) every ~1.4 s and on the marks
       const ent = sale(tramo(s, 0.05, 0.6)), dr = tramo(s, 0.3, e.fin - e.ini);
       c.style.opacity = Math.min(1, ent * 1.4);
       c.style.transform = 'translateX(' + (-50 + 60 * (1 - ent)) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-50 * (1 - ent) + 9 - 18 * dr) + 'deg) rotateZ(' + (2.5 - 5 * dr) + 'deg) scale(' + ((0.8 + 0.2 * ent) * (0.92 + 0.07 * dr) * zz) + ')';
@@ -314,7 +314,7 @@ const ESCENAS = [
       const va = suave(tramo(s, m2 - 0.45, m2 + 0.05)), dr = tramo(s, 0, m2);
       c.style.opacity = 1 - tramo(s, m2 - 0.15, m2 + 0.05);
       c.style.top = '490px';
-      const zz = s < m0 ? 1.15 : s < m1 ? 1 : 1.15, zy = s < m0 ? 40 : s < m1 ? 0 : 40;   // hard punch-ins (cuts): close, whole card, close (top stays under the subtitles)
+      const pu = Math.floor(s / 1.4) % 2 ? 1.04 : 1, zz = (s < m0 ? 1.08 : s < m1 ? 1 : 1.08) * pu, zy = (s < m0 ? 36 : s < m1 ? 0 : 36) + (pu > 1 ? 14 : 0);   // hard punch-ins (cuts): close, whole card, close (top stays under the subtitles)
       c.style.transform = 'translateX(' + (-50 - 130 * va) + '%) translateY(' + zy + 'px) perspective(1400px) rotateY(' + (-10 + 20 * dr) + 'deg) rotateZ(' + (-2 + 4 * dr - 8 * va) + 'deg) scale(' + ((1.06 + 0.06 * dr) * zz) + ')';
       c.querySelector('.mpw').style.borderColor = 'rgba(245,185,74,.8)';
       const q1 = rebote(tramo(s, 0.1, 0.45)) * (1 - 0.6 * tramo(s, m0, m0 + 0.3)), q2 = rebote(tramo(s, m0, m0 + 0.35));
@@ -350,7 +350,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
   // shots: [[start, camA, camB]…]; each shot moves linearly from A to B over its span (never still), hard cut between shots
   //        plus a sweep round the point it looks at (giro rad over the shot, alternating direction) for constant parallax
   const plano = (P, giro) => { let j = 0; while (j < P.length - 1 && s >= P[j + 1][0]) j++; const b = j < P.length - 1 ? P[j + 1][0] : D + 0.6, u = tramo(s, P[j][0], b);
-    const g = P[j][3] != null ? P[j][3] : (giro == null ? 0.5 : giro) * (j % 2 ? -1 : 1); return orbita(mezcla(P[j][1], P[j][2], u), g * (u - 0.5)); };
+    const g = P[j][3] != null ? P[j][3] : (giro == null ? 0.9 : giro) * (j % 2 ? -1 : 1); return orbita(mezcla(P[j][1], P[j][2], u), g * (u - 0.5)); };
 
   if (k === 0) {
     // ——— the hook ———
@@ -396,7 +396,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     // camera: from the first bars (low, close) along the staircase to the flat end, then up and back to see the whole slope
     cam(plano([[0, [X0 - 1.0, 1.6, 7.8, X0 + 1.8, 1.1, 0], [X0 + 0.4, 1.8, 8.4, X0 + 2.4, 1.0, 0]],
       [m0, [0.3, 1.4, 9.6, 0.0, 0.9, 0], [-0.6, 1.7, 9.8, 0.0, 0.9, 0]],
-      [m1, [4.6, 2.0, 5.6, 0.5, 0.8, 0], [4.0, 2.6, 7.0, 0.3, 0.8, 0]]]));
+      [m1, [4.6, 2.0, 5.6, 0.5, 0.8, 0], [4.0, 2.6, 7.0, 0.3, 0.8, 0]]], 0.5));
   } else if (k === 2) {
     // ——— three years: the white tower whole again, 36 payments go in (12 turquoise cubes from the mannequin), it keeps 21 of its
     //     30 blocks; the red tower climbs to 17 ———
@@ -466,7 +466,7 @@ const TRES = new Function('t', 'k', 's', 'e', 'W', `
     brazos(W.H, q(m4 - 0.1, 0.35), 0);
     if (s > m3 && s < m3 + 0.5) X.halo({ x: WX, y: 1.2, z: 0.6, esc: 4, op: 0.5 * Math.sin(PI * tramo(s, m3, m3 + 0.5)), color: TQ });
     if (s > m3 + 0.6) W.rotulo('sav', 'SAVINGS', WX, 7 * LB + 0.45, 0.4, q(m3 + 0.7, 0.3), TQ, 0.42);
-    cam(plano([[0, [4.6, 1.4, 10.0, 1.4, 1.4, 1.2], [3.6, 1.5, 10.3, 1.0, 1.4, 1.0]],
+    cam(plano([[0, [4.6, 1.4, 10.0, 1.4, 1.4, 1.2], [3.6, 1.5, 10.3, 1.0, 1.4, 1.0], 0.3],
       [mk(1, 2.8), [1.4, 1.1, 8.6, 0.3, 1.25, 1.5], [0.6, 1.2, 9.0, 0.2, 1.25, 1.5]],
       [m2, [-4.5, 4.2, 9.5, 0.3, 1.4, 0.5], [-3.6, 4.4, 10.0, 0.3, 1.4, 0.5]],
       [m3, orbita([-0.2, 2.3, 12.0, -0.2, 1.8, 0.4], 0.12), orbita([-0.2, 2.4, 12.2, -0.2, 1.8, 0.4], -0.05)],

@@ -400,5 +400,14 @@
     "etiqueta": "Tus derechos",
     "fotograma_ms": 2300,
     "encuadre_y": 600
+  },
+  "en-credit-card-minimum": {
+    "titulo": "$3,000 on a card. 15 years to pay it off.",
+    "destacado": "15 years",
+    "color": "rojo",
+    "serie": "money-explained",
+    "etiqueta": "Credit cards",
+    "fotograma_ms": 3600,
+    "encuadre_y": 600
   }
 }
