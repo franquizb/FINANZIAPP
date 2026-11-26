@@ -1,7 +1,7 @@
 # En la tienda no te lo tienen que devolver. Por internet, tienes 14 días
 
 Cuenta: @finanziapp.es (España, español de España, euros). Píldora de «un derecho que no sabías» para el día del Black Friday. Sin anunciar el siguiente vídeo y sin pedir que te sigan. Sin marcas ni tiendas con nombre, sin política (campaña electoral hasta el 29-N).
-Slug: `es-devolucion-14-dias` · `pildora3d` (reels-voz/tres.js) · `arranque: 'lleno'` · archivo: `reels-voz/extenso-devolucion-es.js` (nuevo, exporta `{ pildoras: { 'es-devolucion-14-dias': … } }` para `cargar.js`).
+Slug: **`es-devolucion-tienda-internet`** (el encargo decía `es-devolucion-14-dias`, pero ese slug ya es de un Reel publicado: `reels-voz/lote1-es.js`, `publicados.json`, `cuaderno.json` y su entrada de `portadas.json`; con el mismo slug se mezclaban sus estadísticas y `cargar.js` habría cargado este en su lugar) · `pildora3d` (reels-voz/tres.js) · `arranque: 'lleno'` · archivo: `reels-voz/extenso-devolucion-es.js` (nuevo, exporta `{ pildoras: { 'es-devolucion-tienda-internet': … } }` para `cargar.js`).
 HUD fijo: «TUS DERECHOS» y el reloj (como es-black-friday-30-dias). `cola: 0.8`, `corte2d: 'seco'`.
 Publicación prevista: **viernes 27/11/2026 (Black Friday), hacia las 12:30 de Madrid (11:30 UTC)**. Renderizado y controlado antes de las 10:30 UTC del 27.
 Duración prevista: **unos 40 s** (125 palabras dichas a 3,4 palabras/s ≈ 37 s, más las pausas de § y 0,8 s de cola).
@@ -87,6 +87,8 @@ guion: [
 
 Si pasa de 45 s: quitar «o por teléfono» (frase 1).
 
+**Vídeo final (26/11):** out-reels/es-devolucion-tienda-internet/es/reel.mp4 · 39,3 s · −14,0 LUFS (pico −1,1 dBFS) · 3,31 palabras/s · arranque.py: mov3 19,41, quieto3 0,00, cortes/10 s 9,4, mov total 15,34.
+
 **Voz real (26/11):** tomas de 5,8–6,6 s; locución de 39,3 s. Con el tempo de serie (1,2) salía a 3,84 palabras/s, así que este Reel usa `VOZ_NARRADOR` con `tempo: 1.08` (misma voz Charon, solo el atempo final).
 
 ## Escenas 3D frase a frase
@@ -151,13 +153,13 @@ Fuentes: Real Decreto Legislativo 1/2007 (Ley General para la Defensa de los Con
 ## Portada (portadas.json)
 
 ```json
-"es-devolucion-14-dias": {
+"es-devolucion-tienda-internet": {
   "titulo": "Devolverlo: ~0 días~ 14 días",
   "destacado": "14 días",
   "color": "turq",
   "serie": "pildora",
   "etiqueta": "Tus derechos",
-  "fotograma_ms": 2400,
+  "fotograma_ms": 2300,
   "encuadre_y": 600
 }
 ```

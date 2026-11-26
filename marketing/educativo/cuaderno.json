@@ -259,6 +259,15 @@
           "estado": "listo",
           "slug": "es-paga-extra",
           "nota": "Programado en Instagram y Facebook · 39.39 s"
+        },
+        {
+          "fecha": "2026-11-27",
+          "hora": "11:37",
+          "tipo": "Reel",
+          "tema": "En la tienda no te lo tienen que devolver. Por internet, 14 días",
+          "estado": "listo",
+          "slug": "es-devolucion-tienda-internet",
+          "nota": "Programado en Instagram y Facebook · 39.33 s"
         }
       ],
       "pendientes": [

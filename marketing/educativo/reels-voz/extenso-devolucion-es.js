@@ -1,5 +1,5 @@
 // Píldora (≈40 s) · @finanziapp.es (España), en 3D (reels-voz/tres.js), «Tus derechos».
-// es-devolucion-14-dias · «Lo compras en una tienda y no te gusta: no te lo tienen que devolver. Por internet: 14 días.»
+// es-devolucion-tienda-internet (el slug es-devolucion-14-dias ya era de un Reel publicado en lote1-es.js) · «Lo compras en una tienda y no te gusta: no te lo tienen que devolver. Por internet: 14 días.»
 // Guion final y verificado: guiones/2026-11-es-devolucion-14-dias.md (fuentes, gancho, escenas, cuentas, texto y portada).
 // Publicación prevista: viernes 27/11/2026 (Black Friday), hacia las 12:30 de Madrid.
 //
@@ -390,8 +390,8 @@ function esc1(W, X, s, Dv, mk, res) {
   // «¿MOTIVO?» rojo encima de la cabeza: aparece después del halo y revienta en el ding.
   const tM = Math.min(tD + 0.4, mB - 0.6);
   if (s > tM && s < mB + 0.15) { const p = rebote(tramo(s, tM, tM + 0.3)), q = s > mB ? 1 + 2 * tramo(s, mB, mB + 0.15) : 1;
-    W.rotulo('mot', '¿MOTIVO?', G1.HX - 0.05, 2.2 + 0.05 * Math.sin(s * 5), G1.HZ, s > mB ? 1 - tramo(s, mB, mB + 0.15) : Math.min(1, p * 1.5), '#f87171', 0.36 * p * q); }
-  if (s > mB && s < mB + 0.5) { const u = tramo(s, mB, mB + 0.5); X.halo(1, { x: G1.HX - 0.05, y: 2.2, z: G1.HZ, esc: 0.5 + 2.6 * sale(u), op: 0.9 * (1 - u), color: 0xf87171 }); }
+    W.rotulo('mot', '¿MOTIVO?', G1.HX + 0.1, 1.9 + 0.04 * Math.sin(s * 5), G1.HZ + 0.75, s > mB ? 1 - tramo(s, mB, mB + 0.15) : Math.min(1, p * 1.5), '#f87171', 0.3 * p * q); }
+  if (s > mB && s < mB + 0.5) { const u = tramo(s, mB, mB + 0.5); X.halo(1, { x: G1.HX + 0.1, y: 1.9, z: G1.HZ + 0.75, esc: 0.5 + 2.6 * sale(u), op: 0.9 * (1 - u), color: 0xf87171 }); }
   // Cámara: órbita de frente-izquierda a frente-derecha, empuje y, tras el ding, sigue la caja hacia la puerta.
   const K = [[0, [-2.2, 1.7, 4.5, G1.HX, 1.3, G1.HZ]], [mA + 0.4, [-1.1, 1.8, 4.8, G1.HX, 1.35, G1.HZ]],
     [mB - 0.1, [1.0, 2.0, 4.5, G1.HX, 1.45, G1.HZ]], [mB + 0.5, [1.4, 2.4, 4.6, 0.6, 1.4, -0.8]], [Math.max(Dv, mB + 1.1), [0.5, 2.8, 5.6, 1.3, 1.3, -2.0]]];
@@ -473,7 +473,7 @@ function esc4(W, X, s, Dv, mk, res) {
   const per = Math.min(0.13, Math.max(0.08, (Dv - m1 - 0.7) / 12)), c = pasa(s, [17, ...rango(101, 112)], m1 + 0.05, per), tF = m1 + 0.05 + 12 * per;
   X.calendario({ x: G4.CX, y: G4.CY, z: G4.CZ, esc: 1.0, ry: -0.1, abajo: c.abajo, hoja: c.hoja, a: c.a, cruz: s < m1 + 0.05 ? sale(tramo(s, m0 + 0.05, m0 + 0.3)) : 0,
     halo: s > tF ? 0.95 * tramo(s, tF, tF + 0.15) : 0.25 + 0.1 * Math.sin(s * 4), haloColor: 0xffc35a });
-  if (s > m1 + 0.05) W.rotulo('mes', '+' + Math.min(12, c.j + (s >= tF ? 0 : 1)) + ' MESES', G4.CX - 1.05, G4.CY - 0.35, G4.CZ + 0.25, 1, '#f5b94a', 0.3);
+  if (s > m1 + 0.05) W.rotulo('mes', '+' + Math.min(12, c.j + (s >= tF ? 0 : 1)) + ' MESES', G4.CX - 0.9, G4.CY - 0.35, G4.CZ + 0.25, 1, '#f5b94a', 0.3);
   if (s > tF && s < tF + 0.6) { const u = tramo(s, tF, tF + 0.6); X.halo(0, { x: G4.CX, y: G4.CY - 0.7, z: G4.CZ + 0.3, esc: 1 + 3.5 * sale(u), op: 0.8 * (1 - u), color: 0xffc35a }); }
   const g = Math.atan2(G4.CX - G4.HX, G4.CZ - G4.HZ);
   W.heroe({ x: G4.HX + 0.6 * (1 - sale(tramo(s, 0, 0.9))), z: G4.HZ + 0.5 * (1 - sale(tramo(s, 0, 0.9))), gira: g, amp: 1 - tramo(s, 0.6, 0.9), fase: s * 8, luz: s > tF ? 1 : 0, brazos: s > tF ? 0.35 * qq(s, tF, 0.3) : 0 });
@@ -566,8 +566,8 @@ const TRES = function (t, k, s, e, W) {
 };
 
 const pildoras = {
-  'es-devolucion-14-dias': pildora3d({
-    slug: 'es-devolucion-14-dias', cuenta: 'es',
+  'es-devolucion-tienda-internet': pildora3d({
+    slug: 'es-devolucion-tienda-internet', cuenta: 'es',
     T: { es: { titulo: 'En la tienda no te lo tienen que devolver. Por internet, 14 días', guion: GUION } },
     fijo: () => `<div class="hud i fmt">TUS DERECHOS</div><div class="hud d"><i></i><span id="reloj">00:00</span></div>`,
     cssExtra: CSS, scriptExtra: SCRIPT,

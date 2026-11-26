@@ -391,5 +391,14 @@
     "etiqueta": "Black Friday",
     "fotograma_ms": 5000,
     "encuadre_y": 600
+  },
+  "es-devolucion-tienda-internet": {
+    "titulo": "Devolverlo: ~0 días~ 14 días",
+    "destacado": "14 días",
+    "color": "turq",
+    "serie": "pildora",
+    "etiqueta": "Tus derechos",
+    "fotograma_ms": 2300,
+    "encuadre_y": 600
   }
 }
